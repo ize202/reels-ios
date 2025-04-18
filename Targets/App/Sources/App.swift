@@ -45,8 +45,16 @@ struct MainApp: App {
 					// Identify OneSignal with Supabase user (NotifKit & AuthKit)
 					PushNotifications.associateUserWithID(user.id.uuidString)
 
-					// Get PostHog Associated User Properties (AnalyticsKit & AuthKit)
-					var userProperties = DB.convertAuthUserToAnalyticsUserProperties(user)
+					// Get Mixpanel Associated User Properties (AnalyticsKit & AuthKit)
+					let userProperties: [String: Any] = [
+						"user_id": user.id,
+						"email": user.email ?? "no_email",
+						"phone": user.phone ?? "no_phone",
+						"created_at": user.createdAt.description,
+						"last_sign_in_at": user.lastSignInAt?.description ?? "never",
+						"app_metadata": user.appMetadata,
+						"user_metadata": user.userMetadata,
+					]
 
 					// Identify RevenueCat SDK with Supabase user (InAppPurchaseKit & AuthKit)
 					InAppPurchases.associateUserWithID(
@@ -112,7 +120,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, OSNotificationLifecycleListe
 		didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
 	) -> Bool {
 		// Initialize AnalyticsKit
-		Analytics.initPostHog()
+		Analytics.initMixpanel()
 		InAppPurchases.initRevenueCat()
 
 		// If OneSignal initialized successfully, we set up the push notification observers and clear all notifications when the app is opened

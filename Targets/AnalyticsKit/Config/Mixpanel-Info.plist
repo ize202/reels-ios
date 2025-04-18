@@ -2,9 +2,7 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>POSTHOG_API_KEY</key>
-	<string>INSERT_YOUR_POSTHOG_API_KEY</string>
-	<key>POSTHOG_HOST</key>
-	<string>INSERT_YOUR_POSTHOG_HOST</string>
+    <key>MIXPANEL_TOKEN</key>
+    <string>c867e1988554f0be826862a949b71a86</string>
 </dict>
-</plist>
+</plist> 

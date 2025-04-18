@@ -8,8 +8,8 @@
 //
 
 import Foundation
-import PostHog
 import SharedKit
+import Mixpanel
 
 /// Defines the type of the event.
 ///
@@ -50,75 +50,159 @@ public enum EventSource: String {
 	/// For events that are related to Push Notifications / OneSignal
 	case notif = "notif"
 
-	/// For events that are related to AnalyticsKit itself / PostHog
+	/// For events that are related to AnalyticsKit itself / Mixpanel
 	case analytics = "analytics"
 }
 
-/// Wrapper around the PostHogSDK
-public class Analytics {
+/// A type that represents an analytics event.
+public protocol AnalyticsEvent {
+	/// The name of the event.
+	var name: String { get }
+	/// The properties of the event.
+	var properties: [String: Any] { get }
+}
 
-	/// Capture an event and send it to PostHog.
-	/// https://docs.swiftylaun.ch/module/analyticskit/track-events-and-errors
-	///
-	/// A wrapper of the "flexible" version that takes in raw input and sends it to PostHog.
-	static public func capture(
-		_ eventType: EventType,
-		id: String,
-		longDescription: String? = nil,
-		source: EventSource,
-		fromView: String? = nil,
-		relevancy: EventRelevancy? = nil
-	) {
-		// To get an overview of what's being captured, we print it into the console
-		print(
-			"[ANALYTICS] Captured \(eventType.rawValue) event '\(id)' of type '\(source.rawValue)': \(longDescription ?? "No description")"
+/// A type that represents an analytics event with a screen name.
+public protocol AnalyticsScreenEvent: AnalyticsEvent {
+	/// The name of the screen.
+	var screenName: String { get }
+}
+
+/// A type that represents an analytics event with a button name.
+public protocol AnalyticsButtonEvent: AnalyticsEvent {
+	/// The name of the button.
+	var buttonName: String { get }
+}
+
+/// A type that represents an analytics event with a user ID.
+public protocol AnalyticsUserEvent: AnalyticsEvent {
+	/// The ID of the user.
+	var userId: String { get }
+}
+
+/// A type that represents an analytics event with a value.
+public protocol AnalyticsValueEvent: AnalyticsEvent {
+	/// The value of the event.
+	var value: Double { get }
+}
+
+/// A type that represents an analytics event with a duration.
+public protocol AnalyticsDurationEvent: AnalyticsEvent {
+	/// The duration of the event.
+	var duration: TimeInterval { get }
+}
+
+/// A type that represents an analytics event with an error.
+public protocol AnalyticsErrorEvent: AnalyticsEvent {
+	/// The error that occurred.
+	var error: Error { get }
+}
+
+/// For events that are related to AnalyticsKit itself / Mixpanel
+public enum AnalyticsKitEvent: AnalyticsEvent {
+	case userIdentified(id: String)
+	case userReset
+
+	public var name: String {
+		switch self {
+		case .userIdentified: return "user_identified"
+		case .userReset: return "user_reset"
+		}
+	}
+
+	public var properties: [String: Any] {
+		switch self {
+		case .userIdentified(let id):
+			return ["user_id": id]
+		case .userReset:
+			return [:]
+		}
+	}
+}
+
+/// Wrapper around the Mixpanel SDK
+public enum Analytics {
+	/// Capture an event and send it to Mixpanel.
+	/// - Parameter event: The event to capture.
+	public static func capture(_ event: AnalyticsEvent) {
+		/// A wrapper of the "flexible" version that takes in raw input and sends it to Mixpanel.
+		/// - Parameters:
+		///   - event: The name of the event.
+		///   - properties: The properties of the event.
+		func captureRaw(_ event: String, properties: [String: Any]) {
+			var propertiesToSend = properties
+
+			// Add screen name if available
+			if let screenEvent = event as? AnalyticsScreenEvent {
+				propertiesToSend["screen_name"] = screenEvent.screenName
+			}
+
+			// Add button name if available
+			if let buttonEvent = event as? AnalyticsButtonEvent {
+				propertiesToSend["button_name"] = buttonEvent.buttonName
+			}
+
+			// Add user ID if available
+			if let userEvent = event as? AnalyticsUserEvent {
+				propertiesToSend["user_id"] = userEvent.userId
+			}
+
+			// Add value if available
+			if let valueEvent = event as? AnalyticsValueEvent {
+				propertiesToSend["value"] = valueEvent.value
+			}
+
+			// Add duration if available
+			if let durationEvent = event as? AnalyticsDurationEvent {
+				propertiesToSend["duration"] = durationEvent.duration
+			}
+
+			// Add error if available
+			if let errorEvent = event as? AnalyticsErrorEvent {
+				propertiesToSend["error"] = errorEvent.error.localizedDescription
+			}
+
+			Mixpanel.mainInstance().track(event: event.name, properties: propertiesToSend)
+		}
+
+		captureRaw(event.name, properties: event.properties)
+	}
+
+	/// Is only used once in App.swift to initialize Mixpanel.
+	static public func initMixpanel() {
+		guard let token = try? getPlistEntry("MIXPANEL_TOKEN", in: "Mixpanel-Info"), !token.isEmpty else {
+			fatalError("ERROR: Couldn't find MIXPANEL_TOKEN in Mixpanel-Info.plist!")
+		}
+
+		Mixpanel.initialize(token: token)
+		
+		// Enable automatic screen tracking
+		Mixpanel.mainInstance().trackAutomaticEvents = true
+	}
+
+	/// Identifies a user in Mixpanel
+	/// - Parameters:
+	///   - id: The ID of the user.
+	///   - userProperties: The properties of the user.
+	static public func identify(id: String, userProperties: [String: Any] = [:]) {
+		Mixpanel.mainInstance().identify(distinctId: id)
+		if !userProperties.isEmpty {
+			Mixpanel.mainInstance().people.set(properties: userProperties)
+		}
+		
+		capture(AnalyticsKitEvent.userIdentified(id: id))
+		
+		Logger.info(
+			id: "connected_user_between_auth_and_mixpanel",
+			longDescription: "[ANALYTICS<>AUTH] Connected Auth and Mixpanel for User with ID \(id).",
+			properties: userProperties
 		)
-
-		var properties: [String: Any] = [
-			"relevancy": relevancy != nil
-				? relevancy!.rawValue
-				: eventType == .error ? EventRelevancy.high.rawValue : EventRelevancy.medium.rawValue,
-			"source": source.rawValue,
-		]
-
-		if let longDescription = longDescription {
-			properties["long_description"] = longDescription
-		}
-
-		// If we also pass from which view that event was captured, we want to attach the value to the internal
-		// PostHog Property called $screen_name. (Events properties with '$' prefix are usually automatically set by PostHog)
-		if let fromView = fromView {
-			properties["$screen_name"] = fromView
-		}
-
-		Analytics.captureEvent("\(eventType.rawValue)_\(id)", properties: properties)
 	}
 
-	/// Capture an event and send it to PostHog.
-	/// https://docs.swiftylaun.ch/module/analyticskit/track-events-and-errors#flexbile-captureevent-function
-	///
-	/// A more "raw" version of the function above that allows for greater flexibility. You will probably want to use the function above
-	static public func captureEvent(_ event: String, properties: [String: Any]?) {
-		let propertiesToSend = properties ?? [:]
-		PostHogSDK.shared.capture(event, properties: propertiesToSend)
-	}
-
-	/// Is called from the .captureTaps() view modifier (https://docs.swiftylaun.ch/module/analyticskit/capture-taps) , but we
-	/// can also manually send these events with this function.
-	static public func captureTap(
-		_ tapTargetId: String,
-		fromView screenName: String?,
-		relevancy: EventRelevancy = .medium
-	) {
-		print("[ANALYTICS] Captured tap on \(tapTargetId)")
-
-		var properties: [String: Any] = [:]
-		properties["relevancy"] = relevancy.rawValue
-		if let screenName = screenName {
-			properties["$screen_name"] = screenName
-		}
-
-		Analytics.captureEvent("user_tapped_on_\(tapTargetId)", properties: properties)
+	/// Disconnects Mixpanel ID from Supabase Auth UID
+	static public func reset() {
+		Mixpanel.mainInstance().reset()
+		capture(AnalyticsKitEvent.userReset)
 	}
 }
 
@@ -126,50 +210,39 @@ public class Analytics {
 extension Analytics {
 
 	// We don't do this inside init of Analytics because we never initialize the Analytics object.
-	// Is only used once in App.swift to initialize PostHog.
-	static public func initPostHog() {
-
-		guard let apiKey = try? getPlistEntry("POSTHOG_API_KEY", in: "PostHog-Info"), !apiKey.isEmpty else {
-			fatalError("ERROR: Couldn't find POSTHOG_API_KEY in PostHog-Info.plist!")
+	// Is only used once in App.swift to initialize Mixpanel.
+	static public func initMixpanel() {
+		guard let token = try? getPlistEntry("MIXPANEL_TOKEN", in: "Mixpanel-Info"), !token.isEmpty else {
+			fatalError("ERROR: Couldn't find MIXPANEL_TOKEN in Mixpanel-Info.plist!")
 		}
 
-		guard let host = try? getPlistEntry("POSTHOG_HOST", in: "PostHog-Info"), !host.isEmpty else {
-			fatalError("ERROR: Couldn't find POSTHOG_HOST in PostHog-Info.plist!")
-		}
-
-		let config = PostHogConfig(apiKey: apiKey, host: host)
-
-		// Doesn't work well with SwiftUI. We'll manually track screen views via the .captureViewActivity() Modifier
-		config.captureScreenViews = false
-
-		// EXPERIMENTAL SESSION REPLAYS:
-		// SwiftyLaunch Docs: https://docs.swiftylaun.ch/module/analyticskit/session-recordings
-		// PostHog Docs: https://posthog.com/docs/session-replay/mobile
-		config.sessionReplay = true
-		config.sessionReplayConfig.screenshotMode = true
-		config.sessionReplayConfig.maskAllImages = false
-		config.sessionReplayConfig.maskAllTextInputs = false
-
-		// Note: MAKE SURE TO PROPERLY MASK SENSITIVE INFORMATION!
-
-		PostHogSDK.shared.setup(config)
+		Mixpanel.initialize(token: token)
+		
+		// Enable automatic screen tracking
+		Mixpanel.mainInstance().trackAutomaticEvents = true
 	}
 
 	/// Allows us to connect a user with our Supabase Auth UID
 	/// https://docs.swiftylaun.ch/module/analyticskit#actions-when-user-signes-in-or-out-only-with-firebasekit
 	static public func associateUserWithID(_ id: String, userProperties: [String: Any]) {
-		PostHogSDK.shared.identify(id, userProperties: userProperties)
-		Analytics.capture(
-			.info,
-			id: "connected_user_between_auth_and_posthog",
-			longDescription: "[ANALYTICS<>AUTH] Connected Auth and PostHog for User with ID \(id).",
-			source: .analytics
+		Mixpanel.mainInstance().identify(distinctId: id)
+		if !userProperties.isEmpty {
+			Mixpanel.mainInstance().people.set(properties: userProperties)
+		}
+		
+		capture(AnalyticsKitEvent.userIdentified(id: id))
+		
+		Logger.info(
+			id: "connected_user_between_auth_and_mixpanel",
+			longDescription: "[ANALYTICS<>AUTH] Connected Auth and Mixpanel for User with ID \(id).",
+			properties: userProperties
 		)
 	}
 
-	/// Disconnects PostHog ID from Supabase Auth UID
+	/// Disconnects Mixpanel ID from Supabase Auth UID
 	static public func removeUserIDAssociation() {
-		PostHogSDK.shared.reset()
+		Mixpanel.mainInstance().reset()
+		capture(AnalyticsKitEvent.userReset)
 	}
 
 }

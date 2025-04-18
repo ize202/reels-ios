@@ -269,7 +269,7 @@ func tuistProject() -> Project {
 			resources: [baseAppResources],
 			dependencies: [
 				sharedKit,
-				TargetDependency.package(product: "PostHog", type: .runtime),
+				TargetDependency.package(product: "Mixpanel", type: .runtime),
 			],
 			settings: .settings(base: [
 				"ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS": "YES"
@@ -279,12 +279,12 @@ func tuistProject() -> Project {
 		projectPackages
 			.append(
 				.remote(
-					url: "https://github.com/PostHog/posthog-ios.git",
-					requirement: .upToNextMajor(from: "3.21.0")
+					url: "https://github.com/mixpanel/mixpanel-swift.git",
+					requirement: .upToNextMajor(from: "4.0.0")
 				)
 			)
 		projectTargets.append(analyticsTarget)
-		appResources.append("Targets/\(targetName)/Config/PostHog-Info.plist")
+		appResources.append("Targets/\(targetName)/Config/Mixpanel-Info.plist")
 	}
 	func addNotifKit() {
 		let notifTargetName = "NotifKit"

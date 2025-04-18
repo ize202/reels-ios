@@ -7,51 +7,33 @@
 import SharedKit
 import SwiftUI
 import UIKit
+import Mixpanel
 
-struct CaptureTapsModifier: ViewModifier {
-
-	@Environment(\.isEnabled) var isEnabled: Bool  // to access .disabled() property
-	let tapTargetId: String
-	let analyticsRelevancy: EventRelevancy
-	let fromView: String?
-
-	public init(
-		tapTargetId: String,
-		fromView: String?,
-		relevancy: EventRelevancy
-	) {
-		self.tapTargetId = tapTargetId
-		self.fromView = fromView
-		self.analyticsRelevancy = relevancy
+/// A view modifier that captures button taps.
+public struct CaptureTaps: ViewModifier {
+	let buttonName: String
+	let screenName: String?
+	
+	public init(buttonName: String, screenName: String? = nil) {
+		self.buttonName = buttonName
+		self.screenName = screenName
 	}
-
-	func body(content: Content) -> some View {
-		ZStack {
-			content
-		}
-		.simultaneousGesture(
-			TapGesture().onEnded {
-				if !isPreview, self.isEnabled {
-					Analytics.captureTap(tapTargetId, fromView: fromView, relevancy: analyticsRelevancy)
+	
+	public func body(content: Content) -> some View {
+		content
+			.onTapGesture {
+				var properties: [String: Any] = ["button_name": buttonName]
+				if let screenName = screenName {
+					properties["screen_name"] = screenName
 				}
-			})
+				Mixpanel.mainInstance().track(event: "button_tap", properties: properties)
+			}
 	}
 }
 
-extension View {
-	/// This modifier will notify PostHog when a view is tapped
-	/// Sometimes doesn't work and blocks underlying views from tapping (e.g. Native NavigationLink).
-	public func captureTaps(
-		_ tapTargetId: String,
-		fromView: String? = nil,
-		relevancy: EventRelevancy = .medium
-	) -> some View {
-		modifier(
-			CaptureTapsModifier(
-				tapTargetId: tapTargetId,
-				fromView: fromView,
-				relevancy: relevancy
-			)
-		)
+/// This modifier will notify Mixpanel when a view is tapped
+public extension View {
+	func captureTaps(buttonName: String, screenName: String? = nil) -> some View {
+		modifier(CaptureTaps(buttonName: buttonName, screenName: screenName))
 	}
 }
