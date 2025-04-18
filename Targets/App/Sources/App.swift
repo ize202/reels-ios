@@ -10,6 +10,7 @@
 //
 
 import AnalyticsKit
+import CrashlyticsKit
 import InAppPurchaseKit
 import NotifKit
 import OneSignalFramework
@@ -56,6 +57,13 @@ struct MainApp: App {
 						"user_metadata": user.userMetadata,
 					]
 
+					// Set Sentry user context
+					Crashlytics.setUser(
+						id: user.id.uuidString,
+						email: user.email,
+						data: userProperties
+					)
+
 					// Identify RevenueCat SDK with Supabase user (InAppPurchaseKit & AuthKit)
 					InAppPurchases.associateUserWithID(
 						user.id.uuidString
@@ -67,6 +75,7 @@ struct MainApp: App {
 					Analytics.associateUserWithID(user.id.uuidString, userProperties: userProperties)
 				} else {
 					Analytics.removeUserIDAssociation()
+					Crashlytics.clearUser()
 					InAppPurchases.removeUserIDAssociation()
 					PushNotifications.removeUserIDAssociation()
 				}
@@ -121,6 +130,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, OSNotificationLifecycleListe
 	) -> Bool {
 		// Initialize AnalyticsKit
 		Analytics.initMixpanel()
+		Crashlytics.initSentry()
 		InAppPurchases.initRevenueCat()
 
 		// If OneSignal initialized successfully, we set up the push notification observers and clear all notifications when the app is opened

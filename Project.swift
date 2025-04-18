@@ -105,9 +105,11 @@ func tuistProject() -> Project {
 
 	let sharedKit = TargetDependency.target(name: "SharedKit")
 	let analyticsKit = TargetDependency.target(name: "AnalyticsKit")
+	let crashlyticsKit = TargetDependency.target(name: "CrashlyticsKit")
 
 	addSharedKit()
 	addAnalyticsKit()
+	addCrashlyticsKit()
 	addNotifKit()
 	let iapKit = addInAppPurchaseKit()
 	addSupabaseKit()
@@ -390,5 +392,38 @@ func tuistProject() -> Project {
 		appResources.append("Targets/\(targetName)/Config/Supabase-Info.plist")
 		return targetDependency
 
+	}
+
+	// Sentry Crashlytics
+	func addCrashlyticsKit() {
+		let targetName = "CrashlyticsKit"
+		let crashlyticsTarget: Target = .target(
+			name: targetName,
+			destinations: destinations,
+			product: .framework,
+			bundleId: "\(bundleID).\(targetName)",
+			deploymentTargets: .iOS(osVersion),
+			infoPlist: .extendingDefault(with: defaultModuleInfoPlist),
+			sources: ["Targets/\(targetName)/Sources/**"],
+			resources: [baseAppResources],
+			dependencies: [
+				sharedKit,
+				analyticsKit,
+				TargetDependency.package(product: "Sentry", type: .runtime),
+			],
+			settings: .settings(base: [
+				"ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS": "YES"
+			])
+		)
+		appDependencies.append(crashlyticsKit)
+		projectPackages
+			.append(
+				.remote(
+					url: "https://github.com/getsentry/sentry-cocoa.git",
+					requirement: .upToNextMajor(from: "8.49.0")
+				)
+			)
+		projectTargets.append(crashlyticsTarget)
+		appResources.append("Targets/\(targetName)/Config/Sentry-Info.plist")
 	}
 }
