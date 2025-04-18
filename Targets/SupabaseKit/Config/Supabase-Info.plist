@@ -3,8 +3,12 @@
 <plist version="1.0">
 <dict>
 	<key>SUPABASE_URL</key>
-	<string>INSERT_YOUR_SUPABASE_URL</string>
+	<string>https://csitfjmshhekkdkjglrw.supabase.co</string>
 	<key>SUPABASE_KEY</key>
-	<string>INSERT_YOUR_SUPABASE_API_KEY</string>
+	<string>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzaXRmam1zaGhla2tka2pnbHJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5NzU0NTcsImV4cCI6MjA2MDU1MTQ1N30.4a-rKF3v4Fk2NJoorpCEKOWiOvtwlKgJV4dFja5rhdc</string>
+	<key>SUPABASE_DEV_URL</key>
+	<string>https://fujbvhvyijqsawbjyqjb.supabase.co</string>
+	<key>SUPABASE_DEV_KEY</key>
+	<string>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ1amJ2aHZ5aWpxc2F3Ymp5cWpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUwMDA1MzAsImV4cCI6MjA2MDU3NjUzMH0.cQPA_ZEfD9s53Q5ufOJmNcc1slrmDcq8sFTZh5B_azw</string>
 </dict>
 </plist>

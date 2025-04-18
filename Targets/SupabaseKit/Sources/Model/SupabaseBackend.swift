@@ -59,8 +59,19 @@ public class DB: ObservableObject {
 	public init(
 		onAuthStateChange: @escaping (AuthChangeEvent, Session?) -> Void = { _, _ in }
 	) {
-		let supabaseURLString = try? getPlistEntry("SUPABASE_URL", in: "Supabase-Info")
-		let apiKey = try? getPlistEntry("SUPABASE_KEY", in: "Supabase-Info")
+
+		#if DEBUG
+		let urlKey = "SUPABASE_DEV_URL"
+		let apiKeyKey = "SUPABASE_DEV_KEY"
+		print("[DB] Using development database")
+		#else
+		let urlKey = "SUPABASE_URL"
+		let apiKeyKey = "SUPABASE_KEY"
+		print("[DB] Using production database")
+		#endif
+		
+		let supabaseURLString = try? getPlistEntry(urlKey, in: "Supabase-Info")
+		let apiKey = try? getPlistEntry(apiKeyKey, in: "Supabase-Info")
 
 		guard let apiKey, let supabaseURLString, let supabaseURL = URL(string: supabaseURLString) else {
 			fatalError("ERROR Couldn't get SupabaseURL and API Keys in Supabase-Info.plist!")
