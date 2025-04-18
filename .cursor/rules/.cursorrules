@@ -183,6 +183,13 @@
 - Document public interfaces with proper doc comments
 - Create architecture diagrams for complex features
 
+### Adding New Features
+- When adding new features, we recommend that you follow the same structure as other SwiftyLaunch modules. This will make it easier for you to maintain and scale your app.
+- Following the common module structure (based on MVVM), add Views to the View folder, ViewModels to the ViewModels folder, and Models to the Model folder.
+- If after some time you realise that it starts to get messy, it would be wise to group the functionality into their own folder.
+
+Example: You are working on a Workout App with Social Features and you have specific views, models, and view models that are only responsible for showing and handling your user's friends workout data. At first, you can start by placing it all in the common MVVM structure, but as the feature grows, you can move it to its own folder, which contains its own MVVM-related files.
+
 ### Build System
 - Use **Tuist** for project generation and dependency management
 - Use **Swift Package Manager (SPM)** for dependencies
