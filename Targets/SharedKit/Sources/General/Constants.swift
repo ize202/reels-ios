@@ -122,14 +122,14 @@ public struct Constants {
 		public static let developerWebsite = "https://x.com/Vlad_Smolyanoy"
 
 		/// Will be shown in the footer of the SettingsView with a copyright symbol and year
-		public static let developerName = "APP_DEVELOPER_NAME_PLACEHOLDER"
+		public static let developerName = "Slips LLC"
 
 		/// URL to your app's ToS, will be shown in Settings/Privacy
 		/// Should match the ToS in App Store Connect and in RevenueCat
-		public static let termsOfServiceURL = "https://APP_DOMAIN_PLACEHOLDER/legal/terms-of-service"
+		public static let termsOfServiceURL = "https://yourapp.com/legal/terms-of-service"
 
 		/// URL to your app's Privacy Policy, will be shown in Settings/Privacy
 		/// Should match the Privacy Policy in App Store Connect and in RevenueCat
-		public static let privacyPolicyURL = "https://APP_DOMAIN_PLACEHOLDER/legal/privacy-policy"
+		public static let privacyPolicyURL = "https://yourapp.com/legal/privacy-policy"
 	}
 }
