@@ -199,6 +199,11 @@
 - Use SwiftFormat with consistent team settings
 - All public APIs must include doc comments
 
+## Working with Supabase using MCP
+- Use the supabase MCP connection to connect to the database
+- Only use the dev database for development: ReelsDev db
+
+
 ## Code Review Criteria
 - Code follows SOLID principles
 - Proper error handling is implemented

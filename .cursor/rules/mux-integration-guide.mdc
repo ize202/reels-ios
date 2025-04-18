@@ -1,0 +1,2518 @@
+---
+description: This documentation covers how developers might integrate Mux Video with external technologies
+globs: 
+alwaysApply: false
+---
+# Add high-performance video to your Next.js application
+Use our API and components to handle embedding, storing, and streaming video in your Next.js application
+<Callout type="info">
+  Mux is now available as a native integration through the [Vercel Marketplace](https://vercel.com/marketplace/mux). Visit the [Vercel documentation](https://vercel.com/docs) for specific guidance related to getting up and running with Mux on Vercel.
+</Callout>
+
+## When should you use Mux with Next.js?
+
+When adding video to your Next.js app, you'll encounter some common hurdles. First, videos are large. Storing them in your public directory can lead to excessive bandwidth consumption and poor Git repository performance. Next, it's important to compress and optimize your videos for the web. Then, as network conditions change, you might want to adapt the quality of your video to ensure a smooth playback experience for your users. Finally, you may want to integrate additional features like captions, thumbnails, and analytics.
+
+You might consider using Mux's APIs and components to handle these challenges, [and more](https://www.mux.com/features).
+
+## Quickly drop in a video with next-video
+
+[`next-video`](https://next-video.dev) is a React component, [maintained by Mux](https://github.com/muxinc/next-video), for adding video to your Next.js application. It extends both the `<video>` element and your Next app with features to simplify video uploading, storage, and playback.
+
+To get started...
+
+1. Run the install script: `npx -y next-video init`. This will install the `next-video` package, update your `next.config.js` and TypeScript configuration, and create a `/videos` folder in your project.
+2. Add a video to your `/videos` folder. Mux will upload, store, and optimize it for you.
+3. Add the component to your app:
+
+```jsx
+import Video from 'next-video';
+import myVideo from '/videos/my-video.mp4'; 
+ 
+export default function Page() { 
+ return <Video src={myVideo} />;
+}
+```
+
+Check out the [`next-video` docs](https://next-video.dev/docs) to learn more.
+
+## Use the API and our components for full control
+
+If you're looking to build your own video workflow that enables uploading, playback, and more in your application, you can use the Mux API and components like [Mux Player](/docs/guides/mux-player-web) and [Mux Uploader](/docs/guides/mux-uploader).
+
+### Example: allowing users to upload video to your app
+
+One reason you might want to build your own video workflow is when you want to allow users to upload video to your app.
+
+Let's start by adding a new page where users can upload videos. This will involve using the [Mux Uploader](/docs/guides/mux-uploader) component, which will upload videos to a Mux <ApiRefLink product="video" slug="operation/create-direct-upload">Direct Uploads URL</ApiRefLink>.
+
+In the code sample below, we'll create an upload URL using the [Mux Node SDK](https://github.com/muxinc/mux-node-sdk) and the Direct Uploads URL API. We'll pass that URL to the Mux Uploader component, which will handle uploading for us.
+
+```appDirJs
+
+import Mux from '@mux/mux-node';
+import MuxUploader from '@mux/mux-uploader-react';
+
+const client = new Mux({
+  tokenId: process.env['MUX_TOKEN_ID'],
+  tokenSecret: process.env['MUX_TOKEN_SECRET'],
+});
+
+export default async function Page() {
+  const directUpload = await client.video.uploads.create({
+    cors_origin: '*',
+    new_asset_settings: {
+      playback_policy: ['public'],
+    },
+  });
+
+  return <MuxUploader endpoint={directUpload.url} />;
+}
+
+```
+
+```appDirTs
+
+import Mux from '@mux/mux-node';
+import MuxUploader from '@mux/mux-uploader-react';
+
+const client = new Mux({
+  tokenId: process.env['MUX_TOKEN_ID'],
+  tokenSecret: process.env['MUX_TOKEN_SECRET'],
+});
+
+export default async function Page() {
+  const directUpload = await client.video.uploads.create({
+    cors_origin: '*',
+    new_asset_settings: {
+      playback_policy: ['public'],
+    },
+  });
+
+  return <MuxUploader endpoint={directUpload.url} />;
+}
+
+```
+
+```pagesDirJs
+
+import Mux from '@mux/mux-node';
+import MuxUploader from '@mux/mux-uploader-react';
+
+const client = new Mux({
+  tokenId: process.env['MUX_TOKEN_ID'],
+  tokenSecret: process.env['MUX_TOKEN_SECRET'],
+});
+
+export const getServerSideProps = async () => {
+  const directUpload = await client.video.uploads.create({
+    cors_origin: '*',
+    new_asset_settings: {
+      playback_policy: ['public'],
+    },
+  });
+
+  return {
+    props: {
+      directUpload,
+    },
+  };
+}
+
+export default function Page({ directUpload }) {
+  return <MuxUploader endpoint={directUpload.url} />;
+}
+```
+
+```pagesDirTs
+
+import type { InferGetServerSidePropsType, GetServerSideProps } from 'next'
+
+import Mux, { type Upload } from '@mux/mux-node';
+import MuxUploader from '@mux/mux-uploader-react';
+
+const client = new Mux({
+  tokenId: process.env['MUX_TOKEN_ID'],
+  tokenSecret: process.env['MUX_TOKEN_SECRET'],
+});
+
+export const getServerSideProps = (async () => {
+  const directUpload = await client.video.uploads.create({
+    cors_origin: '*',
+    new_asset_settings: {
+      playback_policy: ['public'],
+    },
+  });
+
+  return {
+    props: {
+      directUpload,
+    },
+  };
+}) satisfies GetServerSideProps<{ directUpload: Upload }>
+
+export default function Page({
+  directUpload
+}: InferGetServerSidePropsType<typeof getServerSideProps>) {
+  return <MuxUploader endpoint={directUpload.url} />;
+}
+```
+
+
+
+<Callout type="warning">
+  In production, you'll want to apply additional security measures to your upload URL. Consider protecting the route with authentication to prevent unauthorized users from uploading videos. Also, use `cors_origin` and consider [`playback_policy`](/docs/guides/secure-video-playback) to further restrict where uploads can be performed and who can view uploaded videos.
+</Callout>
+
+Next, we'll create an API endpoint that will [listen for Mux webhooks](/docs/core/listen-for-webhooks). When we receive the notification that the video has finished uploading and is ready for playback, we'll add the video's metadata to our database.
+
+```appDirJs
+
+export async function POST(request) {
+  const body = await request.json();
+  const { type, data } = body
+
+  if (type === 'video.asset.ready') {
+    await saveAssetToDatabase(data);
+  } else {
+    /* handle other event types */
+  }
+  return Response.json({ message: 'ok' });
+}
+
+```
+
+```appDirTs
+
+export async function POST(request: Request) {
+  const body = await request.json();
+  const { type, data } = body
+
+  if (type === 'video.asset.ready') {
+    await saveAssetToDatabase(data);
+  } else {
+    /* handle other event types */
+  }
+  return Response.json({ message: 'ok' });
+}
+
+```
+
+```pagesDirJs
+
+export default async function muxWebhookHandler (req, res) {
+  const { method, body } = req;
+
+  switch (method) {
+    case 'POST': {
+      const { data, type } = body;
+
+      if (type === 'video.asset.ready') {
+        await saveAssetToDatabase(data);
+      } else {
+        /* handle other event types */
+      }
+      res.json({ message: ok });
+    } default:
+      res.setHeader('Allow', ['POST']);
+      res.status(405).end(`Method ${method} Not Allowed`);
+  }
+}
+
+```
+
+```pagesDirTs
+
+import { NextApiRequest, NextApiResponse } from 'next';
+
+export default async function muxWebhookHandler (req: NextApiRequest, res: NextApiResponse): Promise<void> {
+  const { method, body } = req;
+
+  switch (method) {
+    case 'POST': {
+      const { data, type } = body;
+
+      if (type === 'video.asset.ready') {
+        await saveAssetToDatabase(data);
+      } else {
+        /* handle other event types */
+      }
+      res.json({ message: ok });
+    } default:
+      res.setHeader('Allow', ['POST']);
+      res.status(405).end(`Method ${method} Not Allowed`);
+  }
+}
+
+```
+
+
+
+Finally, let's make a playback page. We retrieve the video metadata from our database, and play it by passing its `playbackId` to [Mux Player](/docs/guides/mux-player-web):
+
+```appDirJs
+
+import Mux from '@mux/mux-node';
+import MuxPlayer from '@mux/mux-player-react';
+
+const mux = new Mux();
+
+export default async function Page({ params }) {
+  /* Get the asset metadata from your database here or directly from Mux like below. */
+  const asset = await mux.video.assets.retrieve(params.id);
+  return <MuxPlayer playbackId={asset.playback_ids?.[0].id} accentColor="#ac39f2" />;
+}
+
+```
+
+```appDirTs
+
+import Mux from '@mux/mux-node';
+import MuxPlayer from '@mux/mux-player-react';
+
+const mux = new Mux();
+
+export default async function Page({ params }: { params: { id: string } }) {
+  /* Get the asset metadata from your database here or directly from Mux like below. */
+  const asset = await mux.video.assets.retrieve(params.id);
+  return <MuxPlayer playbackId={asset.playback_ids?.[0].id!} accentColor="#ac39f2" />;
+}
+
+```
+
+```pagesDirJs
+
+import Mux from '@mux/mux-node';
+import MuxPlayer from '@mux/mux-player-react';
+
+const mux = new Mux();
+
+export const getStaticProps = async ({ params })  => {
+  /* Get the asset metadata from your database here or directly from Mux like below. */
+  const asset = await mux.video.assets.retrieve(params.id);
+  return {
+    props: {
+      asset,
+    },
+  };
+}
+
+export default function Page({ asset }) {
+  return <MuxPlayer playbackId={asset.playback_ids?.[0].id} accentColor="#ac39f2" />;
+}
+
+```
+
+```pagesDirTs
+
+import type { InferGetStaticPropsType, GetStaticProps } from 'next';
+
+import Mux from '@mux/mux-node';
+import MuxPlayer from '@mux/mux-player-react';
+
+const mux = new Mux();
+
+export const getStaticProps = (async ({ params }) => {
+  /* Get the asset metadata from your database here or directly from Mux like below. */
+  const asset = await mux.video.assets.retrieve(params.id);
+  return {
+    props: {
+      asset,
+    },
+  };
+}) satisfies GetStaticProps<{ asset: ReturnType<typeof mux.video.assets.retrieve> }>;
+
+export default function Page({
+  asset
+}: InferGetStaticPropsType<typeof getStaticProps>) {
+  return <MuxPlayer playbackId={asset.playback_ids?.[0].id!} accentColor="#ac39f2" />;
+}
+
+```
+
+
+
+And we've got upload and playback. Nice!
+
+What's next? You can [integrate with your CMS](/docs/integrations/cms). You can [optimize your loading experience](/docs/guides/player-lazy-loading). Or get started with an example project below:
+
+## Example projects
+
+<GuideCard
+  title="Video Course Starter Kit"
+  description={<p>If youâ€™re a developer youâ€™ve probably seen and used platforms like <a href="https://egghead.io/">Egghead</a>, <a href="https://leveluptutorials.com/">LevelUp Tutorials</a>, <a href="https://www.coursera.org/">Coursera</a>, etc. This is your starter kit to build something like that with Next.js + Mux. Complete with Github OAuth, the ability to create courses, adding video lessons, progress tracking for viewers.</p>}
+  links={[
+    {
+      title: "View project â†’",
+      href: "https://vercel.com/templates/next.js/video-course-starter-kit",
+    },
+  ]}
+/>
+
+<GuideCard
+  title="with-mux-video"
+  description={<>
+    <p>This is a bare-bones starter application with Next.js that uses:</p>
+    <ul>
+      <li>Mux <ApiRefLink product="video" slug="operation/create-direct-upload">Direct Uploads</ApiRefLink></li>
+      <li>Mux <a href="/docs/guides/video" title="Mux Video">Video</a> + Mux <a href="/docs/guides/data" title="Mux Data">Data</a></li>
+      <li>Mux <a href="/docs/guides/mux-player-web" title="Mux Player">Player</a></li>
+    </ul>
+  </>}
+  links={[
+    {
+      title: "View project â†’",
+      href: "https://vercel.com/templates/next.js/mux-video",
+    },
+  ]}
+/>
+
+<GuideCard
+  title="stream.new"
+  description={<>
+    <p>Stream.new is an open source Next.js application that does:</p>
+    <ul>
+      <li>Mux <ApiRefLink product="video" slug="operation/create-direct-upload">Direct Uploads</ApiRefLink></li>
+      <li>Content Moderation with Google Vision or Hive.ai (<a href="https://www.mux.com/blog/you-either-die-an-mvp-or-live-long-enough-to-build-content-moderation">Read more</a>)</li>
+    </ul>
+  </>}
+  links={[
+    {
+      title: "View project â†’",
+      href: "https://github.com/muxinc/stream.new",
+    },
+  ]}
+/>
+
+
+# Add high-performance video to your Remix.js application
+Use our API and components to handle embedding, storing, and streaming video in your Remix.js application
+## When should you use Mux with Remix.js?
+
+When adding video to your Remix.js app, you'll encounter some common hurdles. First, videos are large. Storing them in your public directory can lead to excessive bandwidth consumption and poor Git repository performance. Next, it's important to compress and optimize your videos for the web. Then, as network conditions change, you might want to adapt the quality of your video to ensure a smooth playback experience for your users. Finally, you may want to integrate additional features like captions, thumbnails, and analytics.
+
+You might consider using Mux's APIs and components to handle these challenges, [and more](https://www.mux.com/features).
+
+## Quickly drop in a video with Mux Player
+
+The quickest way to add a video to your site is with [Mux Player](/docs/guides/mux-player-web). Here's what Mux Player looks like in action:
+
+```jsx
+import MuxPlayer from "@mux/mux-player-react";
+
+export default function Page() {
+  return (
+    <MuxPlayer
+      playbackId="jwmIE4m9De02B8TLpBHxOHX7ywGnjWxYQxork1Jn5ffE"
+      metadata={{
+        video_title: "Test video title",
+        viewer_user_id: "user-id-007",
+      }}
+    />
+  );
+}
+```
+
+If your site has just a few videos, you might upload them to Mux directly thorugh the dashboard. In the [Mux Dashboard](https://dashboard.mux.com/), on your video assets page, select "Create New Asset". On the next screen, you can upload a video directly to Mux.
+
+<MultiImage
+  images={[
+  { src: "/docs/images/dashboard-create-new-asset.png", width: 2964 / 7, height: 2684 / 7, alt: 'In the upper-right corner of the Mux Dashboard is a button labeled "Create New Asset"' },
+  { src: "/docs/images/dashboard-upload-directly-to-mux.png", width: 2964 / 7, height: 2684 / 7, alt: 'At the bottom of the new asset modal is a section allowing you to upload directly to Mux' },
+]}
+/>
+
+You'll then be able to see your new asset on your video assets page. When you click on the asset, you can find the asset's playback ID in the "Playback and Thumbnails" tab. This playback ID can be used in the `playbackId` prop of the Mux Player component.
+
+<Image src="/docs/images/dashboard-playback-id.png" height={2466 / 6} width={2964 / 6} alt="In the playback and thumbnails tab of an asset you can find the playback ID, as well as more information on how to play the video." />
+
+You can read more about Mux Player, including how to customize its look and feel, over in the [Mux Player guides](/docs/guides/mux-player-web).
+
+If you're managing more videos, you might take a look at our [CMS integrations](/docs/integrations/cms).
+
+Finally, if you need more control over your video workflow, read on.
+
+## Use the API to build your video workflow
+
+If you're looking to build your own video workflow that enables uploading, playback, and more in your application, you can use the Mux API and components like [Mux Player](/docs/guides/mux-player-web) and [Mux Uploader](/docs/guides/mux-uploader).
+
+### Example: allowing users to upload video to your app
+
+One reason you might want to build your own video workflow is when you want to allow users to upload video to your app.
+
+Let's start by adding a new page where users can upload videos. This will involve using the [Mux Uploader](/docs/guides/mux-uploader) component, which will upload videos to a Mux <ApiRefLink product="video" slug="operation/create-direct-upload">Direct Uploads URL</ApiRefLink>.
+
+In the code sample below, we'll create an upload URL using the [Mux Node SDK](https://github.com/muxinc/mux-node-sdk) and the Direct Uploads URL API. We'll pass that URL to the Mux Uploader component, which will handle uploading for us.
+
+```jsx
+
+import { json } from "@remix-run/node";
+import { useLoaderData } from "@remix-run/react";
+import MuxUploader from "@mux/mux-uploader-react";
+import mux from "~/lib/mux.server";
+
+export const loader = async () => {
+  const upload = await mux.video.uploads.create({
+    new_asset_settings: {
+      playback_policy: ["public"],
+      video_quality: "basic",
+    },
+    cors_origin: "*",
+  });
+  return json({ url: upload.url });
+};
+
+export default function UploadPage() {
+  const { url } = useLoaderData();
+  return <MuxUploader endpoint={url} />
+}
+
+```
+
+```tsx
+
+import { json } from "@remix-run/node";
+import { useLoaderData } from "@remix-run/react";
+import MuxUploader from "@mux/mux-uploader-react";
+import mux from "~/lib/mux.server";
+
+export const loader = async () => {
+  const upload = await mux.video.uploads.create({
+    new_asset_settings: {
+      playback_policy: ["public"],
+      video_quality: "basic",
+    },
+    cors_origin: "*",
+  });
+  return json({ url: upload.url });
+};
+
+export default function UploadPage() {
+  const { url } = useLoaderData<typeof loader>();
+  return <MuxUploader endpoint={url} />
+}
+```
+
+
+
+<Callout type="warning">
+  In production, you'll want to apply additional security measures to your upload URL. Consider protecting the route with authentication to prevent unauthorized users from uploading videos. Also, use `cors_origin` and consider [`playback_policy`](/docs/guides/secure-video-playback) to further restrict where uploads can be performed and who can view uploaded videos.
+</Callout>
+
+Next, we'll create an API endpoint that will [listen for Mux webhooks](/docs/core/listen-for-webhooks). When we receive the notification that the video has finished uploading and is ready for playback, we'll add the video's metadata to our database.
+
+```js
+
+import { json } from "@remix-run/node";
+import Mux from "@mux/mux-node";
+
+// this reads your MUX_TOKEN_ID and MUX_TOKEN_SECRET
+// from your environment variables
+// https://dashboard.mux.com/settings/access-tokens
+const mux = new Mux();
+
+// Mux webhooks POST, so let's use an action
+export const action = async ({ request }) => {
+  if (request.method !== "POST") {
+    return new Response("Method not allowed", { status: 405 });
+  }
+
+  const body = await request.text();
+  // mux.webhooks.unwrap will validate that the given payload was sent by Mux and parse the payload.
+  // It will also provide type-safe access to the payload.
+  // Generate MUX_WEBHOOK_SIGNING_SECRET in the Mux dashboard
+  // https://dashboard.mux.com/settings/webhooks
+  const event = mux.webhooks.unwrap(
+    body,
+    request.headers,
+    process.env.MUX_WEBHOOK_SIGNING_SECRET
+  );
+
+  // you can also unwrap the payload yourself:
+  // const event = await request.json();
+  switch (event.type) {
+    case "video.upload.asset_created":
+      // we might use this to know that an upload has been completed
+      // and we can save its assetId to our database
+      break;
+    case "video.asset.ready":
+      // we might use this to know that a video has been encoded
+      // and we can save its playbackId to our database
+      break;
+    // there are many more Mux webhook events
+    // check them out at https://www.mux.com/docs/webhook-reference
+    default:
+      break;
+  }
+
+  return json({ message: "ok" });
+};
+```
+
+```ts
+
+import { json, type ActionFunctionArgs } from "@remix-run/node";
+import Mux from "@mux/mux-node";
+
+// this reads your MUX_TOKEN_ID and MUX_TOKEN_SECRET
+// from your environment variables
+// https://dashboard.mux.com/settings/access-tokens
+const mux = new Mux();
+
+// Mux webhooks POST, so let's use an action
+export const action = async ({ request }: ActionFunctionArgs) => {
+  if (request.method !== "POST") {
+    return new Response("Method not allowed", { status: 405 });
+  }
+
+  const body = await request.text();
+  // mux.webhooks.unwrap will validate that the given payload was sent by Mux and parse the payload.
+  // It will also provide type-safe access to the payload.
+  // Generate MUX_WEBHOOK_SIGNING_SECRET in the Mux dashboard
+  // https://dashboard.mux.com/settings/webhooks
+  const event = mux.webhooks.unwrap(
+    body,
+    request.headers,
+    process.env.MUX_WEBHOOK_SIGNING_SECRET
+  );
+
+  // you can also unwrap the payload yourself:
+  // const event = await request.json();
+  switch (event.type) {
+    case "video.upload.asset_created":
+      // we might use this to know that an upload has been completed
+      // and we can save its assetId to our database
+      break;
+    case "video.asset.ready":
+      // we might use this to know that a video has been encoded
+      // and we can save its playbackId to our database
+      break;
+    // there are many more Mux webhook events
+    // check them out at https://www.mux.com/docs/webhook-reference
+    default:
+      break;
+  }
+
+  return json({ message: "ok" });
+};
+```
+
+
+
+Finally, let's make a playback page. We retrieve the video metadata from our database, and play it by passing its `playbackId` to [Mux Player](/docs/guides/mux-player-web):
+
+```jsx
+import MuxPlayer from "@mux/mux-player-react";
+import { useLoaderData, useParams } from "@remix-run/react";
+
+export const loader = async ({ params, request }) => {
+  const { title } = getAssetFromDatabase(params);
+  const userId = getUser(request);
+  return json({ title, userId });
+};
+
+export default function Page() {
+  const { title, userId } = useLoaderData();
+  const { playbackId } = useParams();
+  return (
+    <MuxPlayer
+      playbackId={playbackId}
+      metadata={{
+        video_title: title,
+        viewer_user_id: userId
+      }}
+    />
+  );
+}
+```
+
+```tsx
+
+import MuxPlayer from "@mux/mux-player-react";
+import { type LoaderFunctionArgs } from "@remix-run/node";
+import { useLoaderData, useParams } from "@remix-run/react";
+
+export const loader = async ({ params, request }: LoaderFunctionArgs) => {
+  const { title } = getAssetFromDatabase(params);
+  const userId = getUser(request);
+  return json({ title, userId });
+};
+
+export default function Page() {
+  const { title, userId } = useLoaderData<typeof loader>();
+  const { playbackId } = useParams();
+  return (
+    <MuxPlayer
+      playbackId={playbackId}
+      metadata={{
+        video_title: title,
+        viewer_user_id: userId
+      }}
+    />
+  );
+}
+```
+
+
+
+And we've got upload and playback. Nice!
+
+What's next? You can [integrate with your CMS](/docs/integrations/cms). You can [optimize your loading experience](/docs/guides/player-lazy-loading). Or get started with the example project below:
+
+## Example projects
+
+<GuideCard
+  title="remix-examples/mux-video"
+  description={<>
+    <p>This is a bare-bones starter application with Remix.js that uses:</p>
+    <ul>
+      <li>Mux <ApiRefLink product="video" slug="operation/create-direct-upload">Direct Uploads</ApiRefLink> and <a href="/docs/guides/mux-uploader">Mux Uploader</a></li>
+      <li>Mux <a href="/docs/guides/video" title="Mux Video">Video</a> + Mux <a href="/docs/guides/data" title="Mux Data">Data</a></li>
+      <li>Mux <a href="/docs/guides/mux-player-web" title="Mux Player">Player</a></li>
+    </ul>
+  </>}
+  links={[
+    {
+      title: "View project â†’",
+      href: "https://github.com/remix-run/examples/tree/main/mux-video",
+    },
+  ]}
+/>
+
+
+# Add high-performance video to your SvelteKit application
+Use our API and components to handle embedding, storing, and streaming video in your SvelteKit application
+## When should you use Mux with Svelte?
+
+When adding video to your SvelteKit app, you'll encounter some common hurdles. First, videos are large. Storing them in your public directory can lead to excessive bandwidth consumption and poor Git repository performance. Next, it's important to compress and optimize your videos for the web. Then, as network conditions change, you might want to adapt the quality of your video to ensure a smooth playback experience for your users. Finally, you may want to integrate additional features like captions, thumbnails, and analytics.
+
+You might consider using Mux's APIs and components to handle these challenges, [and more](https://www.mux.com/features).
+
+## Quickly drop in a video with Mux Player
+
+The quickest way to add a video to your site is with [Mux Player](/docs/guides/mux-player-web). Here's what Mux Player looks like in action:
+
+```svelte
+<script lang="ts">
+  import "@mux/mux-player";
+</script>
+
+<mux-player
+  playback-id="jwmIE4m9De02B8TLpBHxOHX7ywGnjWxYQxork1Jn5ffE"
+  metadata-video-title="Test VOD"
+  metadata-viewer-user-id="user-id-007"
+></mux-player>
+```
+
+If your site has just a few videos, you might upload them to Mux directly thorugh the dashboard. In the [Mux Dashboard](https://dashboard.mux.com/), on your video assets page, select "Create New Asset". On the next screen, you can upload a video directly to Mux.
+
+<MultiImage
+  images={[
+  { src: "/docs/images/dashboard-create-new-asset.png", width: 2964 / 7, height: 2684 / 7, alt: 'In the upper-right corner of the Mux Dashboard is a button labeled "Create New Asset"' },
+  { src: "/docs/images/dashboard-upload-directly-to-mux.png", width: 2964 / 7, height: 2684 / 7, alt: 'At the bottom of the new asset modal is a section allowing you to upload directly to Mux' },
+]}
+/>
+
+You'll then be able to see your new asset on your video assets page. When you click on the asset, you can find the asset's playback ID in the "Playback and Thumbnails" tab. This playback ID can be used in the `playback-id` prop of the Mux Player component.
+
+<Image src="/docs/images/dashboard-playback-id.png" height={2466 / 6} width={2964 / 6} alt="In the playback and thumbnails tab of an asset you can find the playback ID, as well as more information on how to play the video." />
+
+You can read more about Mux Player, including how to customize its look and feel, over in the [Mux Player guides](/docs/guides/mux-player-web).
+
+If you're managing more videos, you might take a look at our [CMS integrations](/docs/integrations/cms).
+
+Finally, if you need more control over your video workflow, read on.
+
+## Use the API to build your video workflow
+
+If you're looking to build your own video workflow that enables uploading, playback, and more in your application, you can use the Mux API and components like [Mux Player](/docs/guides/mux-player-web) and [Mux Uploader](/docs/guides/mux-uploader).
+
+### Example: allowing users to upload video to your app
+
+One reason you might want to build your own video workflow is when you want to allow users to upload video to your app.
+
+Let's start by adding the Mux Node SDK to your project. We'll be using this a lot.
+
+```typescript filename=lib/mux.ts
+import Mux from '@mux/mux-node';
+import { MUX_TOKEN_ID, MUX_TOKEN_SECRET } from '$env/static/private';
+
+const mux = new Mux({
+	tokenId: MUX_TOKEN_ID,
+	tokenSecret: MUX_TOKEN_SECRET
+});
+
+export default mux;
+```
+
+Now, we can add a new page where users can upload videos. This will involve using the [Mux Uploader](/docs/guides/mux-uploader) component, which will upload videos to a Mux <ApiRefLink product="video" slug="operation/create-direct-upload">Direct Uploads URL</ApiRefLink>.
+
+We'll start by creating an upload URL using the Direct Uploads URL API.
+
+```js
+
+import mux from '$lib/mux';
+
+export const load = async () => {
+	// Create an endpoint for MuxUploader to upload to
+	const upload = await mux.video.uploads.create({
+		new_asset_settings: {
+			playback_policy: ['public'],
+			video_quality: 'basic'
+		},
+		// in production, you'll want to change this origin to your-domain.com
+		cors_origin: '*'
+	});
+	return { id: upload.id, url: upload.url };
+}
+
+```
+
+```ts
+
+import mux from '$lib/mux';
+import type { PageServerLoad } from './$types';
+
+export const load = (async () => {
+	// Create an endpoint for MuxUploader to upload to
+	const upload = await mux.video.uploads.create({
+		new_asset_settings: {
+			playback_policy: ['public'],
+			video_quality: 'basic'
+		},
+		// in production, you'll want to change this origin to your-domain.com
+		cors_origin: '*'
+	});
+	return { id: upload.id, url: upload.url };
+}) satisfies PageServerLoad;
+```
+
+
+
+<Callout type="warning">
+  In production, you'll want to apply additional security measures to your upload URL. Consider protecting the route with authentication to prevent unauthorized users from uploading videos. Also, use `cors_origin` and consider [`playback_policy`](/docs/guides/secure-video-playback) to further restrict where uploads can be performed and who can view uploaded videos.
+</Callout>
+
+Then, we'll pass that URL to the Mux Uploader component, which will handle uploading for us.
+
+```svelte4Js
+
+<script>
+	import '@mux/mux-uploader';
+	export let data;
+</script>
+
+<mux-uploader endpoint={data.url} />
+
+```
+
+```svelte4Ts
+
+<script lang="ts">
+	import '@mux/mux-uploader';
+	import type { PageData } from './$types';
+	export let data: PageData;
+</script>
+
+<mux-uploader endpoint={data.url} />
+
+```
+
+```svelte5Js
+
+<script>
+	import '@mux/mux-uploader';
+	let { data } = $props();
+</script>
+
+<mux-uploader endpoint={data.url} />
+
+```
+
+```svelte5Ts
+
+<script lang="ts">
+	import '@mux/mux-uploader';
+	import type { PageData } from './$types';
+
+	let { data }: { data: PageData } = $props();
+</script>
+
+<mux-uploader endpoint={data.url} />
+
+```
+
+
+
+Next, we'll create an API endpoint that will [listen for Mux webhooks](/docs/core/listen-for-webhooks). When we receive the notification that the video has finished uploading and is ready for playback, we'll add the video's metadata to our database.
+
+```js
+
+import mux from '$lib/mux';
+import { json } from '@sveltejs/kit';
+import { MUX_WEBHOOK_SIGNING_SECRET } from '$env/static/private';
+
+export const POST = async ({ request }) => {
+	const body = await request.text();
+	// mux.webhooks.unwrap will validate that the given payload was sent by Mux and parse the payload.
+	// Generate MUX_WEBHOOK_SIGNING_SECRET in the Mux dashboard
+	// https://dashboard.mux.com/settings/webhooks
+	const event = mux.webhooks.unwrap(body, request.headers, MUX_WEBHOOK_SIGNING_SECRET);
+
+	// you can also unwrap the payload yourself:
+	// const event = await request.json();
+	switch (event.type) {
+		case 'video.upload.asset_created':
+			// we might use this to know that an upload has been completed
+			// and we can save its assetId to our database
+			break;
+		case 'video.asset.ready':
+			// we might use this to know that a video has been encoded
+			// and we can save its playbackId to our database
+			break;
+		// there are many more Mux webhook events
+		// check them out at https://www.mux.com/docs/webhook-reference
+		default:
+			break;
+	}
+
+	return json({ message: 'ok' });
+};
+
+```
+
+```ts
+
+import mux from '$lib/mux';
+import { json, type RequestHandler } from '@sveltejs/kit';
+import { MUX_WEBHOOK_SIGNING_SECRET } from '$env/static/private';
+
+export const POST: RequestHandler = async ({ request }) => {
+	const body = await request.text();
+	// mux.webhooks.unwrap will validate that the given payload was sent by Mux and parse the payload.
+	// It will also provide type-safe access to the payload.
+	// Generate MUX_WEBHOOK_SIGNING_SECRET in the Mux dashboard
+	// https://dashboard.mux.com/settings/webhooks
+	const event = mux.webhooks.unwrap(body, request.headers, MUX_WEBHOOK_SIGNING_SECRET);
+
+	// you can also unwrap the payload yourself:
+	// const event = await request.json();
+	switch (event.type) {
+		case 'video.upload.asset_created':
+			// we might use this to know that an upload has been completed
+			// and we can save its assetId to our database
+			break;
+		case 'video.asset.ready':
+			// we might use this to know that a video has been encoded
+			// and we can save its playbackId to our database
+			break;
+		// there are many more Mux webhook events
+		// check them out at https://www.mux.com/docs/webhook-reference
+		default:
+			break;
+	}
+
+	return json({ message: 'ok' });
+};
+
+```
+
+
+
+Finally, let's make a playback page. We retrieve the video metadata from our database, and play it by passing its `playbackId` to [Mux Player](/docs/guides/mux-player-web):
+
+```svelte4Js
+
+<script>
+	import '@mux/mux-player';
+	export let data;
+</script>
+
+<mux-player
+	playback-id={data.playbackId}
+	accentColor="#FF3E00"
+/>
+
+```
+
+```svelte4Ts
+
+<script lang="ts">
+	import '@mux/mux-player';
+	import type { PageData } from './$types';
+	export let data: PageData;
+</script>
+
+<mux-player
+	playback-id={data.playbackId}
+	accentColor="#FF3E00"
+/>
+
+```
+
+```svelte5Js
+
+<script>
+	import '@mux/mux-player';
+	let { data } = $props();
+</script>
+
+<mux-player
+	playback-id={data.playbackId}
+	accentColor="#FF3E00"
+/>
+
+```
+
+```svelte5Ts
+
+<script lang="ts">
+	import '@mux/mux-player';
+	import type { PageData } from './$types';
+
+	let { data }: { data: PageData } = $props();
+</script>
+
+<mux-player
+	playback-id={data.playbackId}
+	accentColor="#FF3E00"
+/>
+
+```
+
+
+
+And we've got upload and playback. Nice!
+
+What's next? You can [integrate with your CMS](/docs/integrations/cms). You can [optimize your loading experience](/docs/guides/player-lazy-loading). Or get started with the example project below:
+
+## Example projects
+
+<GuideCard
+  title="muxinc/examples/sveltekit-uploader-and-player"
+  description={<>
+    <p>This is a bare-bones starter application with SvelteKit that uses:</p>
+    <ul>
+      <li>Mux <ApiRefLink product="video" slug="operation/create-direct-upload">Direct Uploads</ApiRefLink> and <a href="/docs/guides/mux-uploader">Mux Uploader</a></li>
+      <li>Mux <a href="/docs/guides/video" title="Mux Video">Video</a> + Mux <a href="/docs/guides/data" title="Mux Data">Data</a></li>
+      <li>Mux <a href="/docs/guides/mux-player-web" title="Mux Player">Player</a></li>
+    </ul>
+  </>}
+  links={[
+    {
+      title: "View project â†’",
+      href: "https://github.com/muxinc/examples/tree/main/sveltekit-uploader-and-player",
+    },
+  ]}
+/>
+
+
+# Add high-performance video to your Astro application
+Use our API and components to handle embedding, storing, and streaming video in your Astro application
+## When should you use Mux with Astro?
+
+When adding video to your Astro app, you'll encounter some common hurdles. First, videos are large. Storing them in your public directory can lead to excessive bandwidth consumption and poor Git repository performance. Next, it's important to compress and optimize your videos for the web. Then, as network conditions change, you might want to adapt the quality of your video to ensure a smooth playback experience for your users. Finally, you may want to integrate additional features like captions, thumbnails, and analytics.
+
+You might consider using Mux's APIs and components to handle these challenges, [and more](https://www.mux.com/features).
+
+## Use the API to build your video workflow
+
+If you're looking to build your own video workflow that enables uploading, playback, and more in your application, you can use the Mux API and components like [Mux Player](/docs/guides/mux-player-web) and [Mux Uploader](/docs/guides/mux-uploader).
+
+### Example: allowing users to upload video to your app
+
+One reason you might want to build your own video workflow is when you want to allow users to upload video to your app.
+
+<Callout type="info">
+  Much of the work described here is done on the server and is unique for every user. Make sure your Astro app is [in SSR mode](https://docs.astro.build/en/docs/guides/server-side-rendering/) before you begin.
+</Callout>
+
+Let's start by adding a new page where users can upload videos. This will involve using the [Mux Uploader](/docs/guides/mux-uploader) component, which will upload videos to a Mux <ApiRefLink product="video" slug="operation/create-direct-upload">Direct Uploads URL</ApiRefLink>.
+
+In the code sample below, we'll create an upload URL using the [Mux Node SDK](https://github.com/muxinc/mux-node-sdk) and the Direct Uploads URL API. We'll pass that URL to the Mux Uploader component, which will handle uploading for us.
+
+```astro filename=app/pages/index.astro
+---
+import Layout from '../layouts/Layout.astro';
+import Mux from "@mux/mux-node";
+
+const mux = new Mux({
+  tokenId: import.meta.env.MUX_TOKEN_ID,
+  tokenSecret: import.meta.env.MUX_TOKEN_SECRET
+});
+
+
+const upload = await mux.video.uploads.create({
+  new_asset_settings: {
+    playback_policy: ['public'],
+    video_quality: 'basic',
+  },
+  cors_origin: '*',
+});
+---
+
+<Layout title="Upload a video to Mux">
+  <mux-uploader endpoint={upload.url}></mux-uploader>
+  <script>
+    import '@mux/mux-uploader';
+  </script>
+</Layout>
+```
+
+<Callout type="warning">
+  In production, you'll want to apply additional security measures to your upload URL. Consider protecting the route with authentication to prevent unauthorized users from uploading videos. Also, use `cors_origin` and consider [`playback_policy`](/docs/guides/secure-video-playback) to further restrict where uploads can be performed and who can view uploaded videos.
+</Callout>
+
+Next, we'll create an API endpoint that will [listen for Mux webhooks](/docs/core/listen-for-webhooks). When we receive the notification that the video has finished uploading and is ready for playback, we'll add the video's metadata to our database.
+
+```ts filename=src/pages/mux-webhook.json.ts
+import type { APIRoute } from 'astro';
+import mux from '../lib/mux';
+
+export const POST: APIRoute = async ({ request }) => {
+  const body = await request.text();
+  // mux.webhooks.unwrap will validate that the given payload was sent by Mux and parse the payload.
+  // It will also provide type-safe access to the payload.
+  // Generate MUX_WEBHOOK_SIGNING_SECRET in the Mux dashboard
+  // https://dashboard.mux.com/settings/webhooks
+  const event = mux.webhooks.unwrap(
+    body,
+    request.headers,
+    process.env.MUX_WEBHOOK_SIGNING_SECRET
+  );
+
+  // you can also unwrap the payload yourself:
+  // const event = await request.json();
+  switch (event.type) {
+    case 'video.upload.asset_created':
+      // we might use this to know that an upload has been completed
+      // and we can save its assetId to our database
+      break;
+    case 'video.asset.ready':
+      // we might use this to know that a video has been encoded
+      // and we can save its playbackId to our database
+      break;
+    // there are many more Mux webhook events
+    // check them out at https://www.mux.com/docs/webhook-reference
+    default:
+      break;
+  }
+
+  return new Response(JSON.stringify({ message: 'ok' }), {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+};
+```
+
+Finally, let's make a playback page. We retrieve the video metadata from our database, and play it by passing its `playbackId` to [Mux Player](/docs/guides/mux-player-web):
+
+```astro filename=app/pages/playback/[playbackId].astro
+---
+import Layout from '../../layouts/Layout.astro';
+const { playbackId } = Astro.params;
+---
+
+<Layout>
+  <mux-player playback-id={playbackId}></mux-player>
+  <script>
+    import '@mux/mux-player';
+  </script>
+</Layout>
+```
+
+And we've got upload and playback. Nice!
+
+What's next? You can [integrate with your CMS](/docs/integrations/cms). You can [optimize your loading experience](/docs/guides/player-lazy-loading). Or get started with the example project below:
+
+## Example projects
+
+<GuideCard
+  title="muxinc/examples/astro-uploader-and-player"
+  description={<>
+    <p>This is a bare-bones starter application with Astro that uses:</p>
+    <ul>
+      <li>Mux <ApiRefLink product="video" slug="operation/create-direct-upload">Direct Uploads</ApiRefLink> and <a href="/docs/guides/mux-uploader">Mux Uploader</a></li>
+      <li>Mux <a href="/docs/guides/video" title="Mux Video">Video</a> + Mux <a href="/docs/guides/data" title="Mux Data">Data</a></li>
+      <li>Mux <a href="/docs/guides/mux-player-web" title="Mux Player">Player</a></li>
+    </ul>
+  </>}
+  links={[
+    {
+      title: "View project â†’",
+      href: "https://github.com/muxinc/examples/tree/main/astro-uploader-and-player",
+    },
+  ]}
+/>
+
+
+# Add high-performance video to your Laravel application
+Use our API and components to handle embedding, storing, and streaming video in your Laravel application
+Laravel is one of the most popular PHP frameworks for building a website but doesn't have a built-in path for integrating video.
+
+Mux is a video API for developers that makes it easy to upload and manage your library of video and audio content. We'll handle the video end-to-end for you from upload, encoding, generating thumbnails and captions, right through to playback and customising the player experience.
+
+Here we've outlined some techniques and libraries you can use to make integrating with Mux as smooth as possible.
+
+## Listening for webhooks
+
+Everything that happens to your videos on Mux triggers a webhook that notifies you of the change. This can include an asset being ready for playback, a live streaming connecting, an asset being deleted, and [many others](/docs/webhook-reference).
+
+Read our [webhook guide](/docs/core/listen-for-webhooks) for learning about how to get setup for handling webhooks generally.
+
+In Laravel you would setup a route that looks like this:
+
+```php
+// routes/api.php
+use App\Http\Controllers\WebhookController;
+
+Route::post('webhook/endpoint', [WebhookController::class, 'handle']);
+```
+
+Which references this `WebhookController`:
+
+```php
+// app/Http/Controllers/WebhookController.php
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+
+class WebhookController extends Controller
+{
+    public function handle(Request $request)
+    {
+        // Process webhook payload here
+        // Save the asset ID and playback ID to your database
+        return response()->json(['success' => true]);
+    }
+}
+```
+
+This controller will be in charge of storing references to your videos that have successfully been uploaded and processed. It will also be notified if an upload fails for any reason, you might want to store this state too so it can be shown to users if needed.
+
+You should store at least the Asset ID and Playback ID in your database so that you can use them to embed the videos for playback in your page templates. You will use the Asset ID whenever you need to interact with the asset with the Mux API and you will need the Playback ID for playback on the front-end.
+
+## Uploading from the front-end with Direct Uploads
+
+[Direct Uploads](/docs/guides/upload-files-directly) allow you to upload a video from the browser to your Mux account. To start, call the Mux API to generate an upload URL that is provided to the front-end.
+
+We can use the [Mux PHP library](https://github.com/muxinc/mux-php) to make it easier to create these upload URLs:
+
+```php
+$createAssetRequest = new MuxPhp\Models\CreateAssetRequest(["playback_policy" => [MuxPhp\Models\PlaybackPolicy::_PUBLIC]]);
+$createUploadRequest = new MuxPhp\Models\CreateUploadRequest(["new_asset_settings" => $createAssetRequest]);
+$upload = $uploadsApi->createDirectUpload($createUploadRequest);
+
+print "Upload URL:" $upload->getData()->getUrl();
+```
+
+You'll want to add this script to one of your API routes, and return the upload URL instead of printing it.
+On the front-end, you can use [Mux Uploader](/docs/guides/mux-uploader), a web component that gives you a simple UI to make uploading a video easier.
+On the front-end using Mux Uploader, you would use the Upload URL for the `endpoint` attribute:
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@mux/mux-uploader"></script>
+
+<mux-uploader endpoint="{direct_upload_url}"></mux-uploader>
+```
+
+## Video playback
+
+If your webhook is already storing Playback IDs in your database, you can play back videos on the front-end using [Mux Player](/docs/guides/mux-player-web). Your blade template for this might look like:
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@mux/mux-player" defer></script>
+
+<!-- The `metadata-` attributes are optional  -->
+<mux-player
+  playback-id="{{ $playbackId }}"
+  metadata-video-title="{{ $title }}" 
+  metadata-viewer-user-id="{{ $userId }}"
+></mux-player>
+```
+
+Mux Player comes with lots of [features](/docs/guides/player-core-functionality) and [customisability](/docs/guides/player-customize-look-and-feel) out of the box.
+
+The controller for this page might look something like this:
+
+```php
+<?php
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+
+class PlaybackController extends Controller
+{
+    public function show($videoId)
+    {
+        // Fetch the video from the database and set
+        // $playbackId
+        // $title
+        
+        // Get user (replace with your actual authentication logic)
+        $userId = auth()->id();
+
+        return view('playback', [
+            'playbackId' => $playbackId,
+            'title' => $title,
+            'userId' => $userId,
+        ]);
+    }
+}
+```
+
+## Community contributions and libraries
+
+### `mux-php-laravel`
+
+`mux-php-laravel` is a [library](https://github.com/martinbean/mux-php-laravel) that will help you setup defaults for working with Mux easier in your Laravel project.
+
+### Statamic Mux
+
+[Statamic](https://statamic.com/) is a popular CMS built on top of Laravel. There is a community [Mux integration](https://statamic-mux.daun.ltd/) for making it easier to get your videos into Mux using the CMS.
+
+
+# Add high-performance video to your Node application
+Use our API and components to handle embedding, storing, and streaming video in your Node application
+## Installation
+
+Add a dependency on the `@mux/mux-node` package via npm or yarn.
+
+```bash
+npm install @mux/mux-node
+```
+
+## Quickstart
+
+To start, you'll need a Mux access token. Once you've got that, you're off to the races!
+
+```javascript
+import Mux from '@mux/mux-node';
+const mux = new Mux({
+  tokenId: process.env.MUX_TOKEN_ID,
+  tokenSecret: process.env.MUX_TOKEN_SECRET
+});
+
+const asset = await mux.video.assets.create({
+  input: [{ url: 'https://storage.googleapis.com/muxdemofiles/mux-video-intro.mp4' }],
+  playback_policy: ['public'],
+});
+```
+
+## Full documentation
+
+Check out the [Mux Node SDK docs](https://github.com/muxinc/mux-node-sdk) for more information.
+
+
+# Add high-performance video to your Python application
+Use our API and components to handle embedding, storing, and streaming video in your Python application
+## Installation
+
+Install this module using either `pip` or by installing from source.
+
+```curl
+# Via pip
+pip install git+https://github.com/muxinc/mux-python.git
+
+# Via source
+git checkout https://github.com/muxinc/mux-python.git
+cd mux-python
+python setup.py install --user
+```
+
+## Quickstart
+
+To start, you'll need a Mux access token. Once you've got that, you're off to the races!
+
+```python
+import os
+import mux_python
+from mux_python.rest import ApiException
+
+# Authentication Setup
+configuration = mux_python.Configuration()
+configuration.username = os.environ['MUX_TOKEN_ID']
+configuration.password = os.environ['MUX_TOKEN_SECRET']
+
+# API Client Initialization
+assets_api = mux_python.AssetsApi(mux_python.ApiClient(configuration))
+
+# List Assets
+print("Listing Assets: \n")
+try:
+    list_assets_response = assets_api.list_assets()
+    for asset in list_assets_response.data:
+        print('Asset ID: ' + asset.id)
+        print('Status: ' + asset.status)
+        print('Duration: ' + str(asset.duration) + "\n")
+except ApiException as e:
+    print("Exception when calling AssetsApi->list_assets: %s\n" % e)
+```
+
+## Full documentation
+
+Check out the [Mux Python SDK docs](https://github.com/muxinc/mux-python) for more information.
+
+
+# Add high-performance video to your PHP application
+Use our API and components to handle embedding, storing, and streaming video in your PHP application
+## Installation
+
+We publish Mux PHP to Packagist. You should depend on Mux PHP by adding us to your `composer.json` file.
+
+```php
+composer require mux/mux-php
+```
+
+## Quickstart
+
+To start, you'll need a Mux access token. Once you've got that, you're off to the races!
+
+```php
+// Authentication Setup
+$config = MuxPhp\Configuration::getDefaultConfiguration()
+    ->setUsername(getenv('MUX_TOKEN_ID'))
+    ->setPassword(getenv('MUX_TOKEN_SECRET'));
+
+// API Client Initialization
+$assetsApi = new MuxPhp\Api\AssetsApi(
+    new GuzzleHttp\Client(),
+    $config
+);
+
+// Create Asset Request
+$input = new MuxPhp\Models\InputSettings(["url" => "https://storage.googleapis.com/muxdemofiles/mux-video-intro.mp4"]);
+$createAssetRequest = new MuxPhp\Models\CreateAssetRequest(["input" => $input, "playback_policy" => [MuxPhp\Models\PlaybackPolicy::PUBLIC_PLAYBACK_POLICY] ]);
+
+// Ingest
+$result = $assetsApi->createAsset($createAssetRequest);
+
+// Print URL
+print "Playback URL: https://stream.mux.com/" . $result->getData()->getPlaybackIds()[0]->getId() . ".m3u8\n"
+```
+
+## Full documentation
+
+Check out the [Mux PHP SDK docs](https://github.com/muxinc/mux-php) for more information.
+
+
+# Add high-performance video to your Ruby application
+Use our API and components to handle embedding, storing, and streaming video in your Ruby application
+## Installation
+
+Add `mux_ruby` to your project's `Gemfile`.
+
+```ruby
+gem 'mux_ruby'
+```
+
+## Quickstart
+
+To start, you'll need a Mux access token. Once you've got that, you're off to the races!
+
+```ruby
+require 'mux_ruby'
+
+# Auth Setup
+openapi = MuxRuby.configure do |config|
+  config.username = ENV['MUX_TOKEN_ID']
+  config.password = ENV['MUX_TOKEN_SECRET']
+end
+
+# API Client Init
+assets_api = MuxRuby::AssetsApi.new
+
+# List Assets
+puts "Listing Assets in account:\n\n"
+
+assets = assets_api.list_assets()
+assets.data.each do | asset |
+  puts "Asset ID: #{asset.id}"
+  puts "Status: #{asset.status}"
+  puts "Duration: #{asset.duration.to_s}\n\n"
+end
+```
+
+## Full documentation
+
+Check out the [Mux Ruby SDK docs](https://github.com/muxinc/mux-ruby) for more information.
+
+
+# Add high-performance video to your Elixir application
+Use our API and components to handle embedding, storing, and streaming video in your Elixir application
+## Installation
+
+Add `mux` to your list of dependencies in `mix.exs`.
+
+```elixir
+def deps do
+  [
+    {:mux, "~> 3.2.1"}
+  ]
+end
+```
+
+## Quickstart
+
+To start, we'll need a Mux access token. We'll put our access token in our application configuration.
+
+```elixir
+# config/dev.exs
+config :mux,
+  access_token_id: "abcd1234",
+  access_token_secret: "efghijkl"
+```
+
+Then use this config to initialize a new client in your application.
+
+```elixir
+client = Mux.client()
+```
+
+You can also pass the access token ID and secret directly to client/2 function if you'd prefer:
+
+```elixir
+client = Mux.client("access_token_id", "access_token_secret")
+```
+
+Now we can use the client to upload new videos, manage playback IDs, etc.
+
+```elixir
+params = %{
+  input: "https://example.com/video.mp4"
+}
+{:ok, asset, _} = Mux.Video.Assets.create(client, params);
+```
+
+## Full documentation
+
+Check out the [Mux Elixir SDK docs](https://github.com/muxinc/mux-elixir) for more information.
+
+
+# Add high-performance video to your Java application
+Use our API and components to handle embedding, storing, and streaming video in your Java application
+## Installation
+
+There are several ways to add the Mux Java SDK to your project:
+
+### Maven
+
+Add this dependency to your project's POM:
+
+```xml
+<dependency>
+  <groupId>com.mux</groupId>
+  <artifactId>mux-sdk-java</artifactId>
+  <version>1.0.0</version>
+  <scope>compile</scope>
+</dependency>
+```
+
+### Gradle
+
+Add this dependency to your project's build file:
+
+```gradle
+compile "com.mux:mux-sdk-java:1.0.0"
+```
+
+## Quickstart
+
+To start, you'll need a Mux access token. Once you've got that, you're off to the races!
+
+```java
+// Import classes:
+import com.mux.ApiClient;
+import com.mux.ApiException;
+import com.mux.Configuration;
+import com.mux.auth.*;
+import com.mux.models.*;
+import com.mux.sdk.AssetsApi;
+
+public class Example {
+  public static void main(String[] args) {
+    ApiClient defaultClient = Configuration.getDefaultApiClient();
+    defaultClient.setBasePath("https://api.mux.com");
+    
+    // Configure HTTP basic authorization: accessToken
+    HttpBasicAuth accessToken = (HttpBasicAuth) defaultClient.getAuthentication("accessToken");
+    accessToken.setUsername("YOUR USERNAME");
+    accessToken.setPassword("YOUR PASSWORD");
+
+    AssetsApi apiInstance = new AssetsApi(defaultClient);
+    CreateAssetRequest createAssetRequest = {"input":[{"url":"https://muxed.s3.amazonaws.com/leds.mp4"}],"playback_policy":["public"],"video_quality":"basic"}; // CreateAssetRequest | 
+    try {
+      AssetResponse result = apiInstance.createAsset(createAssetRequest)
+            .execute();
+      System.out.println(result);
+    } catch (ApiException e) {
+      System.err.println("Exception when calling AssetsApi#createAsset");
+      System.err.println("Status code: " + e.getCode());
+      System.err.println("Reason: " + e.getResponseBody());
+      System.err.println("Response headers: " + e.getResponseHeaders());
+      e.printStackTrace();
+    }
+  }
+}
+
+```
+
+## Full documentation
+
+Check out the [Mux Java SDK docs](https://github.com/muxinc/mux-java) for more information.
+
+
+# Add high-performance video to your C# application
+Use our API and components to handle embedding, storing, and streaming video in your C# application
+## Frameworks supported
+
+* .NET Core >=1.0
+* .NET Framework >=4.6
+* Mono/Xamarin >=vNext
+
+## Dependencies
+
+* [RestSharp](https://www.nuget.org/packages/RestSharp) - 106.11.4 or later
+* [Json.NET](https://www.nuget.org/packages/Newtonsoft.Json/) - 12.0.3 or later
+* [JsonSubTypes](https://www.nuget.org/packages/JsonSubTypes/) - 1.7.0 or later
+* [System.ComponentModel.Annotations](https://www.nuget.org/packages/System.ComponentModel.Annotations) - 4.7.0 or later
+
+The DLLs included in the package may not be the latest version. We recommend using [NuGet](https://docs.nuget.org/consume/installing-nuget) to obtain the latest version of the packages:
+
+```
+Install-Package RestSharp
+Install-Package Newtonsoft.Json
+Install-Package JsonSubTypes
+Install-Package System.ComponentModel.Annotations
+```
+
+NOTE: RestSharp versions greater than 105.1.0 have a bug which causes file uploads to fail. See [RestSharp#742](https://github.com/restsharp/RestSharp/issues/742)
+
+## Installation
+
+Generate the DLL using your preferred tool (e.g. `dotnet build`)
+
+Then include the DLL (under the `bin` folder) in the C# project, and use the namespaces:
+
+```csharp
+using Mux.Csharp.Sdk.Api;
+using Mux.Csharp.Sdk.Client;
+using Mux.Csharp.Sdk.Model;
+```
+
+## Usage
+
+<Callout type="warning" title="Usage With Webhooks">
+  At this moment, this SDK is not suitable for parsing or modeling webhook payloads, due to some incompatibilities in our API spec and our SDK generation tooling. We are working on resolving these issues, but for now you should only use this SDK for Mux's REST APIs.
+</Callout>
+
+To use the API client with a HTTP proxy, setup a `System.Net.WebProxy`
+
+```csharp
+Configuration c = new Configuration();
+System.Net.WebProxy webProxy = new System.Net.WebProxy("http://myProxyUrl:80/");
+webProxy.Credentials = System.Net.CredentialCache.DefaultCredentials;
+c.Proxy = webProxy;
+```
+
+## Getting Started
+
+```csharp
+using System.Collections.Generic;
+using System.Diagnostics;
+using Mux.Csharp.Sdk.Api;
+using Mux.Csharp.Sdk.Client;
+using Mux.Csharp.Sdk.Model;
+
+namespace Example
+{
+    public class Example
+    {
+        public static void Main()
+        {
+
+            Configuration config = new Configuration();
+            config.BasePath = "https://api.mux.com";
+            // Configure HTTP basic authorization: accessToken
+            config.Username = "YOUR_USERNAME";
+            config.Password = "YOUR_PASSWORD";
+
+            var apiInstance = new AssetsApi(config);
+            var createAssetRequest = new CreateAssetRequest(); // CreateAssetRequest | 
+
+            try
+            {
+                // Create an asset
+                AssetResponse result = apiInstance.CreateAsset(createAssetRequest);
+                Debug.WriteLine(result);
+            }
+            catch (ApiException e)
+            {
+                Debug.Print("Exception when calling AssetsApi.CreateAsset: " + e.Message );
+                Debug.Print("Status Code: "+ e.ErrorCode);
+                Debug.Print(e.StackTrace);
+            }
+
+        }
+    }
+}
+```
+
+## Full documentation
+
+Check out the [Mux C# SDK docs](https://github.com/muxinc/mux-csharp) for more information.
+
+
+# Integrate with your CMS
+Mux has a growing collection of CMS integrations that make it easy to incorporate your Mux video details into your application.
+We've partnered with complementary tools to build video into your application. Whether itâ€™s a CMS to customize the experience around your video or a serverless deployment platform, we've got you covered.
+
+# Headless CMS integrations
+
+* [Sanity](/docs/integrations/sanity)
+* [Contentful](/docs/integrations/contentful)
+* [Cosmic](/docs/integrations/cosmic)
+* [DatoCMS](/docs/integrations/datocms)
+* [Strapi](/docs/integrations/strapi)
+* [Prepr](/docs/integrations/prepr)
+
+If thereâ€™s an integration youâ€™d like to see or if youâ€™d like to partner with us, [let us know](mailto:info@mux.com)!
+
+
+# Integrate with Sanity
+Learn how to integrate Mux video with your Sanity studio. If your team is using Sanity as a CMS this integration will allow them to upload videos to Mux without leaving the Sanity studio.
+## 1. Install Mux plugin
+
+Run this command in your Sanity project folder:
+
+```sh
+npm i sanity-plugin-mux-input
+```
+
+## 2. Use in a schema
+
+Make a schema type and use mux.video for the type.
+
+```json
+{
+  "title": "Video blog post",
+  "name": "videoBlogPost",
+  "type": "document",
+  "fields": [
+    { "title": "Title", "name": "title", "type": "string" },
+    {
+      "title": "Video file",
+      "name": "video",
+      "type": "mux.video"
+    }
+  ]
+}
+```
+
+You also need to import the Mux plugin and include it in your plugin list.
+
+```javascript
+import { defineConfig } from 'sanity';
+import { muxInput } from 'sanity-plugin-mux-input';
+
+export default defineConfig({
+  plugins: [muxInput()],
+});
+```
+
+## 3. Enter Mux credentials
+
+Generate a new Access Token by going to the Access Token settings of your Mux account dashboard.
+
+<Image src="/docs/images/settings-api-access-tokens-2x.png" width={2404} height={526} />
+
+The access token should have Mux Video Read and Write permissions as well as Mux Data (read-only).
+If you want to use signed playback, you need to enable both **Read** and **Write** permissions for the `System` section. For more information, check out the [Signed Tokens](/docs/integrations/sanity#signed-tokens) section.
+
+<Image src="/docs/images/access-token-permissions-video-and-data.png" width={608} height={480} alt="Mux Video and Mux Data access token permissions" sm />
+
+Back in Sanity Studio, find the document where your video field appears, and click the plug-icon ðŸ”Œ on the Paste your Token ID and Token Secret.
+
+<Image src="/docs/images/sanity-studio.png" width={2000} height={1343} />
+
+## 4. Upload video
+
+Use the select button to open the file explorer on your system, drag the file right into the input area, or paste the URL to the video in the field. Once it's done uploading, you can select the thumbnail you want for the preview.
+
+<Player playbackId="TEgRQ00yGgc6GflbsK4Z44HwZDMIxKqY1" thumbnailTime="0" title="Sanity - Mux Video input - Upload" />
+
+<Callout type="success" title="Congratulations!">
+  You now have the ability to upload content to Mux through Sanity CMS!
+</Callout>
+
+To retrieve your video for playback, check out the [Sanity docs](https://www.sanity.io/blog/first-class-responsive-video-support-with-the-new-mux-plugin) for instructions.
+
+## 5. Explore advanced options
+
+## Signed Tokens
+
+<Callout type="warning" title="Warning! Requires generating JWT on your server">
+  Enabling signed URLs in Sanity will require you to generate your own signing tokens on your application **server**. This involves creating a signing key and using that to generate JSON web tokens when you want to access your videos and thumbnails outside of Sanity.
+</Callout>
+
+By default, all assets uploaded to Mux through Sanity will be created with a playback policy of `"public"`. This means that your videos and thumbnails are accessible with `https://stream.mux.com/{PLAYBACK_ID}.m3u8` and `https://image.mux.com/{PLAYBACK_ID}/thumbnail.jpg`.
+
+If you want more control over delivery of the playback and thumbnail access, you can enable this feature on the Sanity configuration popover:
+
+<Image src="/docs/images/sanity-signed-urls.png" width={852} height={640} sm />
+
+When you enable this feature, the following things will happen:
+
+1. The Mux Plugin in Sanity will use the Mux API to create a URL signing key and save this with your `secrets` document.
+2. Any assets that get created while this feature is enabled will be created with `playback_policy: "signed"` (instead of `"public"`).
+3. The signing key from Step 1 will be used by the Mux Plugin to preview content inside the Sanity UI.
+4. When you access your content in your own application, use the `MuxAsset.data.playback_ids` property to determine if the asset has a `signed` or `public` policy.
+
+```json
+{
+  "_id": "0779365f-bbd1-46ab-9d78-c55feeb28faa",
+  "_type": "mux.videoAsset",
+  "assetId": "fNMFNYMq48EwgJM7AIn1rNldiFBcVIdK",
+  "data": {
+    "playback_ids": [
+      {
+        "id": "01cBJKm5KoeQii00YYGU7Rvpzvh6V01l4ZK",
+        "policy": "public"
+      }
+    ]
+  },
+  "status": "ready"
+}
+```
+
+5. You should use the signed `playbackId` to create URLs for playback and for thumbnail generation.
+
+* Playback `https://stream.mux.com/{SIGNED_PLAYBACK_ID}.m3u8?token={TOKEN}`
+* Thumbnails `https://image.mux.com/{SIGNED_PLAYBACK_ID}/thumbnail.jpg?token={TOKEN}`
+
+6. The `TOKEN` parameter for the above URLs is something you create on your server according to Step 2 in [Secure video playback](/docs/guides/secure-video-playback)
+
+Note that in the Sanity UI when an asset is using a signed URL you will see this green notice.
+
+<Image src="/docs/images/sanity-signed-playback.png" width={562} height={783} sm />
+
+## Encoding Tiers
+
+When uploading a new video, you can select which Encoding Tier is used when preparing the Asset. Possible selections are `Smart` and `Baseline`. When choosing `Smart`, additional options are made available for maximum resolutions (1080p, 2K or 4K).
+
+More details can be found in our [Use Encoding Tiers](/docs/guides/use-video-quality-levels) guide.
+
+## Static Renditions
+
+When using the `Smart` Encoding Tier, an option to enable downloadable MP4s will be available. This option will create [Static Renditions](/docs/guides/enable-static-mp4-renditions) for the Asset and will make MP4 files available for download to client devices using a formatted URL.
+
+## Max Video Resolution
+
+You can specify the maximum resolution to encode the uploaded video. This option is particularly important in managing costs when uploaded videos are higher than `1080p` resolution and also allows you to encode and play videos in 2k or 4k resolutions.
+More information on the feature is available in [our docs](/docs/guides/stream-videos-in-4k). Also, read more on this feature announcement in our [blog post](https://www.mux.com/blog/more-pixels-fewer-problems-introducing-4k-support-for-mux-video).
+
+## Captions/Subtitles
+
+With Mux's auto-generated captions, you can easily add captions to videos uploaded by selecting the language of the spoken words. When using this auto-generated option, Mux will generate captions automatically while it prepares the Asset. More details can be found in the [Add auto-generated captions to your videos and use transcripts](/docs/guides/add-autogenerated-captions-and-use-transcripts) section of our documentation.
+
+<Callout type="warning" title="Warning! Auto-generate a single caption track">
+  The "Auto-generated" captions configuration should only be used to generate a single language captions track. The language selected must match the spoken language.
+</Callout>
+
+<GuideCard title="Set up playback" description="Set up your iOS application, Android application or web application to start playing your Mux assets" links={[{ title: 'Read the guide', href: '/docs/guides/play-your-videos' }]} />
+
+<GuideCard title="Preview your video" description="Now that you have Mux assets, build rich experiences into your application by extracting images from your videos" links={[{ title: 'Read the guide', href: '/docs/guides/get-images-from-a-video' }]} />
+
+<GuideCard title="Integrate Mux Data" description="Add the Mux Data SDK to your player and start collecting playback performance metrics." links={[{ title: 'Read the guide', href: '/docs/guides/track-your-video-performance' }]} />
+
+
+# Integrate with Contentful
+The Mux Contentful app connects Contentful with your Mux account so that Mux can handle uploading and streaming of all videos.
+This is a detailed guide for integrating the Contentful Mux app. To read more about the Mux app and why you may want to use it to power videos in your CMS, read [the announcement blog post on Contentful's blog](https://www.contentful.com/blog/improve-video-streaming-using-hls-with-mux-contentful/).
+
+## 1. Enter Mux credentials
+
+Create an access token in your Mux account - you will need both the access token ID and the access token secret in the Contentful application. The access token should have **Read** and **Write** permissions for Mux Video, and also **Read** for Mux Data.
+
+<Image src="/docs/images/access-token-permissions-video-and-data.png" width={608} height={480} alt="Mux Video access token permissions" sm />
+
+## 2. Install App
+
+In the Contentful dashboard click â€œApps > Manage Appsâ€ in the top navigation bar. Scroll down and find the Mux app, click it to start the installation flow.
+
+Next you will see the configuration screen. You can come back to this screen after the app is installed to update the app configuration. Enter your Mux access token and Mux token secret. These are the same credentials you would use to make API requests yourself.
+
+Assign Mux to JSON fields from your content model. In this example I am assigning Mux to take over the â€œVideo Uploadâ€ field in my Blog post model. If you add new JSON fields later you can always come back to this configuration screen and assign Mux to the new fields.
+
+<Image src="/docs/images/contentful-v110-install.png" width={1506} height={953} alt="Add API keys to integration." />
+
+## 3. Upload video
+
+Create a new entry for your content model. You should see a drag and drop zone and file picker to select an audio or video file:
+
+<Image src="/docs/images/contentful-v110-1.png" width={1256} height={834} alt="Empty Video field" />
+
+Select a video file and wait for the file to upload to Mux. The amount of time this takes will depend on your network upload speed and the size of the file. **Donâ€™t close the tab until the upload is complete.**
+
+Additionally, entering a Mux Asset ID from an existing video in Mux, or a URL to an audio or video file will also work in the input field.
+
+<Image src="/docs/images/contentful-v110-2.png" width={1256} height={833} alt="Uploading video." />
+
+After the upload is complete you will see a message that says "Waiting for asset to be playable" while Mux is processing your video. For normal video files it should only take a minute or so, however longer files, or files that need more processing, may take longer.
+
+<Image src="/docs/images/contentful-v110-3.png" width={1256} height={785} alt="Waiting for video to process." />
+
+Your video is now playable via Mux. You will see a player with your video in the Contentful UI.
+
+<Image src="/docs/images/contentful-v110-4.png" width={1287} height={1295} alt="After a video is finished and ready to play." />
+
+## 4. Playback
+
+When you query your Mux video through the Contentful API you will get back a JSON object that looks something like this that is viewable in the Data tab:
+
+```json
+{
+  "version": 3,
+  "uploadId": "some-upload-id",
+  "assetId": "some-asset-id",
+  "playbackId": "YOUR_PLAYBACK_ID",
+  "ready": true,
+  "ratio": "16:9",
+  "max_stored_resolution": "HD",
+  "max_stored_frame_rate": 29.928,
+  "duration": 23.857167,
+  "audioOnly": false,
+  "created_at": 1664219467
+}
+```
+
+You will need to pull out the `playbackId` property and construct a URL like this. You will use this URL with a player that supports HLS:
+
+```text
+https://stream.mux.com/{YOUR_PLAYBACK_ID}.m3u8
+```
+
+View Mux's [Playback docs](/docs/guides/play-your-videos) for more information about players.
+
+## Using Mux Player
+
+We made it easy to playback video using Mux Player by including the same code used to play the video in the Contentful dashboard. Simply head to the **Player Code** tab, click the copy button, and paste this into a website for quicker testing and development.
+
+<Image src="/docs/images/contentful-v110-9.png" width={1249} height={934} alt="Get the Mux Player code." />
+
+## 5. Captions and Subtitles
+
+Captions and subtitles can come from any publicly available URL. Add the URL to the `vtt` or `srt` caption file, selecting the caption name and to mark as closed captions.
+
+<Image src="/docs/images/contentful-v110-cc-1.png" width={1256} height={585} alt="Adding captions/subtitles" />
+
+One way to upload captions is to use the Contentful Media Manager. After uploading the file to the Manager, right click on the download button and select `copy link` then paste this link into the URL field.
+
+<Image src="/docs/images/contentful-v110-cc-2.png" width={1447} height={1100} alt="Copying the file URL in Media Manager." />
+
+Caption files can be added or deleted, and files can be downloaded for further editing. The stored JSON object will also reflect additional caption files. Existing caption will be displayed after clicking the `Resync` button under the Data tab.
+
+<Image src="/docs/images/contentful-v110-cc-3.png" width={1256} height={1151} alt="Captions or subtitles are working on video." />
+
+## Explore advanced options
+
+## Advanced: Signed URLs
+
+<Callout type="warning" title="Warning! Requires generating JWT on your server">
+  Enabling signed URLs in Contentful will require you to generate your own signing tokens on your application **server**. This involves creating a signing key and using that to generate JSON web tokens when you want to access your videos and thumbnails outside of Contentful.
+</Callout>
+
+By default, all assets uploaded to Mux through Contentful will be created with a single playback policy of `"public"`. This means that your videos and thumbnails are accessible with `https://stream.mux.com/{PLAYBACK_ID}.m3u8` and `https://image.mux.com/{PLAYBACK_ID}/thumbnail.jpg`.
+
+If you want more control over controlling the playback and thumbnail access, you can enable this feature on the Contentful configuration page:
+
+<Image src="/docs/images/contentful-v110-config.png" width={1505} height={1158} alt="Additional global configuration options." />
+
+When you enable this feature, the following things will happen:
+
+1. The Mux App in Contentful will use the Mux API to create a URL signing key and save this with your Contentful configuration.
+2. Any assets that get created while this feature is enabled will be created with `playback_policy: "signed"` (instead of `"public"`).
+3. The signing key from Step 1 will be used by the Mux App to preview content inside the Contentful UI.
+4. When you access your content in your own application, outside of Contentful, the Mux asset will no longer have the key `playbackId`, it will now be called `signedPlaybackId`.
+
+```json
+{
+  "uploadId": "some-upload-id",
+  "assetId": "some-asset-id",
+  "signedPlaybackId": "YOUR_SIGNED_PLAYBACK_ID",
+  "ready": true,
+  "ratio": "16:9"
+}
+```
+
+5. You should use the value from `signedPlaybackId` to create URLs for playback and for thumbnail generation.
+
+* Playback `https://stream.mux.com/{SIGNED_PLAYBACK_ID}.m3u8?token={TOKEN}`
+* Thumbnails `https://image.mux.com/{SIGNED_PLAYBACK_ID}/thumbnail.jpg?token={TOKEN}`
+
+6. The `TOKEN` parameter for the above URLs is something you create on your server according to Step 2 in [Security: Signed URLs](/docs/guides/secure-video-playback).
+
+Note that in the Contentful UI when an asset is using a signed URL you will see this notice.
+
+<Image src="/docs/images/contentful-v110-notice.png" width={1444} height={573} alt="Signed Notice" />
+
+Public and signed playback IDs can be toggled per-entry under the Data tab. Each time the IDs are toggled, the old playback ID is deleted, and a new ID is created in its place.
+
+## Note about migrating from the old Contentful extension
+
+Before releasing the Contentful App, Mux had an officially supported [Contentful extension](https://github.com/contentful/extensions/pull/316).
+
+The underlying data structure has not changed, so you can safely migrate to the app without losing data by following these steps:
+
+1. Uninstall the extension (now your video fields should look like raw JSON)
+2. Install the app
+3. On the configuration screen, apply the Mux App to the video fields that you had before
+
+<GuideCard title="Set up playback" description="Set up your iOS application, Android application or web application to start playing your Mux assets" links={[{ title: 'Read the guide', href: '/docs/guides/play-your-videos' }]} />
+
+<GuideCard title="Preview your video" description="Now that you have Mux assets, build rich experiences into your application by extracting images from your videos" links={[{ title: 'Read the guide', href: '/docs/guides/get-images-from-a-video' }]} />
+
+<GuideCard title="Integrate Mux Data" description="Add the Mux Data SDK to your player and start collecting playback performance metrics." links={[{ title: 'Read the guide', href: '/docs/guides/track-your-video-performance' }]} />
+
+
+# Integrate with Cosmic
+With the Mux Video integration for Cosmic JS, you can upload videos directly to Mux from your Cosmic JS Dashboard.
+## 1. Install the Mux Extension
+
+Log in to your Cosmic JS account and navigate to Your Bucket > Settings > Extensions. Click the Extensions tab and find the Mux Videos Extension. Hit Install.
+
+<Image src="/docs/images/cosmic-install.png" width={1304} height={828} />
+
+## 2. Enter Mux credentials
+
+After installing, you will be redirected to the Extension settings page. Under Query Parameters, you will need to provide the Mux API credentials on your Mux account (mux\_access\_token, mux\_secret).
+
+<Image src="/docs/images/cosmic-credentials.png" width={1304} height={828} />
+
+If you need to generate a new Access Token, go to the Access Token settings of your Mux account dashboard.
+
+<Image src="/docs/images/cosmic-access-token.png" width={1790} height={644} />
+
+The access token should have **Read** and **Write** permissions for Mux Video.
+
+<Image src="/docs/images/access-token-permissions-video.png" width={760} height={376} alt="Mux Video access token permissions" sm />
+
+Go back to the Cosmic Extensions setting page, enter your Mux credentials, and save your Extension.
+
+## 3. Upload video
+
+After installing the Extension and setting your Mux account keys, click the Mux Videos Extension link in the left-hand nav. Next, upload your videos.
+
+<Image src="/docs/images/cosmic-upload.gif" width={1273} height={781} />
+
+The Extension saves the uploaded video data to the Mux Videos Object Type. Now you can add your Mux Videos to any Object using an Object metafield. Then you can fetch Mux data into your application by using the `mux_playback_url` property located in the Object metadata.
+
+<Image src="/docs/images/cosmic-edit.gif" width={1272} height={827} />
+
+## 4. Playback
+
+To retrieve your video for playback, check out the [Cosmic docs](https://www.cosmicjs.com/articles/mux-videos-extension-overview-jqpvec5d) to see how to add the Mux playback URL to your HTML Video player.
+
+<GuideCard title="Set up playback" description="Set up your iOS application, Android application or web application to start playing your Mux assets" links={[{ title: 'Read the guide', href: '/docs/guides/play-your-videos' }]} />
+
+<GuideCard title="Preview your video" description="Now that you have Mux assets, build rich experiences into your application by extracting images from your videos" links={[{ title: 'Read the guide', href: '/docs/guides/get-images-from-a-video' }]} />
+
+<GuideCard title="Integrate Mux Data" description="Add the Mux Data SDK to your player and start collecting playback performance metrics." links={[{ title: 'Read the guide', href: '/docs/guides/track-your-video-performance' }]} />
+
+
+# Integrate with DatoCMS
+With every DatoCMS project you also get a native integration with Mux without any manual intervention.
+Mux is by default enabled in every new DatoCMS project. The integration allows you to upload videos directly from DatoCMS dashboard or using the [REST API](https://www.datocms.com/docs/content-management-api). The CMS interface will then allow you to use the videos in the content, while on the API side youâ€™ll be able to retrieve the Mux Video URLs and the thumbnail.
+
+## 1. Upload video
+
+Just drag and drop a video in DatoCMS media area, like this:
+
+<Image src="/docs/images/datocms-upload.gif" width={640} height={360} />
+
+## 2. Fetch video information via GraphQL
+
+For every video that you upload, you can get on the API a custom video object with the following properties:
+
+* HLS video streaming URL.
+* High, medium and low quality MP4 versions of the video to support legacy browsers that do not support HLS.
+* Duration and frame rate of the video.
+* Thumbnail URL: resizable, cropable and available in JPEG, PNG and GIF format.
+
+See the full page of this embedded example [here in the GraphQL explorer](https://cda-explorer.datocms.com/?embed=\&apitoken=faeb9172e232a75339242faafb9e56de8c8f13b735f7090964\&query=%7B%0A%20%20allUploads%28filter%3A%20%7Btype%3A%20%7Beq%3A%20video%7D%2C%20resolution%3A%20%7B%7D%2C%20smartTags%3A%20%7B%7D%7D%29%20%7B%0A%20%20%20%20video%20%7B%0A%20%20%20%20%20%20streamingUrl%0A%20%20%20%20%20%20mp4High%3A%20mp4Url%28res%3A%20high%29%0A%20%20%20%20%20%20mp4Med%3A%20mp4Url%28res%3A%20medium%29%0A%20%20%20%20%20%20mp4Low%3A%20mp4Url%28res%3A%20low%29%0A%20%20%20%20%20%20duration%0A%20%20%20%20%20%20framerate%0A%20%20%20%20%20%20thumbJpg%3A%20thumbnailUrl%28format%3A%20jpg%29%0A%20%20%20%20%20%20thumbPng%3A%20thumbnailUrl%28format%3A%20png%29%0A%20%20%20%20%20%20thumbGif%3A%20thumbnailUrl%28format%3A%20gif%29%0A%20%20%20%20%7D%0A%20%20%7D%0A%7D%0A).
+
+<iframe src="https://cda-explorer.datocms.com/?embed=&apitoken=faeb9172e232a75339242faafb9e56de8c8f13b735f7090964&query=%7B%0A%20%20allUploads%28filter%3A%20%7Btype%3A%20%7Beq%3A%20video%7D%2C%20resolution%3A%20%7B%7D%2C%20smartTags%3A%20%7B%7D%7D%29%20%7B%0A%20%20%20%20video%20%7B%0A%20%20%20%20%20%20streamingUrl%0A%20%20%20%20%20%20mp4High%3A%20mp4Url%28res%3A%20high%29%0A%20%20%20%20%20%20mp4Med%3A%20mp4Url%28res%3A%20medium%29%0A%20%20%20%20%20%20mp4Low%3A%20mp4Url%28res%3A%20low%29%0A%20%20%20%20%20%20duration%0A%20%20%20%20%20%20framerate%0A%20%20%20%20%20%20thumbJpg%3A%20thumbnailUrl%28format%3A%20jpg%29%0A%20%20%20%20%20%20thumbPng%3A%20thumbnailUrl%28format%3A%20png%29%0A%20%20%20%20%20%20thumbGif%3A%20thumbnailUrl%28format%3A%20gif%29%0A%20%20%20%20%7D%0A%20%20%7D%0A%7D%0A" title="CDA GraphQL Explorer | DatoCMS" width="100%" height="500px" style={{ border: "none" }} />
+
+<GuideCard title="Set up playback" description="Set up your iOS application, Android application or web application to start playing your Mux assets" links={[{ title: 'Read the guide', href: '/docs/guides/play-your-videos' }]} />
+
+<GuideCard title="Preview your video" description="Now that you have Mux assets, build rich experiences into your application by extracting images from your videos" links={[{ title: 'Read the guide', href: '/docs/guides/get-images-from-a-video' }]} />
+
+<GuideCard title="Integrate Mux Data" description="Add the Mux Data SDK to your player and start collecting playback performance metrics." links={[{ title: 'Read the guide', href: '/docs/guides/track-your-video-performance' }]} />
+
+
+# Integrate with Strapi
+Strapi is an open source content management system that allows you to define your own schemas for your content.
+The [Mux Video Uploader](https://www.npmjs.com/package/strapi-plugin-mux-video-uploader) plugin allows editors to upload content directly to Mux from within the Strapi interface, then associate those videos with their custom collection types.
+
+## Requirements
+
+* A working installation of Strapi that is publicly accessible through a hostname
+* An [Access Token and Secret Key](/docs/integrations/strapi#2-create-access-in-mux) which is provisioned within Mux Dashboard
+* Configure a [Webhooks listener](/docs/integrations/strapi#3-configure-webhook-listener) within Mux Dashboard so that Strapi can be informed of upload progress.
+
+## 1. Install the Mux Video Uploader plugin
+
+With your existing Strapi installation, run the following command in the root of your Strapi project to install the plugin. Be sure to restart Strapi for the plugin to take effect.
+
+<Callout type="info" title="Version notice">
+  As of the 2.1.0 version of this player, only Strapi v4 will be supported. To use with Strapi v3, please use version 2.0.0 of this plugin.
+</Callout>
+
+## Install instructions for Strapi v4
+
+Run this command in your project folder if you are using NPM:
+
+```sh
+npm i strapi-plugin-mux-video-uploader@latest
+```
+
+Or this command if you are using yarn with your project:
+
+```sh
+yarn add strapi-plugin-mux-video-uploader@latest
+```
+
+## Install instructions for Strapi v3
+
+Run this command in your project folder if you are using NPM:
+
+```sh
+npm i strapi-plugin-mux-video-uploader@2.0.0
+```
+
+Or this command if you are using yarn with your project:
+
+```sh
+yarn add strapi-plugin-mux-video-uploader@2.0.0
+```
+
+## 2. Create access token in Mux
+
+Generate a new Access Token by going to the Access Token settings of your Mux account dashboard.
+
+<Image src="/docs/images/settings-api-access-tokens-2x.png" width={2404} height={526} alt="Mux access token settings" />
+
+The access token should have Mux Video **Read** and **Write** permissions.
+
+<Image src="/docs/images/access-token-permissions-video.png" width={760} height={376} alt="Mux Video access token permissions" sm />
+
+After clicking the "Generate Token" button, save the "Access Token ID" and "Secret Key" to be used later.
+
+## 3. Configure Webhook listener
+
+Part of the upload process includes Mux updating Strapi with the completion of the upload and processing. In order for Mux to make this communication, a Webhook needs to be established so that events are sent to your Strapi installation.
+
+Create a new Webhook configuration in Mux Dashboard. There will be a space to add a "URL to notify". This value should be formatted based on your Strapi's hostname
+
+```txt
+{YOUR_STRAPI_DOMAIN_HERE}/mux-video-uploader/webhook-handler
+```
+
+After saving, copy the "Signing Secret" which will be used later.
+
+## 4. Setup configuration in Strapi
+
+In Strapi, visit the Settings page and navigate to the `MUX VIDEO UPLOADER` section.
+
+Using the details saved in the previous step, fill in the fields with the appropriate values.
+
+<Image src="/docs/images/strapi-config.png" width={1600} height={819} />
+
+Click the "Save" button to persist the changes.
+
+## 5. Upload video
+
+Use the Mux Video Uploader page that is now available in Strapi's menu to upload either with a remote URL or directly using a local video file.
+
+<Image src="/docs/images/strapi-upload.png" width={1600} height={819} />
+
+From here, relationships of Mux assets can be modeled to custom collection types within Strapi to tie metadata with playable content.
+
+<Player playbackId="kBwjf6dl6028FjELH4p0297dLcPM6AvQ1D" thumbnailTime="0" title="Strapi - Mux Video Uploader - Upload" />
+
+<Callout type="success" title="Congratulations!">
+  You now have the ability to upload content to Mux through Strapi CMS!
+</Callout>
+
+At this point, querying Strapi using REST or GraphQL will give you access to the `playback_id` information. This `playback_id` can be used by your client applications to stream content or retrieve thumbnails.
+
+## 6. Explore advanced options
+
+## Signed tokens
+
+<Callout type="warning" title="Warning! Requires generating JWT on your server">
+  Enabling signed URLs in Strapi will require you to generate your own signing tokens on your application **server**. This involves creating a signing key and using that to generate JSON web tokens when you want to access your videos and thumbnails outside of Strapi.
+</Callout>
+
+By default, all assets uploaded to Mux through Strapi will be created with a playback policy of `"public"`. This means that your videos and thumbnails are accessible with `https://stream.mux.com/{PLAYBACK_ID}.m3u8` and `https://image.mux.com/{PLAYBACK_ID}/thumbnail.jpg`.
+
+If you want more control over delivery of the playback and thumbnail access, you can enable this feature in the Strapi settings for the Mux Video Uploader.
+
+When you enable this feature, the following things will happen:
+
+1. The Mux Plugin in Strapi will save the signing keys that you've generated and be available immediately.
+2. Any Assets that get created with the Signed Playback URL setting enabled will be created with `playback_policy: "signed"` (instead of `"public"`).
+3. The signing key from Step 1 will be used by the Mux Plugin to preview content inside the Strapi UI.
+4. When you access your content in your own application, use the `MuxAsset.signed` property to determine if the asset is signed by either a `true` or `false` value.
+
+```json
+{
+  "id": 9,
+  "upload_id": null,
+  "asset_id": "H9H01yni83yRLuu6cKaf8jQI8XW01SPp5XI7WrGsD37n00",
+  "playback_id": "aAqXNee00zlfzR2Rsw01NmGBvxSg1Ocs3g008YChvtG6aM",
+  "signed": true,
+  "isReady": true,
+  "duration": 25.492133,
+  "aspect_ratio": "16:9",
+  "createdAt": "2024-04-01T23:48:19.760Z",
+  "updatedAt": "2024-04-01T23:48:21.605Z"
+}
+```
+
+5. You should use the signed `playback_id` to create URLs for playback and for thumbnail generation.
+
+* Playback `https://stream.mux.com/{SIGNED_PLAYBACK_ID}.m3u8?token={TOKEN}`
+* Thumbnails `https://image.mux.com/{SIGNED_PLAYBACK_ID}/thumbnail.jpg?token={TOKEN}`
+
+6. The `TOKEN` parameter for the above URLs is something you create on your server according to Step 2 in [Secure video playback](/docs/guides/secure-video-playback)
+
+Note that in the Strapi UI when an asset is using a signed URL you will see a lock icon on the Asset list.
+
+## Encoding Tiers
+
+When uploading a new video, you can select what Encoding Tier used when preparing the Asset.  Possible selections are `Smart` and `Baseline`.  When choosing `Smart` additional options are made available for maximum stream resolutions (1080p, 2K or 4K).
+
+More details can be found in our [Use Encoding Tiers](/docs/guides/use-video-quality-levels) section.
+
+## Static Renditions
+
+When using the `Smart` Encoding Tier, an option to enable downloadable MP4s will be available.  This option will create [Static Renditions](/docs/guides/enable-static-mp4-renditions) for the Asset and will make MP4 files available for download to client devices using a formatted URL.
+
+## Captions/Subtitles
+
+With Mux's auto-generated captions, editors can easily add captions to videos being uploaded from Strapi.  When using the "Auto-generated" option, Mux will generate captions automatically while it prepares the Asset.  More details can be found in the [Add auto-generated captions to your videos and use transcripts](/docs/guides/add-autogenerated-captions-and-use-transcripts) section of our documentation.
+
+If you choose to upload a "Custom" captions file (supported formats are `.vtt` and `.srt`), your file will be uploaded to your instance of Strapi and Mux will pull it via a public URL from your Strapi instance.  Take a look at our [Add subtitles/captions to videos](/docs/guides/add-subtitles-to-your-videos) for more details.
+
+<GuideCard title="Set up playback" description="Set up your iOS application, Android application or web application to start playing your Mux assets" links={[{ title: 'Read the guide', href: '/docs/guides/play-your-videos' }]} />
+
+<GuideCard title="Preview your video" description="Now that you have Mux assets, build rich experiences into your application by extracting images from your videos" links={[{ title: 'Read the guide', href: '/docs/guides/get-images-from-a-video' }]} />
+
+<GuideCard title="Integrate Mux Data" description="Add the Mux Data SDK to your player and start collecting playback performance metrics." links={[{ title: 'Read the guide', href: '/docs/guides/track-your-video-performance' }]} />
+
+
+# Integrate with Prepr
+Prepr works with Mux out of the box. No configuration needed.
+Mux is enabled for every new Prepr account by default. You can upload your videos to Prepr, add them to a content model and query their URLs to display them on your website. Follow the steps below to get started.
+
+## 1. Upload video content to Prepr
+
+1. [Create a free Prepr account](https://signup.prepr.io/) before you get started.
+2. Log in to the Prepr dashboard and navigate to *Publish > Media Library.*
+3. Click *Upload Asset*
+4. Drag in one or more video files or click *Browse files* to select the files.
+5. Click *Add 1 item* to add the item(s) to your library.
+
+<Image src="/docs/images/prepr-demo-1.gif" width={800} height={541} />
+
+## 2. Add videos to content models
+
+Once your video(s) have been uploaded, you can add them to a content model. Follow the steps below to do this.
+
+1. Navigate to *Settings > Content Models.*
+2. Create a new model or open one of your existing models.
+3. Click *Add field* and select *Assets.*
+4. Enter a *Display name.*
+5. Deselect all options except *Video* in the *Settings* tab.
+
+## 3. Query video information using GraphQL
+
+Now you can query the URL(s) of your videos to embed them on your website.
+
+To learn how to play video content on your website, please follow these instructions provided by Mux.
+
+Your query could look something like the example below. In this example, `Posts` is the name of your content model and `videos` is the name of the assets field you created. It has various options:
+
+* The HLS streaming URL is returned by default.
+* You may use the `res` option to request MP4 versions in `high`, `medium` and/or `low` quality to support legacy browsers that do not support HLS.
+* You may query the duration of video content using the `duration` option.
+* The cover image can be requested using the 'cover' field. It is adjustable using `width`, `height` and `time` arguments.
+
+```gql
+{
+    Posts {
+        items {
+            videos {
+                hls : url
+                mp4High : url(res:"high")
+                mp4Medium : url(res:"medium")
+                mp4Low : url(res:"low")
+                duration
+                cover
+            }
+        }
+    }
+}
+```
+
+<GuideCard title="Set up playback" description="Set up your iOS application, Android application or web application to start playing your Mux assets" links={[{ title: 'Read the guide', href: '/docs/guides/play-your-videos' }]} />
+
+<GuideCard title="Preview your video" description="Now that you have Mux assets, build rich experiences into your application by extracting images from your videos" links={[{ title: 'Read the guide', href: '/docs/guides/get-images-from-a-video' }]} />
+
+<GuideCard title="Integrate Mux Data" description="Add the Mux Data SDK to your player and start collecting playback performance metrics." links={[{ title: 'Read the guide', href: '/docs/guides/track-your-video-performance' }]} />
+
+
+# Use Mux in AI Workflows
+Learn how to use AI to automatically generate chapters, translate audio, and create summaries for your Mux videos
+<GuideCard
+  imageSrc="/docs/images/ai-chapters@2x.png"
+  imageWidth={536}
+  imageHeight={300}
+  title="AI Chapters"
+  description="Automatically generate chapters for your video using AI."
+  links={[
+    {
+      title: "View the Guide â†’",
+      href: "/docs/integrations/ai-generated-chapters",
+    },
+  ]}
+/>
+
+<GuideCard
+  imageSrc="/docs/images/ai-translation@2x.png"
+  imageWidth={536}
+  imageHeight={300}
+  title="AI Translation & Dubbing"
+  description="Automatically translate and dub your video into different languages."
+  links={[
+    {
+      title: "View the Guide â†’",
+      href: "/docs/integrations/ai-translation-dubbing",
+    },
+  ]}
+/>
+
+<GuideCard
+  imageSrc="/docs/images/ai-summarizing@2x.png"
+  imageWidth={536}
+  imageHeight={300}
+  title="AI Summarization"
+  description="Automatically summarize your video using AI."
+  links={[
+    {
+      title: "View the Guide â†’",
+      href: "/docs/integrations/ai-summarizing-and-tagging",
+    },
+  ]}
+/>
+
+
+# Generating video chapters with AI
+A workflow for using AI models to segment a video into chapters
+<Callout type="info">We also wrote a blog post about [using ChatGPT to segment a video](https://www.mux.com/blog/ai-generated-chapters-for-your-videos-with-mux-player) into chapters</Callout>
+
+If you're using a player that supports visualising chapters during playback, like [Mux Player](https://www.mux.com/player) does, then you'll need your chapters defined in a format that can be given to your player.
+
+Splitting your video into chapters manually can be tedious though, so we're going to give a high-level overview of how you could leverage AI to help with this.
+
+Ultimately, we need to generate a list of chapter names with timestamps associated with them for when the chapters start.
+
+## Output format
+
+Here's a couple examples of the kind of output you will want to generate from your AI integration. You can decide to generate your chapters in either a plain text or a sturctured format like JSON.
+
+### In plain text
+
+This is similar to the YouTube chapter format and is a common way to represent chapters in a concise readable way. You will likely parse this output before storing it in your database.
+
+```
+00:00:00 Instant Clipping Introduction
+00:00:15 Setting Up the Live Stream
+00:00:29 Adding Functionality with HTML and JavaScript
+00:00:41 Identifying Favorite Scene for Clipping
+00:00:52 Selecting Start and End Time for Clip
+00:01:10 Generating Clip URL
+00:01:16 Playing the Clipped Video
+00:01:24 Encouragement to Start Clipping
+```
+
+### In JSON
+
+JSON is more convenient to handle with JavaScript on the front-end.
+
+```
+[
+  { start: '00:00:00', title: 'Instant Clipping Introduction' },
+  { start: '00:00:15', title: 'Setting Up the Live Stream' },
+  {
+    start: '00:00:29',
+    title: 'Adding Functionality with HTML and JavaScript'
+  },
+  {
+    start: '00:00:41',
+    title: 'Identifying Favorite Scene for Clipping'
+  },
+  { start: '00:00:52', title: 'Selecting Start and End Time for Clip' },
+  { start: '00:01:10', title: 'Generating Clip URL' },
+  { start: '00:01:16', title: 'Playing the Clipped Video' },
+  { start: '00:01:24', title: 'Encouragement to Start Clipping' }
+]
+```
+
+You can prompt for JSON to be returned directly from many LLMs, like using OpenAI's [strict JSON mode](https://openai.com/index/introducing-structured-outputs-in-the-api/). Depending on the model you are using, you will get different guarentees about whether or not your schema will be strictly adhered to. You should validate the JSON response using a library like [Zod](https://zod.dev/).
+
+## Mux features used
+
+* [Auto-generated captions](/docs/guides/add-autogenerated-captions-and-use-transcripts)
+* [Mux Player](/docs/guides/mux-player-web)
+
+Information about what subjects are being discussed in a video can usually be found in the transcript. You can therefore use Mux's auto-generated captions feature as a base to generate chapters from. This text data is much easier and faster to process than analysing the video or audio tracks directly.
+
+## Workflow
+
+Here's a high-level overview of how you might fit the different pieces together:
+
+* Upload a video with [auto-generated captions](/docs/guides/add-autogenerated-captions-and-use-transcripts) enabled
+* Wait for the `video.asset.track.ready` [webhook](/docs/core/listen-for-webhooks), which will tell you that the captions track has finished being created
+* Retrieve the [transcript file](/docs/guides/add-autogenerated-captions-and-use-transcripts#retrieving-a-transcript) and give the contents of it to an AI model, like OpenAI's ChatGPT or Anthropic's Claude
+* Craft a prompt that requests the transcript be segmented into chapters with timestamps, and not to include any other information in the response
+* Give the resulting chapters to your player to visualise
+
+A [system prompt](https://platform.openai.com/docs/guides/prompt-engineering/tactic-ask-the-model-to-adopt-a-persona) for this task might look something like this:
+
+> Your role is to segment the following captions into chunked chapters, summarising each chapter with a title. Your response should be in the YouTube chapter format with each line starting with a timestamp in HH:MM:SS format followed by a chapter title. Do not include any preamble or explanations.
+
+## Visualizing
+
+Once you have some chapters, you can display them in Mux Player like this:
+
+```javascript
+// Get a reference to the player
+const player = document.querySelector('mux-player');
+// startTime is in seconds
+player.addChapters([
+	{startTime: 5, title: 'Chapter name'},
+	{startTime: 15, title: 'Second chapter'},
+]);
+```
+
+Here's an example of converting `HH:MM:SS` text based timestamps into seconds and giving them to Mux Player
+
+Sandpack interactive code example configuration JSON.stringified:
+```json
+{
+  "customSetup": {
+    "dependencies": {
+      "@mux/mux-player": "latest"
+    }
+  },
+  "files": {
+    "/index.html": {
+      "code": "<mux-player playback-id=\"poX3visQ8FjC02d5TmQQq3pWqJJPT3PEUB4bu02xOc1tw\"></mux-player>"
+    },
+    "/index.js": {
+      "active": true,
+      "code": "import \"./styles.css\";\nimport \"@mux/mux-player\";\n\nconst generatedChapters = [\n  { start: \"00:00:00\", title: \"Instant Clipping Introduction\" },\n  { start: \"00:00:15\", title: \"Setting Up the Live Stream\" },\n  {\n    start: \"00:00:29\",\n    title: \"Adding Functionality with HTML and JavaScript\",\n  },\n  {\n    start: \"00:00:41\",\n    title: \"Identifying Favorite Scene for Clipping\",\n  },\n  { start: \"00:00:52\", title: \"Selecting Start and End Time for Clip\" },\n  { start: \"00:01:10\", title: \"Generating Clip URL\" },\n  { start: \"00:01:16\", title: \"Playing the Clipped Video\" },\n  { start: \"00:01:24\", title: \"Encouragement to Start Clipping\" },\n];\n\nconst playerEl = document.querySelector(\"mux-player\");\n\nconst parsedChapters = generatedChapters.map(({ start, title }) => {\n  // we need to turn our timestamps into seconds\n  const split = start.split(\":\").map((n) => parseInt(n));\n  const seconds = split[0] * 3600 + split[1] * 60 + split[2];\n  return { startTime: seconds, value: title };\n});\n\nplayerEl.addChapters(parsedChapters);"
+    }
+  }
+}
+```
+
+
+# Automatic translation and dubbing with AI
+Learn how to use AI models to translate or dub a video
+Mux already has a feature for creating [auto-generated captions](/docs/guides/add-autogenerated-captions-and-use-transcripts). This can produce a transcript for you in the same language being spoken in a video. But what if you want the audio translated (dubbed) into different languages?
+
+We're going to outline a general workflow that you can follow to translate (dub) your videos by grabbing their audio track and sending them to a 3rd party service to handle the translation process. We'll then take the new language tracks and add them back to our video as additional audio tracks.
+
+## Mux features used
+
+* [Audio-only static renditions](/docs/guides/enable-static-mp4-renditions)
+* [Multi-track audio](/docs/guides/add-alternate-audio-tracks-to-your-videos#introduction-to-multi-track-audio)
+* [Mux Player](/docs/guides/mux-player-web) for playback and language switching
+
+## Workflow
+
+* Upload a video to Mux that uses the plus video quality level. Basic video quality assets [don't support MP4's](/docs/guides/use-video-quality-levels#feature-availability-within-video-quality-levels), and we will need them in the following steps.
+* When uploading your video, make sure `mp4_support` is set to a value that supports audio renditions, like `audio-only`, this will make an `audio.m4a` file available alongside the normal processing done to prepare it for streaming.
+* Wait for the `video.asset.static_renditions.ready` [webhook](/docs/core/listen-for-webhooks), which will tell you that the audio only MP4 file is ready to be used
+* Give the [audio file URL](/docs/guides/enable-static-mp4-renditions#creating-the-mp4-streaming-url) to an external service, like [Sieve](https://www.sievedata.com/functions/sieve/dubbing/guide), to handle processing.
+* Attach the new audio tracks to your video using the <ApiRefLink product="video" slug="operation/create-asset-track">create asset track endpoint</ApiRefLink> of the API. This [multi-track audio guide](/docs/guides/add-alternate-audio-tracks-to-your-videos) goes into more detail in how to do this.
+
+You can then play back your video using Mux Player using the a Playback ID in the same way that you would with any other video. Mux Player will automatically detect the alternate audio tracks and show an audio menu for switching between them.
+
+## A complete example
+
+Hereâ€™s an [example endpoint](https://www.val.town/v/mux/seiveDubbing) running on Val.town that puts all of this together. You can give it an asset ID and a list of languages and it will return for you multi-language audio tracks. If you want to experiment with this you can fork it into your own account.
+
+Hereâ€™s a video demo of some translations created with this process:
+
+<Player playbackId="aapRSmSRhrwPUV1vj8NnwTA2bH2SBMsCrHjucA02QSQA" thumbnailTime="0" title="Val.town translation demo" />
+
+And below is the code from the endpoint:
+
+<iframe width="100%" height="400px" src="https://www.val.town/embed/mux/seiveDubbing" title="Val Town" frameborder="0" allow="web-share" allowfullscreen />
+
+## Considerations
+
+Relying on AI to translate your audio means that you likely won't be manually checking each translation. Because AI isn't 100% perfect, you may want to signify in your app that the translations being displayed are auto-generated, in case of inconsistencies or inaccuracies that are present.
+
+For example: AI may not always understand the contextual meaning of a conversation. It might not always correctly translate jokes, slang, or culturally specific expressions. Depending on the type of content being translated, you may want to add a manual verification step before publishing the translations.
+
+
+# Summarizing and tagging videos with AI
+A workflow for using AI models to summarize and create tags about a video
+A lot of information about the content of a video can be found in the audio track, and subsequently in its transcript. Just like using this information to [generate chapters](/docs/integrations/ai-generated-chapters), you could use this information to summarize a video, create a title, or generate a list of tags that describe the different subjects being discussed. Using AI for this task allows us to automatically generate complete metadata for a video.
+
+## Mux features used
+
+* [Auto-generated captions](/docs/guides/add-autogenerated-captions-and-use-transcripts)
+
+## Workflow
+
+Here's a high-level overview of how you might fit the different pieces together:
+
+* Upload a video with [auto-generated captions](/docs/guides/add-autogenerated-captions-and-use-transcripts) enabled
+* Wait for the `video.asset.track.ready` [webhook](/docs/core/listen-for-webhooks), which will tell you that the captions track has finished being created
+* Retrieve the [transcript file](/docs/guides/add-autogenerated-captions-and-use-transcripts#retrieving-a-transcript) and give it to an AI model, like OpenAI's ChatGPT or Anthropic's Claude
+* Use a prompt to ask for a summary of the transcript, with guidance as to how long or short you want the summary to be. Being specific about not wanting any superfluous content returned other than the summary helps, as does setting up a "system prompt" that primes the LLM with for task that it's going to be asked to complete
+* Feed the summary back into the model in order to distill the summary down into a title
+
+A [system prompt](https://platform.openai.com/docs/guides/prompt-engineering/tactic-ask-the-model-to-adopt-a-persona) for this type of task might look something like this:
+
+> Your task is to summarize the transcript of a video. Please follow these guidelines:
+>
+> * Be brief. Condense the content into a summary that captures the key points and main ideas without losing important details.
+> * Avoid jargon or overly complex language unless necessary for the context.
+> * Focus on the most critical information, ignoring filler, repetitive statements, or irrelevant tangents.
+> * Aim for a summary that is 3-5 sentences long and no more than 200 characters.
+
+LLM's tend to struggle with character limits because of the way that text is represented to them, through tokens than can take up multiple characters. You should still be able to specify a rough upper limit though.
+
+Using the same process, you can prompt for different types of metadata like tags or a simple list of subjects being discussed by amending the system prompt to change what you expect to be returned.
+
+## Use cases
+
+Once you have your summary and tags stored in your database you can use them as the basis for other features.
+
+Tags for example can be used to improve a search experience by allowing people to filter videos that only talk about certain subjects with titles and summaries being used in the search results themselves.
+
+You could also use the tags to enrich your analytics by using them to track which types of content users are most interested in, visualizing the tags based on their popularity.
+
+## Considerations
+
+It is possible to ask an LLM to return multiple pieces of information at the same time, like a summary and title, but this can have varying effects on the quality of the output compared to asking it to focus on a single task at a time. Depending on the specific model you are using, you might want to benchmark the two methods against each other before deciding on which method to use.
+
+For example: many models, like ChatGPT, now support a [strict JSON output mode](https://openai.com/index/introducing-structured-outputs-in-the-api/) that gives guarentees about the models output adhering to a strict JSON schema. This schema could have pre-defined properties for the different data points you're trying to extract. Even if this works as expected, you should still test the quality of the results being returned as dividing the models attention and forcing it to not generate invalid JSON affects how it generates tokens for its response.

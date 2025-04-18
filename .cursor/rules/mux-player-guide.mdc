@@ -1,0 +1,3056 @@
+---
+description: This is the developer documentation for Mux Player for Web, iOS, and Android.
+globs: 
+alwaysApply: false
+---
+# Mux Player for web
+Mux Player is a drop in component for adding Mux videos into your web application
+**Mux Player** is a drop-in component that you can put in your web application to play Mux assets. Mux Player supports:
+
+* on-demand assets
+* live streams
+* low-latency live streams
+* DVR mode for live or low-latency live streams
+
+Mux Player can be used as a web component (`<mux-player>` from `@mux/mux-player`), as a React component (`<MuxPlayer />` from `@mux/mux-player-react`), or as a web embed (`<iframe src="https://player.mux.com/{playbackId}">`)
+
+Mux Player is fully-featured video player for content hosted by Mux Video. Mux Player is fully integrated with Mux Data without any extra configuration. Mux Player provides a responsive UI based on video player dimensions and stream type, automatic thumbnail previews and poster images, and modern video player capabilities (fullscreen, picture-in-picture, Chromecast, Airplay).
+
+## Quick start
+
+Here are some examples of Mux Player in action.
+
+## HTML element
+
+Install with either npm, yarn or load Mux Player from the hosted script.
+
+### NPM
+
+```shell
+npm install @mux/mux-player@latest
+```
+
+### Yarn
+
+```shell
+yarn add @mux/mux-player@latest
+```
+
+### Hosted
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@mux/mux-player" defer></script>
+```
+
+### Example HTML element implementation
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@mux/mux-player" defer></script>
+<mux-player
+  playback-id="EcHgOK9coz5K4rjSwOkoE7Y7O01201YMIC200RI6lNxnhs"
+  metadata-video-title="Test VOD"
+  metadata-viewer-user-id="user-id-007"
+></mux-player>
+```
+
+<Callout type="info">
+  When using the HTML element version of Mux Player, you will see the `Player Software` in Mux Data come through as `mux-player`.
+</Callout>
+
+## HTML Embed
+
+### Example HTML embed implementation
+
+```html
+<iframe
+  src="https://player.mux.com/EcHgOK9coz5K4rjSwOkoE7Y7O01201YMIC200RI6lNxnhs?metadata-video-title=Test%20VOD&metadata-viewer-user-id=user-id-007"
+  allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+  allowfullscreen="true"
+></iframe>
+```
+
+<Callout type="info">
+  When using the HTML embed version of Mux Player, you will see the `Player Software` in Mux Data come through as `mux-player-iframe`.
+</Callout>
+
+## React
+
+You will need to select one of the package options below. Both examples will automatically update the player. You can always anchor the package to a specific version if needed.
+
+### NPM
+
+```shell
+npm install @mux/mux-player-react@latest
+```
+
+### Yarn
+
+```shell
+yarn add @mux/mux-player-react@latest
+```
+
+### Example React implementation
+
+Sandpack interactive code example configuration JSON.stringified:
+```json
+{
+  "customSetup": {
+    "dependencies": {
+      "@mux/mux-player-react": "latest"
+    }
+  },
+  "files": {
+    "/App.js": {
+      "code": "import MuxPlayer from \"@mux/mux-player-react\"; \n\nexport default function App() {\n  return (\n    <MuxPlayer\n      playbackId=\"a4nOgmxGWg6gULfcBbAa00gXyfcwPnAFldF8RdsNyk8M\"\n      metadata={{\n        video_id: \"video-id-54321\",\n        video_title: \"Test video title\",\n        viewer_user_id: \"user-id-007\",\n      }}\n    />\n  );\n}\n",
+      "active": true
+    },
+    "/src/index.js": {
+      "code": "",
+      "hidden": true
+    }
+  },
+  "template": "react"
+}
+```
+
+<Callout type="info">
+  When using the React version of Mux Player, you will see the `Player Software` in Mux Data come through as `mux-player-react`.
+</Callout>
+
+## Adaptive controls
+
+As shown in the examples above, the available controls will adjust based on your video's stream type, live or on-demand.
+
+Mux Player will also take into account the size that the player is being displayed at, regardless of the browser window size, and will selectively hide controls that won't fit in the UI.
+
+In the latest version of Mux Player stream type is automatically set and you don't need to manually provide this. Player themes other than the default theme that need to know what the stream type is may need it defined to avoid the player having a delay in showing the correct controls. In this instance, you would set `stream-type` (`streamType` in React) to either `on-demand` or `live` so that the UI can adapt before any information about the video is loaded.
+
+The following will also appear in some use cases based on support detection:
+
+* [Airplay](mdc:https:/www.apple.com/airplay)
+* [Chromecast](mdc:https:/store.google.com/us/product/chromecast). Requires an extra step, see the [customize look and feel](mdc:docs/guides/player-customize-look-and-feel) guide.
+* Fullscreen
+* Picture-in-picture button
+* Volume controls
+
+<GuideCard
+  title="Core functionality"
+  description="Understand the features and core functionality of Mux Player"
+  links={[
+    {
+      title: "Read the guide",
+      href: "/docs/guides/player-core-functionality",
+    },
+  ]}
+/>
+
+<GuideCard
+  title="Integrate Mux Player"
+  description="Interate Mux Player in your web application. See examples in popular front end frameworks."
+  links={[
+    {
+      title: "Read the guide",
+      href: "/docs/guides/player-integrate-in-your-webapp",
+    },
+  ]}
+/>
+
+<GuideCard
+  title="Customize the look and feel"
+  description="Customize Mux Player to match your brand"
+  links={[
+    {
+      title: "Read the guide",
+      href: "/docs/guides/player-customize-look-and-feel",
+    },
+  ]}
+/>
+
+## Set accent color for your brand
+
+The default accent color of the player is Mux pink `#fa50b5`. You should override this with your brand color. Use the `accent-color` HTML attribute or `accentColor` React prop.
+
+```html
+<mux-player
+  playback-id="EcHgOK9coz5K4rjSwOkoE7Y7O01201YMIC200RI6lNxnhs"
+  accent-color="#ea580c"
+  metadata-video-title="Test VOD"
+  metadata-viewer-user-id="user-id-007"
+></mux-player>
+```
+
+For React:
+
+```jsx
+<MuxPlayer
+  playbackId="EcHgOK9coz5K4rjSwOkoE7Y7O01201YMIC200RI6lNxnhs"
+  accentColor="#ea580c"
+  metadata={{
+    videoTitle: "Test VOD",
+    ViewerUserId: "user-id-007"
+  }}
+/>
+```
+
+
+# Core functionality of Mux Player
+In this guide, see the features and functionality that Mux Player gives you out of the box.
+## Mux Platform integration
+
+Mux Player is built for playing assets hosted with Mux Video. Features like timeline hover previews and automatically pulling poster images work with minimal configuration because the video is hosted by Mux.
+
+Mux Player will use the optimal HLS.js settings based on the type of stream being played, on-demand or live. New versions of Mux Player will contain upgraded versions of HLS.js that are known to be stable versions and tested with Mux Player.
+
+## Mux Data integration
+
+Mux Player is integrated with Mux Data automatically to measure the performance and quality of experience. See the [Understand metric definitions](mdc:docs/guides/understand-metric-definitions) guide to learn more about the metrics that are tracked with Mux Data.
+
+Your Mux Data environment will be inferred from the playback ID provided to Mux Player. No configuration is necessary. If you would like to override that default and send the video views to a specific Mux environment, you can pass the `env-key` (HTML element) attribute or `envKey` (React) prop.
+
+## Responsiveness
+
+Mux Player has different UI permutations based on stream type (`on-demand` or `live`), feature support (like Airplay), and player size.
+
+Note that the responsiveness of Mux Player is based on the size of the container that it is being rendered in, not the viewport size. If you have a collection of small players in a large viewport, the layout of the controls for each player will be sized appropriately.
+
+Sandpack interactive code example configuration JSON.stringified:
+```json
+{
+  "customSetup": {
+    "dependencies": {
+      "@mux/mux-player": "latest"
+    }
+  },
+  "files": {
+    "/index.html": {
+      "code": "<div>\n<mux-player\n  playback-id=\"v69RSHhFelSm4701snP22dYz2jICy4E4FUyk02rW4gxRM\"\n  metadata-video-title=\"Test Live Stream\"\n  metadata-viewer-user-id=\"user-id-007\"\n></mux-player>\n</div> \n\n<div style=\"max-width: 250px;\">\n<mux-player\n  playback-id=\"v69RSHhFelSm4701snP22dYz2jICy4E4FUyk02rW4gxRM\"\n  metadata-video-title=\"Test Live Stream\"\n  metadata-viewer-user-id=\"user-id-007\"\n></mux-player>\n</div>",
+      "active": true
+    },
+    "/index.js": {
+      "code": "import '@mux/mux-player'",
+      "hidden": true
+    }
+  }
+}
+```
+
+[Here is a CodeSandbox environment you can view samples in](mdc:https:/codesandbox.io/s/mux-player-responsiveness-sample-nikk79)
+
+## Controls and UI
+
+Mux Player will show or hide controls based on availability.
+
+On iPhone browsers Mux Player uses Apple's fullscreen functionality.
+
+On iPhone and iPad browsers, the volume slider is not present. Volume level must be controlled via the hardware buttons. This is a restriction of iOS and iPadOS.
+
+The fullscreen button will not show if fullscreen functionality is not available on the page. For example, if Mux Player is embedded inside of an iframe that does not include the `allow="fullscreen"` attribute. This is currently the case on [CodeSandbox](mdc:https:/codesandbox.io) examples and other similar code testing platforms.
+
+If you are embedding Mux Player in an iframe, use the `<iframe allow="fullscreen">` in order to access fullscreen functionality.
+
+You'll notice the controls are different for on-demand and live stream types.
+
+## Quality selector
+
+By default Mux Player will show a quality selector in the control bar. This is not strictly necessary, the player will use an adaptive bitrate algorithm to determine the highest quality that can be streamed smoothly. However, in some scenarios users may want to pin to a higher rendition for text legibility or because they simply have a preference for viewing the higher quality resolution than what the adaptive bitrate algorithm determines. In these scenarios it's important to understand that there is a tradeoff. If the user is selecting a higher rendition than what the player would naturally use, they will likely experience rebuffering because the available bandwidth is lower than the quality they want to view. That is perfectly okay, but they have to be willing to make that tradeoff.
+
+<Image src="/docs/images/mux-player-quality-selector.png" width={342} height={358} alt="Mux Player quality selector" />
+
+### Caveats with quality selector
+
+There's some details to understand about when the quality selector will be available depending on the device, operating system and browser. The quality selector is only available in environments that use [Media Source Extensions](mdc:https:/www.w3.org/TR/media-source-2) (a.k.a. MSE) to power the streaming.
+
+For Mux Player, that means:
+
+* The quality selector **is available** in all non-Safari desktop browsers because Mux Player uses MSE in these browsers
+* The quality selector **is available** on Android, because Mux Player uses MSE in Android browsers.
+* The quality selector **is not available by default** on MacOS Safari and any iPadOS browser because Mux Player uses Apple's internal HLS playback engine on these platforms. However, MSE is supported on these platforms so the quality selector can be enabled by forcing MSE with the attribute `playback-engine="mse"` (web component) or `playbackEngine="mse"` (React). See [more here about changing the default playback engine](mdc:docs/guides/player-advanced-usage#change-playback-engine).
+* The quality selector **is not available** and cannot be enabled on any iOS browsers because MSE is not supported on iOS (instead iOS requires that HLS playback is done via Apple's internal HLS playback engine, which we do not have programmatic access to)
+
+If you prefer to hide the quality selector all together, you can do that with the CSS variable which sets the `display` property on the control:
+
+```css
+mux-player {
+  --rendition-menu-button: none;
+}
+```
+
+See more about styling with CSS in the [Customize look and feel guide](mdc:docs/guides/player-customize-look-and-feel#available-css-variables)
+
+## Multi-track audio selector
+
+By default, if your stream has multiple audio tracks (e.g. descriptive audio, dubs for another language, etc.), Mux Player will show an audio track selector in the control bar. If there is only one or no audio track, the control will be automatically hidden.
+
+<Image src="/docs/images/mux-player-audio-track-selector.png" width={326} height={302} alt="Mux Player audio track selector" />
+
+If you prefer to hide the audio track selector all together, you can do that with the CSS variable which sets the `display` property on the control:
+
+```css
+mux-player {
+  --audio-track-menu-button: none;
+}
+```
+
+For more details on how to use multi-track audio, including adding it via Mux Video, check out [our blogpost](mdc:https:/www.mux.com/blog/parlez-vous-anglais-introducing-multi-track-audio).
+
+## Chromecast
+
+Chromecast support is built-in.
+
+* For Mux player >= v2.3.0 no additional configuration is needed.
+* For Mux player \< v2.3.0 the only thing you need to do in order to enable it is add the [Google Cast script](mdc:https:/developers.google.com/cast) to the `<head>` of your webpage.
+
+```html
+<script
+  defer
+  src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"
+></script>
+```
+
+When this script is loaded and a Chromecast is detected on the network then Mux Player will show the Chromecast button in the control bar.
+
+Note that the default Chromecast receiver app does not currently support low-latency Live Streams. If you have your own receiver app that you want to use instead of the default Chromecast receiver app you can over-ride the variable: `chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID` to point to your receiver app ID.
+
+## Live Stream playback
+
+When live streaming with Mux you have 2 options for viewers:
+
+* **Non-DVR mode**: This is most common. Use the `playback_id` associated with the **Live Stream** for playback. Non-DVR mode keeps viewers on the "live edge" of the live content and does not allow them to seek backwards while the stream is live.
+* **DVR mode**: This is less common, but might be what you want depending on the use case. Use the `playback_id` associated with the **Asset** that corresponds to the **Live Stream** for playback. DVR mode allows users to seek backwards while the stream is still live.
+
+For more information about non-DVR mode and DVR mode and some of the tradeoffs to consider, take a look at [this guide](mdc:docs/guides/stream-recordings-of-live-streams).
+
+When viewing live streams with Mux Player you have 2 options:
+
+1. Use the `playback_id` associated with the **Live Stream** itself.
+2. Live Streams created in Mux have a corresponding **Asset**. Use the `playback_id` associated with the **Asset** in order to view the live stream in DVR-mode.
+
+When using DVR-mode in Mux Player, the UI will show a timeline for users to scroll back to the beginning of the Live Stream while the Live Stream is still active.
+
+## Timeline hover previews
+
+Timeline hover previews show a small thumbnail of the video content at a given timestamp. They help to provide a contextual visual for the viewer based on where their cursor is positioned over the timeline.
+
+When you play back a video hosted on Mux using Mux Player, youâ€™ll see built-in timeline hover previews for the video with no extra work on your end.
+
+<Image src="/docs/images/mux-player-desktop-on-demand.png" width={799} height={464} alt="Timeline hover preview example" />
+
+## Accessibility
+
+Mux Player has taken steps to being fully WCAG AA compliant. At this time Mux Player supports:
+
+* Keyboard navigation
+* Screen reader compatibility with the [Accessibility Object Model](mdc:https:/wicg.github.io/aom/spec)
+* Closed captions / subtitles will show by default ([if the video has them](mdc:docs/guides/add-subtitles-to-your-videos))
+
+Make sure to take accessibility into consideration when customizing Mux Player. See the guide for [customizing the look and feel of Mux Player](mdc:docs/guides/player-customize-look-and-feel) to change things like primary color, secondary color, or styling with CSS.
+
+When setting color variables and changing styles make sure your implementation meets [the contrast ratio requirements for WCAG 2.1](mdc:https:/www.w3.org/TR/WCAG/#contrast-minimum).
+
+## Error handling
+
+Mux Player will internally make every attempt to recover from errors and maintain smooth playback.
+
+When Mux Player encounters unrecoverable fatal errors, it will try to:
+
+1. Make it clear to the viewer where the error is coming from and what, if anything, they can do about it.
+2. Provide context for a developer to debug and prevent the error from happening in the future. Developer logs prefixed with `[mux-player]` will contain debugging details and a link to more information.
+3. The error will be tracked with details in your Mux Data dashboard.
+
+## Audio player
+
+If you have an audio-only Mux asset, you can set the `audio` attribute on `mux-player` to display the audio player. You can also add the `audio` attribute to a video asset to make a video look like an audio player.
+
+Sandpack interactive code example configuration JSON.stringified:
+```json
+{
+  "customSetup": {
+    "dependencies": {
+      "@mux/mux-player": "latest"
+    }
+  },
+  "files": {
+    "/index.html": {
+      "code": "<div>\n<mux-player\n  playback-id=\"x00Y6AhtNCs01UIW02FhPY4H6hZHkQLuiLoD1tTMj00zuxE\"\n  metadata-video-title=\"Test Audio Stream\"\n  metadata-viewer-user-id=\"user-id-007\"\n  muted\n  audio\n  primary-color=\"#075389\"\n  secondary-color=\"#d6e6f1\"\n></mux-player>\n</div>",
+      "active": true
+    },
+    "/index.js": {
+      "code": "import '@mux/mux-player'",
+      "hidden": true
+    }
+  }
+}
+```
+
+## Autoplay
+
+Like the native `<video>` element, Mux Player supports the standard `autoplay` attribute.
+
+```html
+<mux-player
+  playback-id="EcHgOK9coz5K4rjSwOkoE7Y7O01201YMIC200RI6lNxnhs"
+  autoplay
+></mux-player>
+```
+
+The main difference between this and the native `autoplay` attribute when being used on a `<video>` element is that Mux Player is explicitly calling `.play()` on the underlying video, which has a better chance of autoplay working.
+
+<Callout>
+  Check out our general [autoplay guide](mdc:docs/guides/web-autoplay-your-videos) for more details on why autoplay doesn't always work
+</Callout>
+
+The Mux Player autoplay attribute also supports some additional values:
+
+* `autoplay="muted"` - will first attempt to mute the audio before calling `.play()` on the video, increasing the odds of successful playback
+* `autoplay="any"` - will attempt playback with the currently set player options. If this fails it will fall back to trying again after muting the audio
+
+
+# Integrate Mux Player into your web application
+In this guide, you will learn about Mux Player and how to use it in your web application.
+## Install Mux Player
+
+Mux Player has 2 packages:
+
+* `@mux/mux-player`: the web component, compatible with all frontend frameworks
+* `@mux/mux-player-react`: the React component, for usage in React
+
+Both are built with TypeScript and can be installed either via `npm`, `yarn` or the hosted option on `jsdelivr`. `@mux/mux-player` can also be used as an `<iframe>` embed.
+
+### NPM
+
+```shell
+npm install @mux/mux-player@latest #or @mux/mux-player-react@latest
+```
+
+### Yarn
+
+```shell
+yarn add @mux/mux-player@latest #or @mux/mux-player-react@latest
+```
+
+### CDN
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@mux/mux-player" defer></script>
+<!--
+or
+<script src="https://cdn.jsdelivr.net/npm/@mux/mux-player-react" defer></script>
+-->
+```
+
+### Embed
+
+```html
+<iframe
+  src="https://player.mux.com/{PLAYBACK_ID}"
+  allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+  allowfullscreen="true"
+></iframe>
+```
+
+## Providing attributes
+
+While syntax differs between React and HTML, there are two recommended values to provide in either approach:
+
+* **Playback ID**: Used by the player to create a URL that describes where the video can be streamed from. Under the hood this looks like `stream.mux.com/{PLAYBACK_ID}.m3u8`.
+* `metadata`: Information about the video to be tracked by Mux Data as part of a view. At a minimum, you should provide `video_id`, `video_title`, and `viewer_user_id`. See: [Mux Data Metadata](mdc:docs/guides/make-your-data-actionable-with-metadata).
+
+### HTML Web Component attributes
+
+In the HTML web component, using JavaScript it can be assigned as a property on the element:
+
+```js
+document.querySelector("mux-player").metadata = { video_id: "video-id-123" };
+```
+
+Or, you can add them as attributes to the player in the HTML using the `metadata-*` prefix:
+
+```html
+<mux-player
+  playback-id="EcHgOK9coz5K4rjSwOkoE7Y7O01201YMIC200RI6lNxnhs"
+  metadata-video-id="video-id-123456"
+  metadata-video-title="Big Buck Bunny"
+  metadata-viewer-user-id="user-id-bc-789"
+>
+```
+
+### HTML embed attributes
+
+In the HTML embed, you can add most supported attributes to the URL as query parameters.
+
+<Callout type="warning">
+  Remember that query parameters should be URL encoded. You might do this with [`encodeURIComponent()`](mdc:https:/developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent).
+</Callout>
+
+```html
+<iframe
+  src="https://player.mux.com/{PLAYBACK_ID}?metadata-video-id=video-id-123456&metadata-video-title=Bick%20Buck%20Bunny&metadata-viewer-user-id=user-id-bc-789"
+  allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+  allowfullscreen="true"
+></iframe>
+```
+
+### React attributes
+
+Following JavaScript conventions, attributes in React are [camelCased](mdc:https:/developer.mozilla.org/en-US/docs/Glossary/Camel_case) rather than [kebab-cased](mdc:https:/developer.mozilla.org/en-US/docs/Glossary/Kebab_case). For example, `playback-id` becomes `playbackId`.
+
+`metadata` is specified as an object in props.
+
+```jsx
+<MuxPlayer
+  playbackId="EcHgOK9coz5K4rjSwOkoE7Y7O01201YMIC200RI6lNxnhs"
+  metadata={{
+    video_id: 'video-id-123456',
+    video_title: 'Big Buck Bunny',
+    viewer_user_id: 'user-id-bc-789',
+  }}
+></MuxPlayer>
+```
+
+## Examples
+
+### HTML element
+
+Sandpack interactive code example configuration JSON.stringified:
+```json
+{
+  "customSetup": {
+    "dependencies": {
+      "@mux/mux-player": "latest"
+    }
+  },
+  "files": {
+    "/index.html": {
+      "code": "<mux-player\n  playback-id=\"a4nOgmxGWg6gULfcBbAa00gXyfcwPnAFldF8RdsNyk8M\"\n  metadata-video-title=\"Test VOD\"\n  metadata-viewer-user-id=\"user-id-007\"\n></mux-player>",
+      "active": true
+    },
+    "/index.js": {
+      "code": "import '@mux/mux-player'",
+      "hidden": true
+    }
+  }
+}
+```
+
+<Callout type="info">
+  When using the HTML element version of Mux Player, you will see the `Player Software` in Mux Data come through as `mux-player`.
+</Callout>
+
+### HTML embed
+
+Sandpack interactive code example configuration JSON.stringified:
+```json
+{
+  "files": {
+    "/index.html": {
+      "code": "<div style=\"position: relative; aspect-ratio: 16/9;\">\n  <iframe\n    src=\"https://player.mux.com/a4nOgmxGWg6gULfcBbAa00gXyfcwPnAFldF8RdsNyk8M?metadata-video-title=Test%20VOD&metadata-viewer-user-id=user-id-007\"\n    style=\"position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;\"\n    allow=\"accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;\"\n    allowfullscreen=\"true\"\n  ></iframe>\n</div>",
+      "active": true
+    },
+    "/index.js": {
+      "code": "",
+      "hidden": true
+    }
+  }
+}
+```
+
+<Callout type="info">
+  When using the HTML embed version of Mux Player, you will see the `Player Software` in Mux Data come through as `mux-player-iframe`.
+</Callout>
+
+### React
+
+Sandpack interactive code example configuration JSON.stringified:
+```json
+{
+  "customSetup": {
+    "dependencies": {
+      "@mux/mux-player-react": "latest"
+    }
+  },
+  "files": {
+    "/App.js": {
+      "code": "import MuxPlayer from \"@mux/mux-player-react\"; \n\nexport default function App() {\n  return (\n    <MuxPlayer\n      playbackId=\"a4nOgmxGWg6gULfcBbAa00gXyfcwPnAFldF8RdsNyk8M\"\n      metadata={{\n        video_id: \"video-id-54321\",\n        video_title: \"Test video title\",\n        viewer_user_id: \"user-id-007\",\n      }}\n    />\n  );\n}\n",
+      "active": true
+    },
+    "/src/index.js": {
+      "code": "",
+      "hidden": true
+    }
+  },
+  "template": "react"
+}
+```
+
+<Callout type="info">
+  When using the React version of Mux Player, you will see the `Player Software` in Mux Data come through as `mux-player-react`.
+</Callout>
+
+### Svelte
+
+Since Svelte supports web components, here is an examples of using `@mux/mux-player` component. View the Sveltkit example in the [Mux Elements repo](mdc:https:/github.com/muxinc/elements/tree/main/examples/svelte-kit) for a fully functioning example.
+
+```html
+<script context="module" lang="ts">
+  export const prerender = true;
+</script>
+
+<script lang="ts">
+  // this prevents the custom elements from being redefined when the REPL is updated and reloads, which throws an error
+  // this means that any changes to the custom element won't be picked up without saving and refreshing the REPL
+  // const oldRegister = customElements.define;
+  // customElements.define = function(name, constructor, options) {
+  // 	if (!customElements.get(name)) {
+  // 		oldRegister(name, constructor, options);
+  // 	}
+  // }
+  // import { page } from '$app/stores';
+  import { onMount } from "svelte";
+  onMount(async () => {
+    await import("@mux/mux-player");
+  });
+</script>
+
+<mux-player
+  playback-id="g65IqSFtWdpGR100c2W8VUHrfIVWTNRen"
+  metadata-video-id="video-id-54321"
+  metadata-video-title="Svelte Kit: Episode 2"
+  metadata-viewer-user-id="user-id-sveltekit007"
+/>
+```
+
+### Vue
+
+Since Vue supports web components, here is an examples of using `@mux/mux-player` component. View the Vue example in the [Mux Elements repo](mdc:https:/github.com/muxinc/elements/tree/main/examples/vue-with-typescript) for a fully functioning example.
+
+```html
+<script setup lang="ts">
+  import "@mux/mux-player";
+</script>
+
+<template>
+  <main>
+    <mux-player
+      playback-id="g65IqSFtWdpGR100c2W8VUHrfIVWTNRen"
+      metadata-video-id="video-id-54321"
+      metadata-video-title="Vue 3: Episode 2"
+      metadata-viewer-user-id="user-id-vue3007"
+    />
+  </main>
+</template>
+```
+
+<GuideCard
+  title="Customize the look and feel"
+  description="Customize Mux Player to match your brand"
+  links={[
+    {
+      title: "Read the guide",
+      href: "/docs/guides/player-customize-look-and-feel",
+    },
+  ]}
+/>
+
+<GuideCard
+  title="Advanced usage"
+  description="Learn about advanced usage of Mux Player"
+  links={[
+    {
+      title: "Read the guide",
+      href: "/docs/guides/player-advanced-usage",
+    },
+  ]}
+/>
+
+
+# Customize the look and feel of Mux Player
+Learn how to customize the look and feel of Mux Player to fit your brand and use case.
+## Customize the poster image
+
+By default Mux Player will pull the default poster image from the middle of the video based on the Playback ID that you provide. The default poster image is the mid-point of the Mux asset.
+
+`https://image.mux.com/{PLAYBACK_ID}/thumbnail.jpg`
+
+If you want to change the poster image, you have two options:
+
+1. Pass in `thumbnail-time` (React: `thumbnailTime`) with the value in seconds of the thumbnail that you want to pull from the video.
+
+   * The `thumbnail-time` attribute and corresponding React prop are only available if you're NOT using [Signed URLs.](mdc:docs/guides/secure-video-playback)
+   * If you *are* using Signed URLs you'll need to add the `time=` parameter to your signed token (see the [Usage with signed URLs](mdc:docs/guides/player-advanced-usage) guide).
+
+2. Use the `poster=` attribute (both HTML element and React).
+   * You can set any arbitrary image URL the same way you would do with the HTML5 `<video>` element. For the best viewer experience, your poster image should match the aspect ratio of the video.
+
+### Provide a placeholder while the poster image loads
+
+While the poster image loads, Mux Player will display the contents of the `placeholder=` attribute. Consider using a [Data URL](mdc:https:/developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URLs) so that the placeholder is immediately available without a network request.
+
+If you are generating your pages with a Node.js server (like [Next.js](mdc:https:/nextjs.org/docs/app/getting-started/fetching-data)), you can generate Data URLs for Mux Videos with the `@mux/blurup` package.
+
+The Data URLs generated by `@mux/blurup` contain lightweight multicolor gradients that visually represent what the default poster image will look like once it has fully loaded.
+
+For example:
+
+<MultiImage
+  images={[
+  { src: "/docs/images/blurup-loading.png", width: 409, height: 230 },
+  { src: "/docs/images/blurup-loaded.png", width: 409, height: 227 },
+]}
+/>
+
+```js
+// Server-Side
+import { createBlurUp } from '@mux/blurup';
+
+const options = {};
+const muxPlaybackId = 'O6LdRc0112FEJXH00bGsN9Q31yu5EIVHTgjTKRkKtEq1k';
+
+const getPlaceholder() = async () => {
+  const { blurDataURL, aspectRatio } = await createBlurUp(muxPlaybackId, options);
+  console.log(blurDataURL, aspectRatio);
+  // data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" width="100%" ...
+};
+```
+
+```html
+<!-- Client-Side -->
+<mux-player
+  playback-id="{playbackId}"
+  placeholder="{blurDataUrl}"
+  style="aspect-ratio: {aspectRatio}"
+></mux-player>
+```
+
+If you change the thumbnail time with `thumbnailTime`, you should also pass a time configuration to `createBlurUp(playbackId, { time: customThumbTime })` to generate the correct placeholder.
+
+You can learn more about `@mux/blurup` [on GitHub](mdc:https:/www.github.com/muxinc/blurup).
+
+If you have a client-side-only application and you *can't* generate a blur placeholder, you might want to pass a smaller resolution poster image URL as the placeholder value that will load more quickly than the final hi-res poster.
+
+This placeholder is provided for you if you're using Mux Player in an iframe through player.mux.com.
+
+## Add a video title
+
+Use the `title` attribute (`title` prop in React) to add a visible title in the top left corner on Mux Player. Note that this is different that `metadata-video-title`, which is a Mux Data metadata field.
+
+Sandpack interactive code example configuration JSON.stringified:
+```json
+{
+  "customSetup": {
+    "dependencies": {
+      "@mux/mux-player": "latest"
+    }
+  },
+  "files": {
+    "/index.html": {
+      "code": "<mux-player\nplayback-id=\"a4nOgmxGWg6gULfcBbAa00gXyfcwPnAFldF8RdsNyk8M\"\ntitle=\"My awesome video\"\nmetadata-video-title=\"Test video title\"\nmetadata-viewer-user-id=\"user-id-007\"\n></mux-player>",
+      "active": true
+    },
+    "/index.js": {
+      "code": "import '@mux/mux-player'",
+      "hidden": true
+    }
+  }
+}
+```
+
+## Style with CSS
+
+Mux Player HTML element can be styled and positioned with CSS just like you would any other HTML element. For example:
+
+```css
+mux-player {
+  width: 100%;
+  max-width: 800px;
+  margin: 40px auto;
+}
+```
+
+In React, you can style the `<MuxPlayer>` component the same way you style other components; with [styled-components](mdc:https:/styled-components.com) or directly with the `style=` prop.
+
+<Callout type="warning">
+  You can not style Mux Player with CSS if you are using the HTML embed through player.mux.com.
+</Callout>
+
+### Aspect ratio
+
+<ApiRefLink product="video" slug="operation/get-asset">The Mux API</ApiRefLink> will provide you the aspect ratio of your video in the form of `w:h`. You should save this `aspect_ratio` in your database or CMS alongside the `playback_id` and other asset details. Then you can use that with CSS in the form of `w / h`. This is using [the CSS aspect-ratio property](mdc:https:/developer.mozilla.org/en-US/docs/Web/CSS/aspect-ratio) which is supported in all evergreen browsers.
+
+Setting the aspect ratio of the player is important for preventing [Cumulative Layout Shift](mdc:https:/web.dev/cls) on the page.
+
+```css
+mux-player {
+  aspect-ratio: 16 / 9;
+}
+```
+
+### Rounded corners
+
+You can add rounded corners to the player by wrapping it in a `div` with the `style` attribute set to `border-radius`.
+
+```html
+<div style="border-radius: 10px; overflow: hidden; display: flex;">
+  <mux-player></mux-player>
+</div>
+```
+
+### Video size and position
+
+You can change the way that video is sized within its `<video>` element. Mux Player provides two css variables that you can use to override the standard `object-fit` and `object-position` [css properties](mdc:https:/developer.mozilla.org/en-US/docs/Web/CSS/object-fit).
+
+```css
+mux-player {
+  --media-object-fit: cover;
+  --media-object-position: center;
+}
+```
+
+## Hiding controls with CSS
+
+By default, Mux Player will show all the controls associated with the current player size and stream type.
+
+To hide certain controls, use CSS variables like this:
+`--seek-backward-button` will control the `display` of the seek backward button. Set it to `none` to hide it completely.
+
+```css
+mux-player {
+  --seek-backward-button: none;
+  --seek-forward-button: none;
+}
+```
+
+CSS vars can also be passed inline
+
+```html
+<mux-player
+  style="--seek-backward-button: none; --seek-forward-button: none;"
+></mux-player>
+```
+
+<Callout type="warning">
+  You can not style Mux Player with CSS if you are using the HTML embed through player.mux.com.
+</Callout>
+
+### Controls sections
+
+You can target specific sections of the player by prefixing the CSS vars with the section. The following sections are available:
+
+* `top` the top control bar that shows on the small player size
+* `center` the center controls that show the seek forward/backward button and play button
+* `bottom` the bottom control bar
+
+```html
+<mux-player
+  style="--center-controls: none; --top-captions-button: none;"
+></mux-player>
+```
+
+### Available CSS variables
+
+The below CSS selector shows all available CSS vars for hiding, each one can be prefixed with a section.
+
+```css
+mux-player {
+  /* Hide all controls at once */
+  --controls: none;
+
+  /* Hide the error dialog */
+  --dialog: none;
+
+  /* Hide the loading indicator */
+  --loading-indicator: none;
+
+  /* Target all sections by excluding the section prefix */
+  --play-button: none;
+  --live-button: none;
+  --seek-backward-button: none;
+  --seek-forward-button: none;
+  --mute-button: none;
+  --captions-button: none;
+  --airplay-button: none;
+  --pip-button: none;
+  --fullscreen-button: none;
+  --cast-button: none;
+  --playback-rate-button: none;
+  --volume-range: none;
+  --time-range: none;
+  --time-display: none;
+  --duration-display: none;
+  --rendition-menu-button: none;
+
+  /* Target a specific section by prefixing the CSS var with (top|center|bottom) */
+  --center-controls: none;
+  --bottom-play-button: none;
+}
+```
+
+### Controls Backdrop Color
+
+Mux Player exposes a CSS variable (`--controls-backdrop-color`) to set the controls backdrop color.
+This is the background color that will show up behind the controls in the player.
+
+```css
+mux-player {
+  --controls-backdrop-color: rgb(0 0 0 / 60%);
+}
+```
+
+The backdrop color is turned off by default. Note if you change this color be sure to make the contrast against the controls high enough as it has implications on the accessibility of the controls as they may not meet [the contrast ratio requirements for WCAG 2.1](mdc:https:/www.w3.org/TR/WCAG/#contrast-minimum).
+
+### CSS Parts
+
+Mux Player uses a [shadow DOM](mdc:https:/developer.mozilla.org/en-US/docs/Web/Web_Components/Using_shadow_DOM) to encapsulate its styles and behaviors. As a result, it's not possible to target its internals with the usual CSS selectors. Instead, some components expose parts that can be targeted with the [CSS part selector](mdc:https:/developer.mozilla.org/en-US/docs/Web/CSS/::part), or `::part()`.
+
+```html
+<style>
+  mux-player::part(center play button) {
+    display: none;
+  }
+</style>
+<mux-player playback-id="DS00Spx1CV902MCtPj5WknGlR102V5HFkDe"></mux-player>
+```
+
+Supported parts: `live`, `layer`, `media-layer`, `poster-layer`, `vertical-layer`, `centered-layer`, `gesture-layer`, `top`, `center`, `bottom`, `play`, `button`, `seek-backward`, `seek-forward`, `mute`, `captions`, `airplay`, `pip`, `cast`, `fullscreen`, `playback-rate`, `volume`, `range`, `time`, `display`.
+
+CSS parts allow you to style each element individually with a selector like `::part(center play button)` or target multiple elements if the part is assigned to multiple elements internally, usage `::part(button)`. Every CSS property can be declared in the selector, this makes it a very powerful API.
+
+Note that if you are using advanced styling with `::parts` selectors then be sure to test out your custom styles when upgrading to new versions of Mux Player.
+
+## Provide color variables
+
+The colors of Mux Player can be customized with the following options:
+
+| HTML Attribute | React Prop | Description |
+| ------------- | ---------- | ----------- |
+| `accent-color` | `accentColor` | Changes the color used to accent the controls |
+| `primary-color` | `primaryColor` | Changes the color of the control icons |
+| `secondary-color` | `secondaryColor` | Sets the background color of the control bar |
+
+### HTML element example
+
+Sandpack interactive code example configuration JSON.stringified:
+```json
+{
+  "customSetup": {
+    "dependencies": {
+      "@mux/mux-player": "latest"
+    }
+  },
+  "files": {
+    "/index.html": {
+      "code": "<mux-player\nplayback-id=\"a4nOgmxGWg6gULfcBbAa00gXyfcwPnAFldF8RdsNyk8M\"\nmetadata-video-title=\"Test video title\"\nmetadata-viewer-user-id=\"user-id-007\"\naccent-color=\"#f97316\"\n></mux-player>",
+      "active": true
+    },
+    "/index.js": {
+      "code": "import '@mux/mux-player'",
+      "hidden": true
+    }
+  }
+}
+```
+
+### React example
+
+Sandpack interactive code example configuration JSON.stringified:
+```json
+{
+  "customSetup": {
+    "dependencies": {
+      "@mux/mux-player-react": "latest"
+    }
+  },
+  "files": {
+    "/App.js": {
+      "code": "import MuxPlayer from \"@mux/mux-player-react\"; \n\nexport default function App() {\n  return (\n    <MuxPlayer\n      playbackId=\"a4nOgmxGWg6gULfcBbAa00gXyfcwPnAFldF8RdsNyk8M\"\n      metadata={{\n        video_id: \"video-id-54321\",\n        video_title: \"Test video title\",\n        viewer_user_id: \"user-id-007\",\n      }}\n      accentColor=\"#f97316\"\n    />\n  );\n}\n",
+      "active": true
+    },
+    "/src/index.js": {
+      "code": "",
+      "hidden": true
+    }
+  },
+  "template": "react"
+}
+```
+
+## Change default behavior
+
+Below are the attributes (Web Component) / props (React) available to enable, disable, hide, or change aspects of various controls to suit your use case.
+
+### Mute
+
+While Mux Player defaults to enabling sound, you can pass an attribute/prop to start playback muted.
+
+`muted` (HTML element & React) is a boolean value that, when `true`, defaults sound to a muted state. Users can still unmute and manage volume as desired.
+
+### Skip forward/backward
+
+The amount of time for skip forward/backward defaults to 10 seconds. This can be changed by passing the following attributes (HTML element) / props (React), which updates both the seek buttons and keyboard ("hotkey") behaviors.
+
+| Attribute (HTML) | React Prop | Description | Example |
+| --------------- | ---------- | ----------- | ------- |
+| `forward-seek-offset` | `forwardSeekOffset` | Sets the number of seconds to skip forward | `forward-seek-offset="5"` will apply a 5 second skip forward |
+| `backward-seek-offset` | `backwardSeekOffset` | Sets the number of seconds to skip backward | `backward-seek-offset="5"` will apply a 5 second skip backward |
+
+### Closed captions
+
+When captions are available on an asset, we show the control for them and enable their appearance by default.
+
+You can opt to disable their appearance (while still showing the control) by using the `default-hidden-captions` (HTML element) attribute or `defaultHiddenCaptions` (React) prop and a boolean value.
+
+### Start time
+
+If you'd like to set a specific time stamp as the start of playback for an asset, you can use the `start-time` (HTML element) attribute or `startTime` (React) prop and a time value.
+
+When `start-time` is provided, it will also be used for the `thumbnail-time` if no `thumbnail-time` is explicitly provided.
+
+Example: `start-time="13"` will begin playback at 13 seconds into the asset.
+
+### Looping content
+
+You can automatically loop the asset once playback completes with the `loop` HTML element attribute or React prop and a boolean value.
+
+If you have a background looping video on your page for example, you might want to: turn off all controls, autoplay, mute and loop the video:
+
+```html
+<style>
+  mux-player {
+    --controls: none;
+  }
+</style>
+
+<mux-player
+  playback-id="23s11nz72DsoN657h4314PjKKjsF2JG33eBQQt6B95I"
+  autoplay="muted"
+  loop
+></mux-player>
+```
+
+## Autoplay
+
+Autoplay in browsers is a difficult beast. See [this doc](mdc:docs/guides/web-autoplay-your-videos) if you're curious about the details. The good news is that Mux Player can help you handle autoplay when it is warranted.
+
+Before you decide to autoplay your assets, first ask yourself: *Is this necessary?* Often times it negatively impacts accessibility, and many viewers find autoplay to be an impediment to their experience.
+
+Here are your options for autoplay:
+
+| Attribute (HTML) | Prop (React) | Description | Behavior |
+| --------------- | ------------ | ----------- | -------- |
+| `autoplay` | `autoPlay` | Basic autoplay | Will try to autoplay with sound on (likely to fail) |
+| `autoplay="muted"` | `autoPlay="muted"` | Muted autoplay | Will autoplay the video in muted state (likely to work) |
+| `autoplay="any"` | `autoPlay="any"` | Fallback autoplay | Will try autoplay with sound first, then fall back to muted if that fails |
+
+## Keyboard shortcuts
+
+By default, Mux Player has several keyboard shortcuts, or hotkeys, enabled. These hotkeys will only function if the player or one of the player controls are focused.
+
+### Default hotkeys
+
+| Key   | Name to turn off | Behavior                        |
+| ----- | ---------------- | ------------------------------- |
+| Space | `nospace`        | Toggle Playback                 |
+| `c`   | `noc`            | Toggle captions/subtitles track |
+| `k`   | `nok`            | Toggle Playback                 |
+| `m`   | `nom`            | Toggle mute                     |
+| `f`   | `nof`            | Toggle fullscreen               |
+| â¬…ï¸    | `noarrowleft`    | Seek back 10s                   |
+| âž¡ï¸    | `noarrowright`   | Seek forward 10s                |
+
+### Turning hotkeys off
+
+You can turn off all hotkeys or individual ones.
+
+#### Turning all hotkeys off
+
+To turn all hotkeys off, add the `nohotkeys` attribute to the Mux Player element:
+
+```html
+<mux-player
+  nohotkeys
+  playback-id="EcHgOK9coz5K4rjSwOkoE7Y7O01201YMIC200RI6lNxnhs"
+  metadata-video-title="Test video title"
+  metadata-viewer-user-id="user-id-007"
+></mux-player>
+```
+
+You can also do it via JavaScript:
+
+```js
+const player = document.querySelector("mux-player");
+// disable all hotkeys
+player.nohotkeys = true;
+
+// re-enable all hotkeys
+player.nohotkeys = false;
+```
+
+#### Turning off specific hotkeys
+
+If you only want to turn off specific hotkeys, you can do so via JavaScript or HTML.
+
+Using the "Name to turn off" above, you can add those to a `hotkey` attribute to turn off the specific hotkeys you don't want enabled.
+
+For example, to turn off seeking with the arrow keys:
+
+```html
+<mux-player
+  hotkeys="noarrowleft noarrowright"
+  playback-id="EcHgOK9coz5K4rjSwOkoE7Y7O01201YMIC200RI6lNxnhs"
+  metadata-video-title="Test video title"
+  metadata-viewer-user-id="user-id-007"
+></mux-player>
+```
+
+You can also do this programmatically via the `hotkeys` property on the element. This provides a [DOM Token List](mdc:https:/developer.mozilla.org/en-US/docs/Web/API/DOMTokenList), a la [classList](mdc:https:/developer.mozilla.org/en-US/docs/Web/API/Element/classList), that allows you to add or remove each key.
+
+```jsx
+const player = document.querySelector("mux-player");
+
+// turn off seeking with the arrow keys
+player.hotkeys.add("noarrowright", "noarrowleft");
+
+// re-enable the arrow keys
+player.hotkeys.remove("noarrowright", "noarrowleft");
+```
+
+## Styling captions
+
+Although the `::cue` CSS selector/psuedo-element exists and has good [browser support](mdc:https:/developer.mozilla.org/en-US/docs/Web/CSS/::cue) on paper, actual support of individual CSS properties when combined with it is very inconsistent. FireFox particuarly doesn't support many of them.
+
+There are two unique CSS properties that you can use to do very basic styling of the captions text though. Combined with the `::part()` selector we can apply them like this:
+
+```css
+mux-player::part(video) {
+  -webkit-text-fill-color: red;
+  -webkit-text-stroke: 1px blue;
+}
+```
+
+Despite being `-webkit-` prefixed, these have good cross-browser support.
+
+Broader and more advanced support for caption styling will be available in a future version of the player.
+
+<Callout type="warning">
+  You can not style Mux Player with CSS if you are using the HTML embed through player.mux.com.
+</Callout>
+
+
+# Choose a theme for Mux Player
+Learn how to configure a new Mux Player theme
+Mux Player is built on top of [Media Chrome](mdc:https:/www.media-chrome.org)
+that comes with simple but powerful [theming](mdc:https:/www.media-chrome.org/en/themes)
+capabilities. It allows you to fully control the video player UI layout
+and style but keeps the complexity of media state management out of the way.
+
+<Callout type="warning">
+  Themes are unavailable if you are using the Mux Player HTML embed through player.mux.com.
+</Callout>
+
+## Mux themes
+
+The `minimal` and `microvideo` themes require one extra import,
+then set the `theme` attribute and you're ready to go!
+
+### Minimal theme
+
+This theme pares down the Mux Player experience to the bare bones controls
+viewers need, ideal for those that want a simpler player experience.
+
+Here's an example of a React app using the Minimal theme.
+
+Sandpack interactive code example configuration JSON.stringified:
+```json
+{
+  "customSetup": {
+    "dependencies": {
+      "@mux/mux-player-react": "latest",
+      "@mux/mux-player": "latest"
+    }
+  },
+  "files": {
+    "/App.js": {
+      "code": "import MuxPlayer from \"@mux/mux-player-react\";\nimport \"@mux/mux-player/themes/minimal\";\n\nexport default function App() {\n  return (\n    <>\n      <MuxPlayer\n        theme=\"minimal\"\n        playbackId=\"a4nOgmxGWg6gULfcBbAa00gXyfcwPnAFldF8RdsNyk8M\"\n      />\n    </>\n  );\n}\n",
+      "active": true
+    },
+    "/src/index.js": {
+      "code": "",
+      "hidden": true
+    }
+  },
+  "template": "react"
+}
+```
+
+### Microvideo theme
+
+This theme optimizes for shorter content that doesn't need the robust playback
+controls that longer content typically requires.
+
+Here's an example of a HTML page using the Microvideo theme.
+
+Sandpack interactive code example configuration JSON.stringified:
+```json
+{
+  "customSetup": {
+    "dependencies": {
+      "@mux/mux-player": "latest"
+    }
+  },
+  "files": {
+    "/index.html": {
+      "code": "<script\n  type=\"module\"\n  src=\"https://cdn.jsdelivr.net/npm/player.style/microvideo/+esm\"\n></script>\n<script\n  type=\"module\"\n  src=\"https://cdn.jsdelivr.net/npm/@mux/mux-player\"\n></script>\n<mux-player\n  theme=\"microvideo\"\n  playback-id=\"a4nOgmxGWg6gULfcBbAa00gXyfcwPnAFldF8RdsNyk8M\"\n></mux-player>",
+      "active": true
+    },
+    "/index.js": {
+      "code": "\nimport '@mux/mux-player';\nimport '@mux/mux-player/themes/microvideo';\n    ",
+      "hidden": true
+    }
+  }
+}
+```
+
+### Classic theme
+
+This theme is the classic 1.x version of Mux Player. Here's an example of a HTML page using the Classic theme.
+
+Sandpack interactive code example configuration JSON.stringified:
+```json
+{
+  "customSetup": {
+    "dependencies": {
+      "@mux/mux-player-react": "latest",
+      "@mux/mux-player": "latest"
+    }
+  },
+  "files": {
+    "/App.js": {
+      "code": "import MuxPlayer from \"@mux/mux-player-react\";\nimport \"@mux/mux-player/themes/classic\";\n\nexport default function App() {\n  return (\n    <>\n      <MuxPlayer\n        theme=\"classic\"\n        playbackId=\"a4nOgmxGWg6gULfcBbAa00gXyfcwPnAFldF8RdsNyk8M\"\n      />\n    </>\n  );\n}\n",
+      "active": true
+    },
+    "/src/index.js": {
+      "code": "",
+      "hidden": true
+    }
+  },
+  "template": "react"
+}
+```
+
+### Styling
+
+You can use the same styling methods like explained in
+[customize look and feel](mdc:docs/guides/player-customize-look-and-feel#style-with-css).
+
+Note that the CSS variables, CSS parts and styling guidelines are relevant to themes that ship from `@mux/mux-player/themes`. Any other Media Chrome themes created by you or a third party will not necessarily share the same CSS variables and parts.
+
+Unlike the Mux Player default theme, these themes come with some buttons disabled by default.
+However these can still be enabled by setting some CSS vars.
+
+| Button | CSS Variable |
+| --- | --- |
+| Seek backward button | `--seek-backward-button: block;` |
+| Seek forward button | `--seek-forward-button: block;` |
+| PiP (Picture-in-Picture) button | `--pip-button: block` |
+
+## Media Chrome themes
+
+Mux Player uses Media Chrome themes to layout and style the UI of
+the video player. Please read the
+[themes documentation](mdc:https:/www.media-chrome.org/en/themes)
+to learn how to create a theme.
+
+There are two ways to consume a Media Chrome theme in Mux player.
+
+### Via an inline `<template id="mytheme">`
+
+See the example on [Codesandbox](mdc:https:/codesandbox.io/s/mux-player-tiny-theme-template-vc7d0y?file=/index.html)
+
+### Via a custom element `<media-theme-mytheme>`
+
+See the example on [Codesandbox](mdc:https:/codesandbox.io/s/mux-player-tiny-theme-custom-element-gst24f?file=/index.html)
+
+
+# Advanced usage of Mux Player
+In this guide, you will learn about more advanced usage of Mux Player.
+## Listen for events
+
+Mux Player emits all of events available on the [HTML5 video element](mdc:https:/developer.mozilla.org/en-US/docs/Web/HTML/Element/video#events).
+
+For example, if you want to keep track of how much of a particular video a user has watched, you probably want to use the `timeupdate` event like this:
+
+### HTML element
+
+Sandpack interactive code example configuration JSON.stringified:
+```json
+{
+  "customSetup": {
+    "dependencies": {
+      "@mux/mux-player": "latest"
+    }
+  },
+  "files": {
+    "/index.html": {
+      "code": "<mux-player\nplayback-id=\"a4nOgmxGWg6gULfcBbAa00gXyfcwPnAFldF8RdsNyk8M\"\nmetadata-video-title=\"Test video title\"\nmetadata-viewer-user-id=\"user-id-007\"\n></mux-player>"
+    },
+    "/index.js": {
+      "code": "import '@mux/mux-player';\n\nconst muxPlayer = document.querySelector(\"mux-player\"); \n\nmuxPlayer.addEventListener(\"timeupdate\", function (event) {\nconsole.log('time update!', event);\n});",
+      "active": true
+    }
+  }
+}
+```
+
+In React, the events are camel-cased and prefixed with `on\*`. For example `timeupdate` becomes `onTimeUpdate`:
+
+### React
+
+```jsx
+function saveWatchProgress(event) {
+  /* event */
+}
+
+<MuxPlayer onTimeUpdate={saveWatchProgress} />;
+```
+
+## Secure your playback experience
+
+Mux offers a couple of ways to secure your media content:
+
+* using signed URLs, which ensures only people with a valid, unexpired token can load your video in allowed playback contexts
+* using [Digital Rights Management](mdc:docs/guides/protect-videos-with-drm) <BetaTag />
+
+Both options are easy to use with Mux Player and are discussed below.
+
+### Use signed URLs
+
+If you followed the guide for [Secure video playback](mdc:docs/guides/secure-video-playback) then you are using signed URLs and a few extra steps are required to use Mux Player (or any player for that matter).
+
+First off, you should already be creating JSON Web Tokens (JWTs) on your **server**. If you're not doing that already, head over to that guide and do that part first.
+
+Note that JWTs are granular, so a unique token is used for each resource:
+
+* **Playback** is used to get the actual video.
+* **Thumbnail** is used to get a still image from the video. Mux Player uses it for a poster image
+* **Storyboard** is used for [timeline hover previews](mdc:docs/guides/create-timeline-hover-previews). This only works for on-demand video, live streams aren't supported.
+* **DRM** is used for playing DRM-protected content. See the [section below](mdc:#use-digital-rights-management-drm).
+
+Each JWT will look something like this below. These examples were created with playback ID `qIJBqaJPkhNXiHbed8j2jyx02tQQWBI5fL6WkIQYL63w`.
+
+**Playback token:**
+
+```
+eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImFkamYzb2JpYURUcEF0QVlpS3NCMkpvRlkwMXBpbEJMTHdYcUQzaHpJYURJIn0.eyJleHAiOjE5NjE2NDY0MDMsImF1ZCI6InYiLCJzdWIiOiJxSUpCcWFKUGtoTlhpSGJlZDhqMmp5eDAydFFRV0JJNWZMNldrSVFZTDYzdyJ9.mukZou10_iwaqPeHVFbXwTZShMK1D8kWpFAFOl6bwuIMB7hx0bAqscZxj5FwrIB8dzB6s_9YtJEEVXcR6ezxOhOc_y2ij1XM4YQYCuGH-elJc3rapHbahv2K7L_asz9Bdu1Ld6i6Ux7keNpEuGSYCDmsPmvdII7_XAPmzU01ZTvaXqCgzCY2PO7xz6z3hu1HOww2eL41TSif_Zu0okNZlhfHE9U-nyr4OVpuS9Q-rTtVvfE2ILSd9Ezt02AuOK-JkBCeR3Xf-UrbXB33ZFHLJrYVA-B516Iym0CGRfVssZsAn80_PNaxS_3M_OmVzyaDJ4zudb-YjGcaNl0yf96h6w
+```
+
+**Thumbnail token:**
+
+```
+eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImFkamYzb2JpYURUcEF0QVlpS3NCMkpvRlkwMXBpbEJMTHdYcUQzaHpJYURJIn0.eyJleHAiOjE5NjE2NTkzMzAsImF1ZCI6InQiLCJzdWIiOiJxSUpCcWFKUGtoTlhpSGJlZDhqMmp5eDAydFFRV0JJNWZMNldrSVFZTDYzdyJ9.zQ0tDimpgu7nsT9Tb7GBgitMpYSbLBodwS-fSc7U0K0WT-giCUgxXXSqXquwpHMjEEfSuCsCU3Y1gq2P7WaJUBGTOTLKT5GOwyhjeoJzTPXEQqW7T-tpKXhjEDVwy_H2UPNVdA9ZALos5R9rrWyiTQA53sxT56FWy-IhvaISpiB16nzankRKCAo98kh6lloexE8p3lXnUhLwIK8Hqco4hRmHSmWqUndnJrbq0_kag0o8R0drffSMj6CvKas8_f6v3MtHXDhW0JkJ1TZKwICt7W-jrSyMfhgAb9wltBCUXdNHYvQTXkFfFnsI1R-BuZodQL2zN3pVBqzuhQA0UPADMw
+```
+
+**Storyboard token** (only needed for `on-demand`):
+
+```
+eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImFkamYzb2JpYURUcEF0QVlpS3NCMkpvRlkwMXBpbEJMTHdYcUQzaHpJYURJIn0.eyJleHAiOjE5NjE2NTkzMTQsImF1ZCI6InMiLCJzdWIiOiJxSUpCcWFKUGtoTlhpSGJlZDhqMmp5eDAydFFRV0JJNWZMNldrSVFZTDYzdyJ9.QxvtM-FBakS8IPl_mZloBKLKyHRU8md7IbSifAYbAVHrLwUre3-CXlOcsd6sKi0hVen_DnSqQeuuFTYF6o2TeS31gnBsf5U4W7JDpOjxAepj4ODM6bpPJBu6XDpZmMTduuwVrIXP9pQWSwiHSQ93hk6RR17YrPgGz6sCXIL5gt0re_WqkSEazwYEscu9eByMN3F_sM7W830C7Wzeatb1TMeEf6wQhbpKABLB33VM0FOuM5ojjI9DWmDhJksfFVrOxaZtoju4hjiWQtNPVBCFP28J9LHNLA7brRXvDGaIUxHG5-vrcVuImlghdWgPyrAOb0lWYSiklYx2ObHhNWJK1g
+```
+
+When you have generated the 3 tokens, pass them into Mux Player:
+
+Example with the HTML element:
+
+```html
+<mux-player
+  playback-id="qIJBqaJPkhNXiHbed8j2jyx02tQQWBI5fL6WkIQYL63w"
+  playback-token="eyJhbGciOiJSUzI1NiI..."
+  thumbnail-token="eyJhbGciOiJSUzI1N..."
+  storyboard-token="eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsI..."
+  metadata-video-id="video-id-54321"
+  metadata-video-title="Test video title"
+  metadata-viewer-user-id="user-007"
+></mux-player>
+```
+
+If you are using JavaScript and Mux Player, you can use the `tokens` property too:
+
+```javascript
+const muxPlayer = document.querySelector("mux-player");
+muxPlayer.tokens = {
+  playback: "eyJhbGciOiJSUzI1NiI...",
+  thumbnail: "eyJhbGciOiJSUzI1N...",
+  storyboard: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsI...",
+};
+```
+
+If you're using the React version of Mux Player, use the `tokens` prop:
+
+```jsx
+<MuxPlayer
+  playbackId="qIJBqaJPkhNXiHbed8j2jyx02tQQWBI5fL6WkIQYL63w"
+  metadata={{
+    video_id: "video-id-54321",
+    video_title: "Test video title",
+    viewer_user_id: "user-id-007",
+  }}
+  tokens={{
+    playback: "eyJhbGciOiJSUzI1NiI...",
+    thumbnail: "eyJhbGciOiJSUzI1N...",
+    storyboard: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsI...",
+  }}
+/>
+```
+
+Mux Player send errors to Mux Data when tokens are incorrect. The most common error cases with signed URLs that Mux Player detects are:
+
+* [Playback ID mismatch](mdc:https:/github.com/muxinc/elements/blob/main/errors/403-playback-id-mismatch.md)
+* [Expired token](mdc:https:/github.com/muxinc/elements/blob/main/errors/403-expired-token.md)
+* [Malformatted token](mdc:https:/github.com/muxinc/elements/blob/main/errors/403-malformatted-token.md)
+
+These errors will be logged to the browser console and sent to your Mux Data dashboard.
+
+### Use Digital Rights Management (DRM)
+
+<Callout type="info">
+  This feature is currently in beta. [Learn more about DRM.](mdc:docs/guides/protect-videos-with-drm) <BetaTag />
+</Callout>
+
+<Callout type="info">
+  To play DRM protected content on iOS and iPadOS devices the device should be running the current minor and patch version of iOS or iPadOS.
+
+  We strongly recommend that viewers use the latest version of iOS/iPadOS 17 or 18 when viewing DRM protected content.
+
+  Playing DRM protected content on an OS version that is not the latest minor and patch version of a major release is known to result in playback failures.
+</Callout>
+
+If you've [setup your playback ID to be DRM-protected](mdc:docs/guides/protect-videos-with-drm), playback is as simple as adding the DRM token to your set of tokens used.
+
+Example with the HTML element:
+
+```html
+<mux-player
+  playback-id="qIJBqaJPkhNXiHbed8j2jyx02tQQWBI5fL6WkIQYL63w"
+  playback-token="eyJhbGciOiJSUzI1NiI..."
+  drm-token="eyJhbGciOiJSUzI1NiIs..."
+  thumbnail-token="eyJhbGciOiJSUzI1N..."
+  storyboard-token="eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsI..."
+></mux-player>
+```
+
+If you are using JavaScript and Mux Player, you can use the `tokens` property too:
+
+```javascript
+const muxPlayer = document.querySelector("mux-player");
+muxPlayer.tokens = {
+  playback: "eyJhbGciOiJSUzI1NiI...",
+  drm: "eyJhbGciOiJSUzI1NiIs...",
+  thumbnail: "eyJhbGciOiJSUzI1N...",
+  storyboard: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsI...",
+};
+```
+
+If you're using the React version of Mux Player, use the `tokens` prop:
+
+```jsx
+<MuxPlayer
+  playbackId="qIJBqaJPkhNXiHbed8j2jyx02tQQWBI5fL6WkIQYL63w"
+  tokens={{
+    playback: "eyJhbGciOiJSUzI1NiI...",
+    drm: "eyJhbGciOiJSUzI1NiIs...",
+    thumbnail: "eyJhbGciOiJSUzI1N...",
+    storyboard: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsI...",
+  }}
+/>
+```
+
+## Controlling an iframe-embedded Mux Player with Player.js
+
+Mux Player embedded within an iframe with player.mux.com supports the Player.js spec. This means you can control the player from your own window's JavaScript. See the [Player.js docs](mdc:https:/github.com/embedly/player.js#playerjs) for more information.
+
+## Preloading assets
+
+By default `preload` will behave similar to the HTML5 `<video>` element.
+
+Use the `preload=` attribute with values of `"none"`, `"metadata"` or `"auto"`.
+Or omit it for the default behavior.
+
+When there is no `preload` attribute, the player will use the behavior that the browsers set initially.
+Most browsers use `"auto"`, but some (like Chrome) use `"metadata"` instead.
+On mobile devices, `preload` is always `none`.
+For the most consistent user experience, we recommended providing the `preload` attribute.
+
+The value `"auto"` will start loading the video as soon as possible and give the user the best experience with the shortest startup time.
+
+If you want to preserve bandwidth (and delivery cost) set `preload="none"` (load nothing until the user tries to play) or `preload="metadata"` (load the minimum amount of data for the media to get basic information like its duration).
+
+The tradeoff with using `preload="metadata"` or `preload="none"` is that when the user plays the video they will experience a slower startup time because the video has to load before playback can start. You'll see the slower startup time reflected in your Mux Data dashboard and this will negatively impact the [Overall Viewer Experience metric](mdc:docs/guides/data-overall-viewer-experience-metric).
+
+## Use custom video domains
+
+By default, all Mux Video assets will be hosted on mux.com. This includes things like posters, storyboards, and media sources.
+
+[Custom Domains](mdc:https:/www.mux.com/blog/introducing-custom-domains), is a feature which allows you to stream these assets from a domain of your choice.
+
+Once you have your custom domain set up, provide it via the `custom-domain` attribute or `customDomain` property. If your custom domain is `media.example.com` then internally Mux Player will take that value and expand it to `image.media.example.com` for images and `stream.media.example.com` for video.
+
+Example with the HTML element:
+
+```html
+<mux-player
+  playback-id="qIJBqaJPkhNXiHbed8j2jyx02tQQWBI5fL6WkIQYL63w"
+  custom-domain="media.example.com"
+></mux-player>
+```
+
+If you are using JavaScript and Mux Player, you can use the `customDomain` property too:
+
+```javascript
+const muxPlayer = document.querySelector("mux-player");
+muxPlayer.customDomain = "media.example.com";
+```
+
+If you're using the React version of Mux Player, use the `customDomain` prop:
+
+```jsx
+<MuxPlayer
+  playbackId="qIJBqaJPkhNXiHbed8j2jyx02tQQWBI5fL6WkIQYL63w"
+  customDomain="media.example.com"
+/>
+```
+
+## Access the underlying video element
+
+The `media.nativeEl` property is a reference to the underlying video element. You can use this to access the video element's properties and methods.
+
+```jsx
+  <MuxPlayer
+    playbackId="EcHgOK9coz5K4rjSwOkoE7Y7O01201YMIC200RI6lNxnhs"
+    ref={(muxPlayerEl) => console.log(muxPlayerEl.media.nativeEl)}
+    metadata={{
+      video_id: "video-id-54321",
+      video_title: "Test video title",
+      viewer_user_id: "user-id-007",
+    }}
+  />
+```
+
+## Change playback engine
+
+Mux Player will automatically handle Adaptive Bitrate Streaming with your Mux Asset. For a beginner's guide on how this works, [howvideo.works](mdc:https:/howvideo.works) is an informational site that explains the basic concepts. Under the hood, Mux Player uses [HLS.js](mdc:https:/github.com/video-dev/hls.js) and Mux Player will pick the optimal HLS.js configuration based on the provided `stream-type`.
+
+On iOS, iPadOS, and MacOS, Mux Player will use Apple's native HLS streaming engine. On Android, Mux Player will use HLS.js.
+
+It is not recommended, but if you have a good reason to control whether Mux Player uses HLS.js (MSE, Media Source Extension) or native HLS playback you can with the `prefer-playback` attribute (in React `preferPlayback`). Values can be `"mse"` or `"native"`. When a value is provided for `prefer-playback`, Mux Player will use that playback strategy if available.
+
+Note that setting the `prefer-playback` attribute should be done with caution. If you are setting this, make sure you thoroughly test playback on the various operating systems and browsers that Mux Player will be running in. Also, keep an eye on Mux Data to verify that your playback metrics are on track.
+
+## Re-using player instances
+
+Mux Player instances can be re-used by re-setting the `playback-id`.
+
+In React, this is done by changing the `playbackId` prop to a new value.
+
+In the web component, this can be done by either calling `setAttribute` with a new value for the `playback-id` attribute or by assigning the `playbackId` property. Both are equally valid ways of interacting with the `<mux-player>` element instance.
+
+```js
+const muxPlayer = document.querySelector('mux-player');
+
+// using setAttribute
+muxPlayer.setAttribute('playback-id', 'new-playback-id-xxx');
+// using the `playbackId` prop
+muxPlayer.playbackId = 'new-playback-id-xxx';
+```
+
+## Debugging
+
+Add the `debug` attribute or React prop in order to print verbose logging to the developer console. This will enable verbose logging from:
+
+* Mux Player itself (prefixed with `[mux-player]`)
+* [HLS.js](mdc:https:/github.com/video-dev/hls.js)
+* Mux Data
+
+Note that this must be set before setting a `playback-id` to take full advantage of debug logging.
+
+## Disabling cookies
+
+Even though Mux Data cookies do not contain any personally identifiable information (PII) and are used for more reliable and informative QOE metrics, there are times when you may want or need cookies to be disabled.
+
+In those cases, you can use the `disable-cookies` attribute or `disableCookies` React prop to turn off use of cookies by Mux Data. Note this must be set before setting a `playback-id` to take effect.
+
+For more on the use of cookies in Mux Data, see [the docs](mdc:docs/guides/monitor-html5-video-element#disable-cookies).
+
+## Custom storyboards
+
+By default Mux Player will use the [storyboard](mdc:docs/guides/create-timeline-hover-previews#webvtt) WebVTT text track that corresponds to your `plaback-id`
+
+`https://image.mux.com/{PLAYBACK_ID}/storyboard.vtt?format=webp`
+
+If you want to use a different WebVTT source file for your storyboard, you can use the `storyboard-src` attribute or `storyboardSrc` React prop to override it. Keep in mind that the WebVTT source file must conform to our expectations for storyboards.
+
+## Add chapters and time-based metadata
+
+Mux Player supports both chapters and time-based metadata (cue points). Chapters visually split the timeline into sections with titles that users can click to jump to. Cue points allow you to associate custom metadata with ranges of time in the timeline. Both support getting a callback when the chapter or cue point has become active. You can use either individually or both at the same time, depending on your use-case.
+
+If you omit `endTime` from a cue point or chapter, it will automatically end when the next one begins by joining them together without gaps. If you include an `endTime`, you can have gaps between your chapters or cue points.
+
+Both chapters and cue points will be removed if you unload the media or change the current playback ID.
+
+### Chapters example
+
+A chapter is defined as: `{startTime: number; endTime?: number; value: string}`, with the value containing the chapter's title and `endTime` being optional. Both `startTime` and `endTime` are in seconds.
+
+<Image src="/docs/images/chapter-example.png" width={1596â€Š} height={â€Š438} caption="Mux Player chapter example with a gap between chapters" />
+
+```js
+const muxPlayerEl = document.querySelector('mux-player');
+
+function addChaptersToPlayer() {
+  // Chapters can also specify an `endTime` if we don't want them to automatically join up
+  muxPlayerEl.addChapters([
+    { startTime: 1, value: 'Chapter 1' },
+    { startTime: 3, value: 'Chapter 2' },
+    { startTime: 10, value: 'Chapter 3 - will span to the end' },
+  ]);
+}
+
+// NOTE: We need to wait until the player has loaded some data first
+// otherwise, we have no media to associate them with
+if (muxPlayerEl.readyState >= 1) {
+  addChaptersToPlayer();
+} else {
+  muxPlayerEl.addEventListener('loadedmetadata', addChaptersToPlayer, { once: true });
+}
+
+muxPlayerEl.addEventListener('chapterchange', () => {
+  console.log(muxPlayerEl.activeChapter);
+  console.log(muxPlayerEl.chapters);
+});
+```
+
+Chapters currently work with streaming assets (video on demand) and audio, but not live content.
+
+### Time-based metadata (cue points)
+
+A CuePoint is defined as: `{ startTime: number; endTime?: number; value: any; }`, with the `value` being a JSON-serializable value that you want to associate with that range of time. Like chapters, start and end times are in seconds and `endTime` is optional.
+
+```js
+const muxPlayerEl = document.querySelector('mux-player');
+function addCuePointsToPlayer() {
+  // CuePoints can also specify an `endTime` if we don't want them to automatically join up
+  const cuePoints = [
+    { startTime: 1, value: 'Simple Value' },
+    { startTime: 3, value: { complex: 'Complex Object', duration: 2 } },
+    { startTime: 10, value: true },
+    { startTime: 15, value: { anything: 'That can be serialized to JSON and makes sense for your use case' } }
+  ];
+
+  muxPlayerEl.addCuePoints(cuePoints);
+}
+
+// We're using `duration` and `'durationchange'` to determine if the `<mux-player>` element has loaded src.
+// This gives us the opportunity to compare our CuePoints against the duration of the media if needed.
+// You could use other events, such as `'loadedmetadata'` if that makes more sense for your use case.
+if (playerEl.duration) {
+  addCuePointsToPlayer();
+} else {
+  muxPlayerEl.addEventListener('durationchange', addCuePointsToPlayer, { once: true });
+}
+
+muxPlayerEl.addEventListener('cuepointchange', () => {
+  console.log(muxPlayerEl.activeCuePoint);
+  console.log(muxPlayerEl.cuepoints);
+});
+```
+
+If cue points are specified without an `endTime`, then like chapters they will automatically be joined up end-to-end. This means that if a user seeks anywhere between two cue points, the `cuepointchange` event will fire and the `activeCuePoint` will be the earlier cue point. If you only care about the `activeCuePoint` when the `currentTime` is roughly the same as the `startTime` of a cue point, you can add some custom logic to account for that, e.g.:
+
+```js
+function cuePointChangeListener() {
+  // Only do something with the activeCuePoint if we're "near" its `startTime`.
+  const cuePointBuffer = 1; // how close the playhead needs to be to the CuePoint, in seconds
+  if (Math.abs(muxPlayerEl.currentTime - muxPlayerEl.activeCuePoint.startTime) <= cuePointBuffer) {
+    console.log('Active CuePoint playing near its time!', muxPlayerEl.activeCuePoint);
+  }
+}
+```
+
+## Synchronize video playback
+
+To facilitate synchronizing video playback across players, Mux Player exposes `currentPdt` and `getStartDate()`.
+
+If the stream includes Program Date Time tags, `currentPdt` and `getStartDate()` will return a [Date][] object that corresponds to the PDT at the current time or at the begining of the stream.
+If there is no PDT, or if the video hasn't loaded yet, `currentPdt` and `getStartDate()` will return an Invalid Date object.
+
+See [Synchronize video Playback](mdc:docs/guides/synchronize-video-playback) for more information.
+
+<Callout type="info">
+  `currentPdt` and `getStartDate()` currently require that [Slates](mdc:docs/guides/handle-live-stream-disconnects#reconnect-window-and-slates) are enabled on your stream.
+  If Slates are not enabled, it is possible that the times provided are not accurate.
+</Callout>
+
+Refer to this sample for the usage below:
+
+```text
+#EXTM3U
+#EXT-X-VERSION:7
+#EXT-X-TARGETDURATION:2
+#EXT-X-MAP:URI="https://chunk-gce-us-east1-production.cfcdn.mux.com/v1/chunk/3aJUOua6jsMHYybcqXRBpcXH82aCYXTu02TPTKHzIokndAPmz300ZThlCZbeNAy1t73003iytFZNJdjcvjTsOrCVTaGZgQ9J00uU/18446744073709551615.m4s?skid=default&signature=NjBmMjFkODBfYWVhMjIyZTdmMDU0ZmI0YWU2ZWJkZTJiYTY4MzhmYWQzNWQ2YzMyMTVlYjdjNmM0NzZiZjBmZGU0ODU1MTUyNQ=="
+#EXT-X-PLAYLIST-TYPE:VOD
+
+#EXT-X-PROGRAM-DATE-TIME:2021-06-28T17:53:25.533+00:00
+#EXTINF:2,
+https://chunk-gce-us-east1-production.cfcdn.mux.com/v1/chunk/3aJUOua6jsMHYybcqXRBpcXH82aCYXTu02TPTKHzIokndAPmz300ZThlCZbeNAy1t73003iytFZNJdjcvjTsOrCVTaGZgQ9J00uU/0.m4s?skid=default&signature=NjBmMjFkODBfOWJkMzMyMTc5YzgwY2VmMTdlYzIwODgzZGI2NWFiMThiM2U1NDM0NzM0NDZhMmQwOThhZmI0NDQ5OWY5N2VmMA==
+
+#EXT-X-PROGRAM-DATE-TIME:2021-06-28T17:53:27.533+00:00
+#EXTINF:2,
+https://chunk-gce-us-east1-production.cfcdn.mux.com/v1/chunk/3aJUOua6jsMHYybcqXRBpcXH82aCYXTu02TPTKHzIokndAPmz300ZThlCZbeNAy1t73003iytFZNJdjcvjTsOrCVTaGZgQ9J00uU/1.m4s?skid=default&signature=NjBmMjFkODBfMjA1ZWNmYzgzYWRhMzNjMTY5YmEyYmM2NzE4MDk5N2I1MWE3NzhjODlhNGIzNWI3NGIwNTA5ZTIxOWQyNjI5OQ==
+
+#EXT-X-PROGRAM-DATE-TIME:2021-06-28T17:53:29.533+00:00
+#EXTINF:2,
+https://chunk-gce-us-east1-production.cfcdn.mux.com/v1/chunk/3aJUOua6jsMHYybcqXRBpcXH82aCYXTu02TPTKHzIokndAPmz300ZThlCZbeNAy1t73003iytFZNJdjcvjTsOrCVTaGZgQ9J00uU/2.m4s?skid=default&signature=NjBmMjFkODBfZTIyOTA5YWFjZjMzYTY4MzQ4YWEzZDBiNDkyODk1NTg2ODE2M2YwZjI3NmY2MTVhOTM5MTA2MzQ4ODIyNTNkOQ==
+
+#EXT-X-PROGRAM-DATE-TIME:2021-06-28T17:53:31.533+00:00
+#EXTINF:2,
+https://chunk-gce-us-east1-production.cfcdn.mux.com/v1/chunk/3aJUOua6jsMHYybcqXRBpcXH82aCYXTu02TPTKHzIokndAPmz300ZThlCZbeNAy1t73003iytFZNJdjcvjTsOrCVTaGZgQ9J00uU/3.m4s?skid=default&signature=NjBmMjFkODBfNDRkZTNhYTE5M2RhYTA4MTA4MWFkODc0YzgyMDcyMGMwODFmZWIxOGRiNWM4YzJhMTM0YTNiNGRhYmYyMWE1Nw==
+
+#EXT-X-ENDLIST
+```
+
+### `currentPdt`
+
+This will return a JavaScript [Date][] object that is based on the currentTime.
+If there is no PDT in the stream, an invalid date object is returned.
+
+```js
+const player = document.querySelector('mux-player');
+// assuming the above stream, the initial currentPdt would be
+player.currentPdt;
+// Mon Jun 28 2021 13:53:25 GMT-0400 (Eastern Daylight Time)
+player.currentPdt.getTime();
+// 1624902805533
+
+// now if we seek forward, by 10 seconds
+player.currentTime = 10;
+
+player.currentPdt;
+// Mon Jun 28 2021 13:53:35 GMT-0400 (Eastern Daylight Time)
+player.currentPdt.getTime();
+// 1624902815533
+```
+
+### `getStartDate()`
+
+This will return a JavaScript [Date][] object that is based on the beginning of the stream.
+This method is a reflection of the [HTML specified method](mdc:https:/html.spec.whatwg.org/multipage/media.html#dom-media-getstartdate).
+
+```js
+const player = document.querySelector('mux-player');
+// assuming the above stream, getStartDate() would return
+player.getStartDate();
+// Mon Jun 28 2021 13:53:25 GMT-0400 (Eastern Daylight Time)
+player.getStartDate().getTime();
+// 1624902805533
+// notice that when currentTime is 0, getStartDate() is equivalent to currentPdt
+
+// now if we seek forward, by 10 seconds
+player.currentTime = 10;
+
+player.getStartDate();
+// Mon Jun 28 2021 13:53:25 GMT-0400 (Eastern Daylight Time)
+player.getStartDate().getTime();
+// 1624902805533
+// notice that even though we seeked forward, we still get the same value.
+```
+
+[Date]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date
+
+## Full API reference
+
+Any features or settings not mentioned above can be found in our [full API reference](mdc:docs/guides/player-api-reference) covering all of the available events, attributes, properties, and methods exposed by the player.
+
+
+# Mux Player examples
+Browse our collection of code examples for building common use cases with Mux Player
+<GuideCard
+  imageSrc="/docs/images/example-player-loop@2x.png"
+  imageWidth={536}
+  imageHeight={300}
+  title="Looping background video"
+  description="Display a looping background video on your site with the Mux Player."
+  links={[
+    {
+      title: "View on CodeSandbox â†’",
+      href: "https://codesandbox.io/s/looping-hero-background-video-op53sr",
+    },
+  ]}
+/>
+
+<GuideCard
+  imageSrc="/docs/images/example-player-ambient-mode@2x.png"
+  imageWidth={536}
+  imageHeight={300}
+  title="Ambient mode"
+  description="Create a dynamic background gradient that matches colors from the video."
+  links={[
+    {
+      title: "View on CodeSandbox â†’",
+      href: "https://codesandbox.io/s/ambient-mode-vv63e9",
+    },
+  ]}
+/>
+
+<GuideCard
+  imageSrc="/docs/images/example-player-audio-viz@2x.png"
+  imageWidth={536}
+  imageHeight={300}
+  title="Audio visualization with audio parameter"
+  description="Display a visual representation of the audio in your video during playback."
+  links={[
+    {
+      title: "View on CodeSandbox â†’",
+      href: "https://codesandbox.io/s/audio-visualization-o52wog",
+    },
+  ]}
+/>
+
+<GuideCard
+  imageSrc="/docs/images/example-player-metadata@2x.png"
+  imageWidth={536}
+  imageHeight={300}
+  title="Sending detailed metadata to Mux Data"
+  description="Display a visual representation of the audio in your video during playback."
+  links={[
+    {
+      title: "View on CodeSandbox â†’",
+      href: "https://codesandbox.io/s/send-detailed-metadata-wm6o44",
+    },
+  ]}
+/>
+
+<GuideCard
+  imageSrc="/docs/images/example-player-disable-seek@2x.png"
+  imageWidth={536}
+  imageHeight={300}
+  title="Disable seeking"
+  description="Prevent you viewers from seeking to a specific point in the video."
+  links={[
+    {
+      title: "View on CodeSandbox â†’",
+      href: "https://codesandbox.io/s/disable-seeking-w7pltk",
+    },
+  ]}
+/>
+
+<GuideCard
+  imageSrc="/docs/images/example-player-playlist@2x.png"
+  imageWidth={536}
+  imageHeight={300}
+  title="Play videos in a playlist"
+  description="Play through a set of audio or video sources."
+  links={[
+    {
+      title: "View on CodeSandbox â†’",
+      href: "https://codesandbox.io/s/mux-player-media-playlist-ntj11i",
+    },
+  ]}
+/>
+
+<GuideCard
+  imageSrc="/docs/images/example-player-loop@2x.png"
+  imageWidth={536}
+  imageHeight={300}
+  title="Mux Player Meditate (Audio Only + CuePoints)"
+  description="Use Mux Player + CuePoints for advanced customization of playback and interactivity."
+  links={[
+    {
+      title: "View on CodeSandbox â†’",
+      href: "https://codesandbox.io/p/sandbox/mux-player-audio-cuepoints-vl2r9b",
+    },
+  ]}
+/>
+
+
+# Mux Player FAQs
+Get answers to common questions about Mux Player
+# Do you support non-Mux HLS streams?
+
+Mux Player is designed with the Mux Platform in mind. Being tightly coupled with Mux Video is what enables features like timeline hover previews, and those sweet, descriptive errors in Mux Data.
+
+# How can I access the underlying video element using Mux Player?
+
+The `media.nativeEl` property is a reference to the underlying video element. You can use this to access the video element's properties and methods.
+
+```jsx
+  <MuxPlayer
+    playbackId="EcHgOK9coz5K4rjSwOkoE7Y7O01201YMIC200RI6lNxnhs"
+    ref={(muxPlayerEl) => console.log(muxPlayerEl.media.nativeEl)}
+    metadata={{
+      video_id: "video-id-54321",
+      video_title: "Test video title",
+      viewer_user_id: "user-id-007",
+    }}
+  />
+```
+
+This isn't possible when using the iframe-embedded version of Mux Player through player.mux.com. You can control the embedded version of Mux Player through the [Player.js spec](mdc:https:/github.com/embedly/player.js#playerjs).
+
+# Do you have a Mux Player for native mobile?
+
+Yes, we have public beta SDKs for [iOS](mdc:docs/guides/mux-player-ios) and [Android](mdc:docs/guides/mux-player-android). If you're building directly in Swift/Objective-C or Kotlin/Java then you can use these SDKs directly. If you're building with Flutter or React Native you will need to bridge these native SDKs into your framework.
+
+# I would love to speak to someone on the team about a feature idea or a problem I'm running into with the player, how can I do that?
+
+Please [leave us some feedback](mdc:https:/www.mux.com/support) and we'll be in touch!
+
+# How is Mux Player built?
+
+Mux Player is built with [Web Components](mdc:https:/developer.mozilla.org/en-US/docs/Web/Web_Components). Web Components is a native browserAPI for defining custom HTML tags that can be used in the DOM.
+Mux Player is built on top of [Media Chrome](mdc:https:/github.com/muxinc/media-chrome) and the [Mux Video HTML element](mdc:https:/github.com/muxinc/elements/tree/main/packages/mux-video). You can think of it like this:
+
+* [Mux Video HTML element](mdc:https:/github.com/muxinc/elements/tree/main/packages/mux-video) handles the HLS playback tech behind the scenes and integration with Mux Data.
+* [Media Chrome](mdc:https:/github.com/muxinc/media-chrome) is the UI layer.
+  Both the Mux Video HTML element and Media Chrome are maintained and under active development by Mux.
+
+# What are the developer system requirements?
+
+Mux Player package targets ES2019, if you're targeting an older JavaScript runtime Mux Player might not be compatible with your build setup.
+
+# Evergreen browser support
+
+Mux Player supports the most recent versions of evergreen browsers on desktop and mobile. Evergreen browsers are the modern browsers that are automatically updated:
+
+* Chrome (Mac, Windows, Linux, iOS, iPadOS, Android)
+* Safari (Mac, iOS, iPadOS)
+* Firefox (Mac, Windows, Linux, Android)
+* Edge (Mac, Windows, Linux)
+
+# TypeScript support
+
+Mux Player is fully written in TypeScript version 4.5. If you are on an older version of TypeScript (pre-4.0), you will likely have to upgrade your TypeScript package in order to get the TypeScript benefits.
+
+
+# Mux Player for web releases
+Every new release of Mux Player for web is posted here with release notes
+# Current release
+
+## 3.3.0
+
+* Feature: Implement Mux badge that can be enabled via a `proudly-display-mux-badge` attribute
+* Fix: Update hls.js version to fix multi-DRM playready bug
+* Fix: Update media-chrome to fix a bug with the error dialog not hiding on error recovery
+* Fix: Media Chrome theme flicker on load
+
+# Previous releases
+
+## 3.2.0
+
+* Feature: Set Mux data default player init time for greater accuracy. Expose attribute and property for externally defined player init time
+* Feature: Use Media Chrome's error dialog
+* Feature: NPM package includes provenance statements from now on
+* Fix: Slot behavior of child elements
+
+## 3.1.0
+
+* Feature: Error handling rearchitecture (including more granular and DRM error cases)
+* Feature: Add asset start and end time props and attrs
+* Fix: Chapters disapearing after preload none
+* Fix: Menu CSS vars to hide menu button
+* Fix: Update peer dependencies for React 19 RC
+* Chore: Upgrade to [Media Chrome v4.2.1](mdc:https:/github.com/muxinc/media-chrome/releases/tag/v4.2.1)
+
+## 3.0.0
+
+* Fix: `addChapters` and `addCuepoints` now have correct TypeScript method types
+* Fix: Removed seek forwards and backwards buttons from mobile pre-playback UI
+* Fix: Added missing buttons to mobile live audio view (play, live and mute)
+* Chore: Upgrade to [Media Chrome v4.1.1](mdc:https:/github.com/muxinc/media-chrome/releases/tag/v4.1.1)
+* Feature: New tooltips for buttons in the UI, enabled by default
+
+## 2.8.1
+
+* Fix: Use CSS to disable subtitle shifting for iOS in fullscreen
+* Chore: Upgrade to [Media Chrome v3.2.5](mdc:https:/github.com/muxinc/media-chrome/releases/tag/v3.2.5)
+
+## 2.8.0
+
+* Feature: [Adds DRM support](mdc:docs/guides/protect-videos-with-drm)
+* Fix: Pseudo-ended eval case where media is not attached
+* Fix: Hide cast button by default when using DRM
+* Chore: Upgrade to [Media Chrome v3.2.3](mdc:https:/github.com/muxinc/media-chrome/releases/tag/v3.2.3)
+* Chore: Upgrade hls.js, custom-media-element, castable-video, and media-tracks
+
+## 2.7.0
+
+* Feature: PDT Clipping Support
+* Feature: Add [`addChapters()`](mdc:docs/guides/player-advanced-usage#add-chapters-and-time-based-metadata) API
+
+## 2.6.0
+
+* Feature: Add `'use client'` to components for better out of box functionality with Next.JS
+* Fix: Cleanup TypeScript types
+
+## 2.5.0
+
+* Chore: Upgrade to mux-embed v5.2.0 & [Media Chrome v3.2.0](mdc:https:/github.com/muxinc/media-chrome/releases/tag/v3.2.0),
+* Chore: Upgrade hls.js and React TypeScript types
+* Feature: Add `disable-tracking` / `disableTracking` attribute / property to disable Mux Data tracking
+
+## 2.4.1
+
+* Fix: Make sure we do not apply holdback to seekable when live streams have ended
+
+## 2.4.0
+
+* Chore: Upgrade to [Media Chrome v3.1.1](mdc:https:/github.com/muxinc/media-chrome/releases/tag/v3.1.1) (major version bump)
+* Fix: Cleanup various issues with DVR UI (including seekable time updates for time range and time display cases)
+* Fix: Polish new time preview w/ shifting arrow
+* Fix: Polish using easing gradients for UI backdrop
+* Feature: `forward-seek-offset` / `forwardSeekOffset` + `backward-seek-offset` / `backwardSeekOffset` attributes / properties now also update keyboard hotkeys offsets
+
+## 2.3.3
+
+* Chore: Upgrade Media Chrome
+* Fix: Enable chapters & metadata tracks if cloned and appended to native video element
+* Fix: Fire an ended event if playback is stalled near the end of playback
+
+## 2.3.2
+
+* Chore: Upgrade Media Chrome
+* Fix: Subtitles selection edge cases
+
+## 2.3.1
+
+* Fix: Remove unneeded `target-live-window="NaN"` attribute sprouting
+* Fix: Upgrade media-chrome to 2.0.1 fixing an undefined type error
+* Fix: Upgrade custom-media-element and media-tracks packages improving types
+
+## 2.3.0
+
+* Feature: Upgrade to [Media Chrome v2](mdc:https:/github.com/muxinc/media-chrome/releases/tag/v2.0.0) and [castable-video v1](mdc:https:/github.com/muxinc/castable-video)
+  The Google cast framework script is now automatically loaded, [see guide](mdc:docs/guides/player-core-functionality#chromecast)
+  Usage of the standard [Remote Playback API](mdc:https:/developer.mozilla.org/en-US/docs/Web/API/Remote_Playback_API)
+* Feature: Add `extra-source-params` / `extraSourceParams` attribute / property for advanced usage
+* Feature: Add the ability to set `default-duration` / `defaultDuration` before media loads
+* Feature: Allow forcibly showing buttons that we usually hide at small sizes via CSS vars
+* Feature: Add unofficial `_hlsConfig` property to media elements and playback core
+* Feature: Add additional CSS parts for export
+* Fix: Audio controls styling, controlbar background color and timerange width
+* Fix: Attributes mismatch to make sure controls don't overlap
+* Fix: Android tap issues on show and hide of controls
+
+## 2.2.0
+
+* Feature: Use playback rate `selectmenu` for the new theme
+* Fix: Use solid accent color in rate menu
+* Fix: Upgrade Media Chrome
+* Fix: Update menu styles
+
+## 2.1.0
+
+* Feature: Add support for manifest manipulation and other media stream query param properties
+* Fix: Prevent clicks on background gradients
+* Fix: Add volume slider to live player UI
+
+## 2.0.1
+
+* Fix: Make sure `accent-color` gets set properly
+
+## 2.0
+
+* Feature: New default theme named `gerwig` ðŸŽ‰
+  No functional breaking changes, only visual changes
+* See [Upgrade guide from 1.x to 2.0](mdc:https:/github.com/muxinc/elements/blob/bfea94bcbdfc9e3c68afb24d2b3414d83bf4639b/packages/mux-player/UPGRADING_V1_to_V2.md)
+* See [blog post](mdc:https:/www.mux.com/blog/mux-player-2-0-for-web-and-coming-soon-for-ios-and-android)
+* See [Twitter / X.com thread](mdc:https:/twitter.com/MuxHQ/status/1709628018216358194)
+
+## 1.14.1
+
+* Fix: Resolve regression so `title` will be used by Mux Data as `video_title` if not overridden by explicit metadata
+* Fix: Resolve issue where MTA implementation could cause load issues/hangs in playback for LL-HLS streams
+
+## 1.13.0
+
+* Feature: Add custom poster slot to mux-player and mux-player-react to allow for server-side progressive enhancement ðŸŽ‰ See [issue #590](mdc:https:/github.com/muxinc/elements/issues/590)
+* Feature: Add muti-track audio selector ðŸ—£ï¸ ([see guide](mdc:docs/guides/player-core-functionality#multi-track-audio-selector))
+
+## 1.12.1
+
+* Fix: Improve dist exports for greater compatibility with different build tools, including not declaring non-existent exports in package.json
+
+## 1.12.0
+
+* Feature: Add quality selector [see guide](mdc:docs/guides/player-core-functionality#quality-selector)
+* Feature: Expose underlying poster image CSS part for advanced styling
+* Fix: Fix bug around loading themes in React
+
+## 1.11.4
+
+* Fix issue with edge case assets when used in Next.js production builds in Chrome causing hundreds of requests for `0.ts` segment. See [issue #688](mdc:https:/github.com/muxinc/elements/issues/688)
+
+## 1.11.3
+
+* Chore: media chrome version bump, fixes a resize observer crash that can happen in CodeSandbox
+
+## 1.11.2
+
+* Chore: bump media chrome and Hls.js to latest versions
+
+## 1.11.1
+
+* Chore: bump media chrome and Hls.js to latest versions
+
+## 1.11.0
+
+* Fix: Upgrade hls.js to [`v1.4.1`](mdc:https:/github.com/video-dev/hls.js/releases/tag/v1.4.1).
+* Feat: Add no-volume-pref attribute to turn off saving the user selected volume in [local storage](mdc:https:/developer.mozilla.org/en-US/docs/Web/API/Window/localStorage).
+
+## 1.10.1
+
+* Fix: Force theme to be ltr direction.
+* Fix: Use webkit pseudo element for captions movement, where available.
+
+## 1.10.0
+
+* Feature: Add support for synchronizing video playback (`currentPdt` and `getStartDate()`)
+* Fix: Fix resetting currentTime to `0` in `mux-player-react`.
+
+## 1.9.0
+
+* Feature: Add support for Media Chrome themes.
+* Feature: Add `minimal` and `microvideo` theme exports.
+* Feature: Add cuepoint event handlers for `mux-player-react`.
+* Feature: Use Mux Data `player_error_context` to get better error grouping.
+* Feature: Add `--dialog` and `--loading-indicator` CSS vars.
+* Fix: Upgrade hls.js to [`v1.4.0-beta.2`](mdc:https:/github.com/video-dev/hls.js/releases/tag/v1.4.0-beta.2).
+* Fix: Update hls.js configs to optimize streaming performance.
+* Fix: Update types and improve support for Angular projects.
+
+## 1.8.0
+
+* Feature: Add `max-resolution` attribute on mux-player and mux-video.
+* Feature: Add API for CuePoints metadata.
+* Fix: Typescript error for Vite based apps like Sveltekit, Nuxt, Vue.
+* Fix: Explicitly clean up text tracks, even for native (non-hls.js) playback.
+
+## 1.7.1
+
+* Fix: Only initialize with setupCuePoints when using hls.js for playback (resolves Safari playback error)
+
+## 1.7.0
+
+* Feature: Introduce a captions menu button.
+* Fix: Bring back play button to the control bar for small player size.
+* Fix: Migrate to use new Media Chrome media-live-button.
+* Fix: Improve attribute empty behavior.
+* Fix: Upgrade Media Chrome v0.18.1.
+* Fix: Use new Media Chrome template syntax.
+
+## 1.6.0
+
+* Feature: Add `storyboard-src` attribute and corresponding prop
+* Fix: Use webp format instead of jpg, less bandwidth
+* Fix: Memory leaks related to the playback engine not being torn down properly.
+
+## 1.5.1
+
+* Fix: Allow setting of a Media Chrome theme template via a property.
+
+## 1.5.0
+
+* Feature: Mux player uses a new HTML based templating syntax as preparation for
+  Media Chrome theme compatibility which will give developers an easy way to change
+  the look and feel of the player.
+* Feature: Allow `<mux-player>` web component to receive any Mux Data `metadata-*` fields, beyond `metadata-video-title`, `metdata-video-id` and `metadata-viewer-user-id`, now things like `metadata-sub-property-id` and any other Mux Data fields can be passed with this syntax. Note the `muxPlayer.metadata = { video_title: "My Title", sub_property_id: "Sub prop 123" }` syntax also still works.
+* Fix: Prevent the player of duplicate rendering the top-level internal elements in edge cases.
+
+## 1.4.0
+
+* Feature: Player design update: removed the backdrop shade by default.
+* Fix: Attributes set after the `playback-id` are now correctly passed in playback core.
+
+## 1.3.0
+
+* Feature: Add `disable-cookies` attribute and `disableCookies` property.
+* Feature: Add `experimental-cmcd` attribute and `experimentalCmcd` property for headers-based CMCD usage.
+* Feature: Add ability to unset poster
+* Feature: Conditionally use title for title metadata in Mux Data
+* Feature: Add storyboard getter on player
+* Fix: Check JWT before setting poster and storyboard urls
+* Fix: Don't register prop for --controls-backdrop-color CSS var
+* Fix: Upgrade to Media Chrome v0.15.1
+* Fix: Various edge case fixes in Media Chrome UI
+* Fix: Improve hiding controls behavior when interacting with play or fullscreen buttons.
+
+## 1.2.0
+
+* Feature: Implement React lazy for `mux-player-react`
+* Feature: Add type-compliant `seekable` property to the API
+* Fix: `playbackRate` for `mux-player-react`
+
+## 1.1.3
+
+* Fix: Add default values to object-fit and object-position
+
+## 1.1.2
+
+* Fix: Upgrade Media Chrome to v0.14.0
+* Fix: Properly check iPhones for fullscreen unavailability
+* Fix: Properly unset poster image sources when they're removed
+
+## 1.1.1
+
+* Fix: Add `--media-object-fit` and `--media-object-position` to `mux-video`
+
+## 1.1.0
+
+* Feature: Add ability to unset `poster` by setting it to an empty string
+* Fix: Turn off backdrop color when controls are disabled
+
+## 1.0.0 ðŸŽ‰
+
+* Feature: Replace `prefer-mse` with `prefer-playback` for more control
+* Feature: Add default width 100% to avoid unexpected CLS and resizing scenarios
+* Feature: Disable unusable controls when `playback-id` is unset
+* Feature: Add hotkey for toggling closed captions (`c`)
+* Fix: Google Chrome v106 caption positioning bug
+* Fix: Disable all controls when error dialog is open (a11y)
+* Fix: Hide fullscreen button when fullscreen is unavailable (e.g. `iframe` usage)
+* Fix: Ignore Safari for captions movement.
+* Fix: `audio` UI height bugs
+* Fix: Add missing setter for defaultHiddenCaptions prop.
+* Fix: Clean up `crossOrigin` and `playsInline` usage while respecting defaults/availability.
+* Fix: Make player interface compliant with more of `HTMLVideoElement` type expectations, even on initialization
+* Fix: Handle removing/nil `playback-id`
+* Fix: Add `preload` property support
+* Fix: `title` property bug
+* Fix: Use `CSS.registerProperty` on vars to declare them as colors for better resilience/fallback
+* Fix: (Mux Player React) Resolve issues with `currentTime` prop
+* Fix: (Mux Player React) Remove vestigial code for `tertiaryColor` prop
+
+## 1.0.0-beta.0
+
+* Feature: add `video` CSS part for styling the `<video>` element
+* Feature: add `--controls-backdrop-color` CSS var to allow changing the backdrop color
+* Feature: upgrade hls.js to version `v1.2.3`
+* Feature: prefer Media Source Extensions on Android
+* Feature: refresh seek backward and forward icons
+* Fix: memory leak of hls.js instances
+* Fix: `start-time` attribute now works on iOS
+* Fix: a11y tab order of player controls
+* Fix: control bar icon alignment was off by a few pixels
+* Fix: restore right-click video menu
+
+## 0.1.0-beta.27
+
+* Feature: configure playback rates for the player
+* Feature: add a title component to the player
+* Feature: allow hiding controls based on CSS variables
+* Feature: allow turning off keyboard shortcuts via the hotkeys attribute, don't allow seeking in live streams with the arrow keys
+* Feature: use Media Chrome's poster image element for posters
+* Fix: don't pollute global in SSR
+* Fix: change position of the live indicator
+
+## 0.1.0-beta.26
+
+* Improvement: update the warning logged when an incorrect stream type is passed to the player.
+
+## 0.1.0-beta.25
+
+* Feature: add keyboard shortcuts and a `nohotkeys` attribute to turn off keyboard shortcuts.
+* Feature: expose CSS parts for targeting controls via CSS.
+
+## 0.1.0-beta.24
+
+* Improvement: Improve time range behavior; add preview time code, smooth playhead progress and fine seek control, keep preview thumb in player bounding box.
+* Improvement: Add Mux flavored cast icon.
+* Feature: Add `defaultMuted` and `defaultPlaybackRate` properties.
+* Feature: Add `textTracks` property, `addTextTrack()` and `removeTextTrack()` methods.
+
+## 0.1.0-beta.23
+
+* Update: Rely on Media Chrome availability states where appropriate.
+  Remove unneeded code from `mux-player`.
+
+## 0.1.0-beta.22
+
+* Improvement: Optimize `mux-player` tests.
+
+## 0.1.0-beta.21
+
+* Update: Mux Player (and all Mux Elements) are now published under the `@mux` NPM scope. Please update `@mux/mux-player` references to `@mux/mux-player` as of `0.1.0-beta.21`.
+
+## 0.1.0-beta.20
+
+* Feature: Chromecast is built in -- via [castable-video](mdc:https:/github.com/muxinc/castable-video). See docs in the Core Features section for details on how to enable it.
+
+## 0.1.0-beta.19
+
+* Fix: import for [castable-video](mdc:https:/github.com/muxinc/castable-video) while we hammer on Chromecast.
+
+## 0.1.0-beta.18
+
+* Fix: Some captions shifting jankyness on live streams when shifting wasn't necessary.
+* Fix: Captions offset for Safari
+* Feature: Support for audio-only Mux assets with the `audio` attribute
+* Feature: Experimental Chromecast support added with [castable-video](mdc:https:/github.com/muxinc/castable-video). This is intentionally undocumented while we work out the kinks.
+* Improvement: Better progress bar alignment.
+
+## 0.1.0-beta.17
+
+* Fix: Some recoverable errors were incorrectly being sent to Mux Data -- this caused an inflated playback error percentage metric in your Mux Data dashboard. This incorrect error tracking was especially prevalent on live streams. We fixed this after it was discovered at [TMI](mdc:https:/tmi.mux.com).
+
+## 0.1.0-beta.16
+
+* Fix: Log an error if a token is passed in with playback-id (playback tokens should be passed in via `playback-token` attribute)
+
+## 0.1.0-beta.15
+
+* Fix: update `commonjs` import files to cjs.js. This fixes some build systems that rely on the cjs.js extension
+
+## 0.1.0-beta.14
+
+* Improvement: Tweaked a few Hls.js configuration settings for live and low-latency live based on some recent testing (backed up by Mux Data, of course). This is the kind of thing the team working on Mux Player worries about so that you don't have to!
+
+## 0.1.0-beta.13
+
+* Fix: For live streams on non-Safari browsers the red (live) / gray (behind live) dot indicator was being a little too aggressive about switching to gray, which indicates the viewer is behind the live edge. This is fixed now, you shouldn't fall back from the live edge unless you pause or rebuffer.
+
+## 0.1.0-beta.12
+
+* Important fix for fullscreen. In previous versions if you entered fullscreen you would get stuck there
+* Improve interaction so that clicks (not taps) anywhere on the video player will play/pause. Many people expected and asked for this behavior, so now you have it.
+
+## 0.1.0-beta.11
+
+* Added `thumbnail-time` optional attribute that can be used to set the poster image thumbnail (if you're not using signing tokens)
+* Point to [github/template-parts@0.5.2](mdc:https:/github.com/github/template-parts/releases/tag/v0.5.2) instead of Mux's fork because they were so kind to [get a fix in for us](mdc:https:/github.com/github/template-parts/pull/55). Thanks GitHub!
+
+## 0.1.0-beta.10
+
+* Improvement: The progress bar now shows above the controls, it's cleaner ðŸ’…ðŸ¼
+* Fix: when changing playback-id on an existing mux-player instance we had some leftover state around
+* Fix: full screen was incorrectly using the controls layout depending on the size of the player before it entered full screen. That meant if the player was small and you went full screen you still saw the small controls. Bad!
+
+## 0.1.0-beta.9
+
+* Your beautiful errors will now flow nicely into Mux Data. Your Mux Data errors dashboard just got a whole lot more useful. This is a big one.
+* Mux Player is now implemented as a Media Chrome "theme" under the hood. Laying some groundwork for some exciting Media Chrome things to come
+* Fix for adding event listeners on `mux-player`, if mux-player JavaScript was loaded after your HTML, events wouldn't get registered. Sorry about that -- fixed now. And we have tests to make sure we don't accidentally introduce a regression down the road.
+* The `.hls` property on `mux-player` is super-secret and should not be used unless you are a serious professional. We make no guarantee and your warranty is void if you use this property. To reflect this stance, it has been renamed to `_hls`.
+* Fixed some seek to live behavior
+* When the error dialog is open we no longer steal the focus of the document. Much better.
+
+## 0.1.0-beta.8
+
+* If you're using Webpack 4, maybe upgrade? But if not, we got you covered. Fixed package.json to point browser field at `mjs` so that Webpack 4 is happy
+
+## 0.1.0-beta.7
+
+* Fix: make mux-player size based on video element
+* Fix: make mux-player errors more uniform
+
+## 0.1.0-beta.6
+
+* Fix: messed up the release in beta.5, quick follow-on
+
+## 0.1.0-beta.5
+
+* Fix: clear out some state that was hanging around when playback-id is changed on an existing Mux Player instance, and add some test coverage for this sort of thing
+* Fix: mux-player web component metadata- attributes were not always propagating down
+* Fix: prevent non-fatal Hls.js errors from propagating and causing error states
+
+## 0.1.0-beta.4
+
+* Paid off some technical debt to handle web components being upgraded after existing in the DOM
+* Fix `primary-color` attribute so that it is used for all controls, both icons + text. Previously it was only being applied to icon colors
+
+## 0.1.0-beta.3
+
+* Fix developer log links that go to GitHub
+* Make sure internal state monitoring setup happens when the element exists. Fixes a bug in React when the captions button was sometimes not showing.
+
+## 0.1.0-beta.2
+
+* Added descriptive error handling. This is important so that you and your viewers are able to easily and quickly understand why a video is not playing. Is your local network connection offline? Is the signed URL expired? Maybe you mixed up PlaybackIDs and you have the wrong signed URL? Is it a problem specific to the media on your device? Often times video-related playback errors are cryptic and difficult to understand the root cause of. We put extra effort into this and we hope it helps you when things go wrong ðŸ’–.
+* Fix conditional rendering bug when attributes are removed sometimes the template wasn't updating.
+
+## 0.1.0-beta.1
+
+* When the control bar is engaged, slide the captions/subtitles up so they are still visible and don't get obscured
+
+## 0.1.0-beta.0
+
+First beta tag release ðŸŽ‰
+
+* Extended autoplay options `autoplay`, `autoplay="muted"` and `autoplay="any"` are all options now. See docs above for details.
+* Started tracking [Player Startup Time](mdc:docs/guides/data-startup-time-metric#player-startup-time) with Mux Data. The mo' QoE data we can get, the better!
+* Changed the behavior of the time display, it now defaults to ascending time (current time) and on click will toggle to show remaining time. Previously it showed only remaining time and that was confusing.
+* Fixed a bug related to storyboards on the thumbnails track when the underlying source changed. This should have impacted exactly 0 developers but we wanted to make sure to squash it anyway. If you somehow ran into this bug then you're welcome.
+
+## 0.1.0-alpha.7
+
+* Support for Signed URLs (see advanced usage section)
+* No longer require `env-key` to be passed in (Mux Data will infer environment based on the PlaybackID)
+
+
+# Mux Player for iOS releases
+Every new release of Mux Player for iOS is posted here with release notes
+# Current release
+
+## v1.2.0
+
+Improvements
+
+* Support instant clipping using relative time for publicly playable assets
+
+# Previous releases
+
+## v1.1.1
+
+Improvements
+
+* Capture additional details in Mux Data when experiencing an error playing video with DRM
+
+## v1.1.0
+
+Improvements
+
+* [Adds DRM support](mdc:docs/guides/protect-videos-with-drm)
+
+## v1.0.0
+
+Improvements
+
+* Enable caching when streaming on-demand at a fixed resolution tier
+* Updated Mux Data dependencies to meet App Store privacy manifest requirements
+
+API Changes
+
+* Add convenience initializers to constrain playback to a single rendition with a preset resolution tier
+* Add additional `AVPlayerViewController` extensions that configure an already existing instance for playing back a video from Mux
+* Remove `ascending` option for `RenditionOrder` this parameter is not supported by Mux Video
+
+## v0.5.0
+
+Improvements
+
+* Sets player software name and version to default values when reporting playback events to Mux Data
+
+## v0.4.0
+
+API Changes
+
+* Add `1440p` max resolution playback modifier
+
+Fixes
+
+* Correct SDK version
+
+## v0.3.0
+
+API Changes
+
+* Add: maximum resolution playback modifiers for 1080p and 2160p
+
+## v0.2.0
+
+Additions
+
+* Initialize an `AVPlayerLayer` to stream and monitor video with a public or signed playback ID
+* Setup an already existing `AVPlayerLayer` to stream and monitor video with a public or signed playback ID
+
+Breaking
+
+* The SDK module has been renamed to `MuxPlayerSwift`.
+  * Update SPM package links from `https://github.com/muxinc/mux-avplayer-sdk` to `https://github.com/muxinc/mux-player-swift`
+  * Replace any import statements: `import MuxAVPlayerSDK` to `import MuxPlayerSwift`
+
+This SDK is pre-release software and may contain issues or missing functionality. We recommend against submitting apps based on it to the App Store.
+
+## v0.1.0
+
+Initial Release
+
+* Feature: setup `AVPlayerViewController` to stream and monitor video with a public or signed playback ID
+* Feature: automatic Mux Data monitoring setup
+* Feature: passthrough of all metadata supported by the `AVPlayer` Data SDK
+* Feature: custom domains for playback
+* Feature: support for limiting playback resolution to 720p
+
+Known Issues
+
+* Mux Data monitoring will not automatically stop when `AVPlayerViewController` is no longer in use, call `stopMonitoring` on `AVPlayerViewController` to stop monitoring manually.
+
+
+# Mux Player for Android
+This guide walks through integration with Mux's Player SDK for Android, which is built on media3
+The Mux Player SDK is a thin wrapper on top of Google's media3 player SDK with convenient tools for Mux Video users. This SDK is not required to use Mux Video, but it can help you do things like controlling your data and delivery usage, playing Mux assets by ID, automatically supporting player features like caching, and transparently tracking performance and engagement with [Mux Data](mdc:https:/www.mux.com/data)
+
+This guide will help you install the Mux Video SDK in your app, use it to play a Mux Video asset, configure Mux Player for your specific app and media, and show you how to handle less-common scenarios like using Mux Video's [custom domains](mdc:docs/guides/use-a-custom-domain-for-streaming).
+
+## 1. Install the Mux Player SDK
+
+## Add our repository to your Gradle project
+
+Add Mux's maven repository to your gradle files. Newer projects require declaring this in `settings.gradle`, and older projects require it to be set in the project-level `build.gradle`.
+
+```gradle\_groovy
+
+// in a repositories {} block
+maven {
+  url 'https://muxinc.jfrog.io/artifactory/default-maven-release-local' 
+}
+
+```
+
+```gradle\_kts
+
+// in a repositories {} block
+maven {
+  url = uri("https://muxinc.jfrog.io/artifactory/default-maven-release-local")
+}
+
+```
+
+
+
+## Add the dependency to your app
+
+Add our library to the `dependencies` block for your app.
+
+```gradle\_kts
+
+implementation("com.mux.player:android:1.0.0")
+  
+```
+
+```gradle\_groovy
+
+implementation "com.mux.player:android:1.0.0"
+  
+```
+
+
+
+## 2. Play a Mux Asset
+
+## Create a MuxPlayer
+
+To use the SDK, you must create a `MuxPlayer` object using its `Builder`. The basic configuration will enable all of Mux Video's features, and you can make additional config changes using our `Builder`. Almost all of our default config options are the same as ExoPlayer's. We only change things about the default configuration when we need to in order to support a Mux Player feature.
+
+```kotlin
+
+val out: MuxPlayer = MuxPlayer.Builder(context = this)
+.enableLogcat(true) // Optional. Only applies to Mux. Media3 logging is not touched
+.applyExoConfig {
+  // Call ExoPlayer.Builder methods here (but not build()!)
+  setHandleAudioBecomingNoisy(true)
+}
+.build()
+  
+```
+
+```java
+
+MuxPlayer player = new MuxPlayer.Builder(context)
+.enableLogcat(true) // Optional. Only applies to Mux. Media3 logging is not touched
+.plusExoConfig((config) -> {
+  // Call ExoPlayer.Builder methods here (but not build()!)
+  config.setHandleAudioBecomingNoisy(true);
+})
+.build();
+  
+```
+
+
+
+## Play a Mux Video asset
+
+To play a Mux Video asset using this SDK, you can use our `MediaItems` API to create new instances of media3's `MediaItem` or `MediaItem.Builder`. For the basic example, we'll leave everything default and play an asset you've already uploaded to Mux Video
+
+```kotlin
+
+// Use the MediaItems class instead of MediaItem.Builder()
+val mediaItem = MediaItems.builderFromMuxPlaybackId("YOUR PLAYBACK ID")
+// It's just a MediaItem from here, so you can configure it however you like
+.setMediaMetadata(
+  MediaMetadata.Builder()
+    .setTitle("Hello from Mux Player on Android!")
+    .build()
+)
+.build()
+
+// From here, everything is exactly the same as ExoPlayer
+player.setMediaItem(mediaItem)
+player.prepare()
+player.playWhenReady = true
+  
+```
+
+```java
+
+MediaMetadata metadata = new MediaMetadata.Builder()
+.setTitle("Hello from Mux Player on Android")
+.build();
+// Use the MediaItems class instead of MediaItem.Builder()
+MediaItem item = MediaItems.builderFromMuxPlaybackId("YOUR PLAYBACK ID")
+// It's just a MediaItem from here, so you can configure it however you like
+.setMediaMetadata(metadata)
+.build();
+
+// From here, everything is exactly the same as ExoPlayer
+player.setMediaItem(item);
+player.setPlayWhenReady(true);
+player.prepare();
+  
+```
+
+
+
+### Protecting your content
+
+Mux Video offers options for securing your content from unauthorized playing or recording. For more information, [see below](mdc:docs/guides/mux-player-android#secure-your-playback-experience)
+
+## Control Your Usage and Quality
+
+## Enable smart caching to improve experience and decrease usage
+
+Mux Player can cache content as it is requested from Mux Video and store it for later requests. Caching can reduce overall data usage and costs by storing some streamed video locally in a private directory on the device. This way content doesn't need to be downloaded again if the user watches the content over, when playback loops, or during seeking. Mux Player's caching is automatic when enabled, and we manage the cache files for you.
+
+If you are interested in Mux Player's caching features, you can enable them when you build your `MuxPlayer`.
+
+```kotlin
+
+val player: MuxPlayer = MuxPlayer.Builder(context)
+// disabled by default
+.enableSmartCache(true)
+.build()
+  
+```
+
+```java
+
+MuxPlayer player = new MuxPlayer.Builder(context)
+  // disabled by default
+  .enableSmartCache(true)
+  .build()
+  
+```
+
+
+
+## Limit data and delivery usage
+
+Depending on your use case and app, you may need to control your either Mux Video usage or your app's data bandwidth usage. Doing this can allow you to save costs and minimize playback interruptions for users on slower devices or data plans. Mux provides some tools to manage costs and resource usage by limiting the maximum resolution your app can stream from Mux Video. To take advantage of this feature, you can supply a `PlaybackResolution` to our `MediaItems` class.
+
+```kotlin
+
+val mediaItem = MediaItems.builderFromMuxPlaybackId(
+"YOUR PLAYBACK ID",
+maxResolution = PlaybackResolution.FHD_1080, // limit playback resolution to 1080p
+)
+// .. configure your MediaItem further if required
+.build()
+
+// .. Add the MediaItem to your MuxPlayer like you normally would
+  
+```
+
+```java
+
+MediaItem mediaItem = MediaItems.builderFromMuxPlaybackId(
+      "YOUR PLAYBACK ID",
+      PlaybackResolution.FHD_1080 // limit playback resolution to 1080p
+  )
+  // .. configure your MediaItem further if required
+  .build();
+
+// .. Add the MediaItem to your MuxPlayer like you normally would
+
+```
+
+
+
+## Guarantee a minimum resolution
+
+Some use cases require a minimum playback resolution. Applications like screen-sharing for instance, may wish to preserve a certain level of visual quality even if play has to be interrupted to buffer more data. Apps that need their video playback to always be above a certain resolution, regardless of network conditions, can request a minium resolution.
+
+```kotlin
+
+val mediaItem = MediaItems.builderFromMuxPlaybackId(
+"YOUR PLAYBACK ID",
+minResolution = PlaybackResolution.HD_720,
+)
+// .. configure your MediaItem further if required
+.build()
+
+// .. Add the MediaItem to your MuxPlayer like you normally would
+  
+```
+
+```java
+
+MediaItem mediaItem = MediaItems.builderFromMuxPlaybackId(
+    "YOUR PLAYBACK ID",
+    null, // null for default
+    /*minResolution =*/ PlaybackResolution.HD_720
+)
+// .. configure your MediaItem further if required
+.build();
+  
+```
+
+
+
+For more information about controlling your data and platform usage, please see our [guide](mdc:docs/guides/control-playback-resolution) on controlling playback resolution.
+
+## Add or customize Mux Data metadata
+
+The Mux Player SDK transparently integrates with Mux Data in order to monitor for issues and track engagement with your content. To verify this is working, you can simply play the video in your app, and wait for your session to appear on the Mux Data dashboard. Your session should appear in your Mux Data environment automatically in the same environment as your video asset.
+
+## Automatically-Detected Metadata
+
+Mux will automatically collect information about your stream, playback environment, and current playback session ("view") to send to Mux Data. Examples of the kind of information collected are Mux Asset and Playback IDs, player and stream resolution, the start and end times of the view, and some basic information about the end users device like OS and model number.
+
+## Customize metadata about your player, viewer, or playback session
+
+The SDK can automatically detect a lot of information about the media you're playing, but you can customize this information if you need to, via the `CustomerData` class. Anything you specify this way will override metadata values that would ordinarily be detected automatically.
+
+You can initialize your player with whatever custom metadata you like, and you can also update that metadata at any time.
+
+```kotlin
+
+private fun createPlayer(context: Context): MuxPlayer {
+return MuxPlayer.Builder(context)
+  .addMonitoringData(
+    CustomerData().apply {
+      customerViewData = CustomerViewData().apply {
+        viewSessionId = UUID.generateUUID()
+      }
+      customerVideoData = CustomerVideoData().apply {
+        videoSeries = "My Series"
+        videoId = "abc1234zyxw"
+      }
+      customData = CustomData().apply { 
+        customData1 = "my custom metadata field"
+        customData2 = "another custom metadata field"
+        customData10 = "up to 10 custom fields"
+      }
+    }
+  )
+  .build()
+}
+  
+```
+
+```java
+
+private MuxPlayer createPlayer(Context context) {
+CustomerData customerData = new CustomerData();
+CustomerVideoData videoData = new CustomerVideoData();
+videoData.setVideoTitle("Lots of custom data");
+videoData.setVideoSeries("my series");
+videoData.setVideoId("my app's id for the media");
+CustomData customData = new CustomData();
+customData.setCustomData1("my custom data field");
+customData.setCustomData2("another custom metadata field");
+customData.setCustomData10("up to 10 custom fields");
+
+customerData.setCustomerVideoData(videoData);
+customerData.setCustomData(customData);
+
+return new MuxPlayer.Builder(context)
+  .addMonitoringData(customerData)
+  .build();
+}
+  
+```
+
+
+
+## Secure your playback experience
+
+Depending on the needs of your business and your users, you may need to secure your videos against unauthorized copying or viewing. Mux Video offers options for securing your playback experience. The right option for your app depends on your own use case. Your best option, if any, is a trade-off between security, complexity, and loading time for the end user.
+
+## Signed Playback URLs
+
+Mux Player supports playing Mux Video assets with signed playback. Signed playback uses a JSON web token (JWT) signed on your application server, created using a key identifier created using our APIs. For more information about how to set up signed playback, check out our [secure video playback guide](mdc:docs/guides/secure-video-playback).
+
+For this guide, we'll focus on what to do on the client, once you have the JWT from your app's backend server. To play the asset securely you can supply your JWT to `MediaItems.fromMuxPlaybackId` or `MediaItems.builderFromMuxPlaybackId`. The resulting `MediaItem` will be configured to play the asset securely using your token.
+
+```kotlin
+
+private fun playSomething(jwt: String, context: Context) {
+val player = createPlayer(context)
+val mediaItem = MediaItems.builderFromMuxPlaybackId(
+  PlaybackIds.TEARS_OF_STEEL,
+  playbackToken = jwt,
+)
+  .setMediaMetadata(
+    MediaMetadata.Builder()
+      .setTitle("Private Playback ID Example")
+      .build()
+  )
+  .build()
+player.setMediaItem(mediaItem)
+
+// .. Then prepare and play your media as normal
+}    
+
+```
+
+```java
+
+MuxPlayer player = createPlayer(context);
+MediaItem mediaItem = MediaItems.builderFromMuxPlaybackId(
+    PlaybackIds.TEARS_OF_STEEL,
+    PlaybackResolution.QHD_1440,
+    PlaybackResolution.LD_540,
+    RenditionOrder.Descending,
+    /* domain = */ null, // null for default
+    // put your Signed Playback Token here
+    /*playbackToken = */ jwt
+)
+.setMediaMetadata(
+    new MediaMetadata.Builder()
+        .setTitle("Private Playback ID Example")
+        .build()
+)
+.build();
+player.setMediaItem(mediaItem);
+
+// .. Then prepare and play your media as normal
+
+```
+
+
+
+## Digital Rights Management (DRM)
+
+Mux Player for Android can be configured to protect videos from unauthorized use via Widevine DRM. Support for DRM is automatically enabled in the player. As long as you have both a signed playback token (see above) and a DRM token, your DRM-protected asset can be played using Mux Player. The process of setting up DRM is somewhat complex, and is detailed here in our [DRM Guide](mdc:docs/guides/protect-videos-with-drm). This guide will focus on what to do once you have obtained a Playback Token and DRM Token from your application server.
+
+### 1. Setting up DRM for an asset
+
+To use DRM playback for your asset, you'll need to set up a DRM configuration and DRM-enabled playback ID. The process for doing this is the same regardless of your player, and you can read more about it in our [DRM Guide](mdc:docs/guides/protect-videos-with-drm). Once you have an environment and asset set up with DRM, you can use your that asset's DRM Token, Playback Token, and Playback ID with Mux Player to do DRM playback transparently.
+
+### 2. Playing a DRM-protected asset
+
+To play your DRM-protected asset, simply provide the Playback Token and DRM Token you generated in the last step. You can provide them as parameters to `MediaItems.fromMuxPlaybackId()`. No other configuration is required in order to use DRM with Mux Player.
+
+```kotlin
+
+private fun playSomething(myPlaybackId: String, myPlaybackToken: String, myDrmToken: String, context: Context) {
+val player = createPlayer(context)
+val mediaItem = MediaItems.builderFromMuxPlaybackId(
+  playbackId,
+  playbackToken = myPlaybackToken,
+  drmToken = myDrmToken,
+)
+  .setMediaMetadata(
+    MediaMetadata.Builder()
+      .setTitle("DRM playback Example")
+      .build()
+  )
+  .build()
+player.setMediaItem(mediaItem)
+
+// .. Then prepare and play your media as normal
+}    
+
+```
+
+```java
+
+MuxPlayer player = createPlayer(context);
+MediaItem mediaItem = MediaItems.builderFromMuxPlaybackId(
+    PlaybackIds.TEARS_OF_STEEL,
+    PlaybackResolution.QHD_1440,
+    PlaybackResolution.LD_540,
+    RenditionOrder.Descending,
+    /* domain = */ null, // null for default
+    // put your Signed Playback Token here
+    /*playbackToken = */ jwt,
+    /*drmToken = */ drmToken,
+)
+.setMediaMetadata(
+    new MediaMetadata.Builder()
+        .setTitle("Private Playback ID Example")
+        .build()
+)
+.build();
+player.setMediaItem(mediaItem);
+
+// .. Then prepare and play your media as normal
+
+```
+
+
+
+## Advanced Features
+
+## Enable smart caching to improve experience and decrease usage
+
+Mux Player can cache content as it is requested from Mux Video and store it for later requests. This caching is automatic, and we manage the cache content and cache files for you. To enable smart caching, all you need to do is set the parameter when you build your `MuxPlayer`.
+
+```kotlin
+
+val player: MuxPlayer = MuxPlayer.Builder(context)
+.enableSmartCache(true)
+.build()
+  
+```
+
+
+
+## Use a custom Mux Video domain
+
+If you are using a Mux Video [Custom Domain](mdc:docs/guides/use-a-custom-domain-for-streaming), you can specify the domain on a per-`MediaItem` basis. The URL of the stream will have the specified domain and the `stream.` subdomain
+
+```kotlin
+
+val mediaItem = MediaItems.builderFromMuxPlaybackId(
+"YOUR PLAYBACK ID",
+domain = "customdomain.com", // https://stream.customdomain.com/...
+)
+// .. configure your MediaItem further if required
+.build()
+
+// .. Add the MediaItem to your MuxPlayer like you normally would
+  
+```
+
+
+
+## Use a specific Mux Data Environment Key
+
+Ordinarily, Mux Data will record views and monitoring data in the same Environment as the Mux Video asset being played. If you are using a different Mux Data environment for some reason, you can specify another Mux Data Env Key for your player to use.
+
+```kotlin
+
+private fun createPlayer(context: Context): MuxPlayer {
+return MuxPlayer.Builder(context)
+  .setMuxDataEnv("Another Mux Data Env Key") // replace with your other key  
+  .build()
+}
+  
+```
+
+```java
+
+MuxPlayer player = new MuxPlayer.Builder(context)
+  .setMuxDataEnv("Another Mux Data Env Key") // replace with your other key  
+  .build()
+  
+```
+
+
+
+## Instant Clipping
+
+### Instant Clips
+
+Instant clips are an alternative to our [long-standing asset-based clipping feature](mdc:docs/guides/create-clips-from-your-videos). Requesting instant clips using relative time is now [available for use with all video on-demand (VOD) assets](mdc:https:/www.mux.com/blog/instant-clipping-update).
+
+Instant clipping allows you to request a stream whose start time is at some later point in the video, relative to the start time of the asset. Likewise you're able to request a stream that ends sooner than when the underlying asset completes. Instant clips do not incur the wait time or expense of a creating a new asset.
+
+Unlike asset-based clipping, instant clipping is done by trimming your VOD assets HLS manifest. This means that instant clipping operates at the segment level of accuracy. You should expect that the content that you clip out may be several seconds longer than youâ€™ve requested. We always make sure to include the timestamps that you request, but your content may start a few seconds earlier, and end a few seconds later.
+
+Assets that originate from a livestream can also be converted into instant clips using program date time epochs. Support for these clips will be available in a future Mux Player Android release.
+
+
+# Mux Player for Android releases
+Every new release of Mux Player for Android is posted here with release notes
+# Current release
+
+## v1.4.0
+
+Updates:
+
+* Add method for updating `CustomerData`
+
+Improvements:
+
+* Track player dimensions when using the default PlayerView (or SurfaceView or TextureView)
+
+Notes:
+
+* `MuxPlayer` now implements `Player` instead of `ExoPlayer`. Most people shouldn't have a problem, but if you referred to our player as an `ExoPlayer`, you'll need to change it to `Player` or `ExoPlayer`
+
+# Previous releases
+
+## v1.3.0
+
+Update:
+
+* update: Update Mux Data to v1.6.2 and Media3 to v1.5.0
+
+## v1.2.2
+
+Fixes
+
+* fix: Rendering issues on Compose UI & API 34 (upstream from media3: [link](mdc:https:/github.com/androidx/media/issues/1237))
+
+Improvements
+
+* Update media3 to 1.4.1 + mux data to 1.6.0
+
+## v1.2.1
+
+Fixes
+
+* Fix cache errors when switching sources extremely quickly
+
+## v1.2.0
+
+Improvements
+
+* Add Instant Clipping asset relative time parameters to `MediaItems`
+
+## v1.1.3
+
+Improvements:
+
+* fix: playback fails sometimes when changing videos
+
+## v1.1.2
+
+Please prefer to use v1.1.3
+
+## v1.1.1
+
+Please prefer to use v1.1.3
+
+## v1.1.0
+
+Improvements
+
+* [Adds DRM support](mdc:docs/guides/protect-videos-with-drm)
+
+## v1.0.0
+
+Updates:
+
+* Bump to version 1.0.0
+* Added a 'Default' rendition order
+
+Fixes:
+
+* Remove option for non-existent `Ascending` rendition order
+
+Improvements:
+
+* Misc API & code quality improvements
+* Complete public API docs
+
+## v0.3.1
+
+Improvements:
+
+* fix: Player should always request redundant\_streams
+* feat: Set player software name as `mux-player-android`
+
+## v0.3.0
+
+New:
+
+* new: Add max and min playback resolution
+  Updates:
+* update: Improve example app appearance + misc updates

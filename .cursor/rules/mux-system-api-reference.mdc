@@ -1,0 +1,275 @@
+---
+description: This is the OpenAPI specification for the Mux System API
+globs: 
+alwaysApply: false
+---
+```json
+{
+  "openapi": "3.0.3",
+  "x-group-parameters": true,
+  "info": {
+    "title": "Mux API",
+    "description": "Mux is how developers build online video. This API encompasses functionality to help you perform administrative tasks within Mux.",
+    "version": "v1",
+    "contact": {
+      "name": "Mux DevEx",
+      "url": "https://docs.mux.com",
+      "email": "devex@mux.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.mux.com",
+      "description": "Mux Production Environment"
+    }
+  ],
+  "security": [
+    {
+      "accessToken": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Signing Keys",
+      "description": "Signing keys are used to sign JSON Web Tokens (JWTs) for securing certain requests, such as secure playback URLs and access to real-time viewer counts in Mux Data. **One signing key can be used to sign multiple requests - you probably only need one active at a time.** However, you can create multiple signing keys to enable key rotation, creating a new key and deleting the old only after any existing signed requests have expired."
+    }
+  ],
+  "paths": {
+    "/system/v1/signing-keys": {
+      "post": {
+        "tags": [
+          "Signing Keys"
+        ],
+        "summary": "Create a signing key",
+        "description": "Creates a new signing key pair. When creating a new signing key, the API will generate a 2048-bit RSA key-pair and return the private key and a generated key-id; the public key will be stored at Mux to validate signed tokens.",
+        "operationId": "create-signing-key",
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "x-required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "x-required": [
+                        "id",
+                        "created_at"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "Unique identifier for the Signing Key."
+                        },
+                        "created_at": {
+                          "type": "string",
+                          "format": "int64",
+                          "description": "Time at which the object was created. Measured in seconds since the Unix epoch."
+                        },
+                        "private_key": {
+                          "type": "string",
+                          "format": "byte",
+                          "description": "A Base64 encoded private key that can be used with the RS256 algorithm when creating a [JWT](https://jwt.io/). **Note that this value is only returned once when creating a URL signing key.**"
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "data": {
+                    "private_key": "abcd123=",
+                    "id": "vI5KTQ78ohYriuvWKHY6COtZWXexHGLllxksOdZuya8",
+                    "created_at": "1610108345"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Signing Keys"
+        ],
+        "summary": "List signing keys",
+        "description": "Returns a list of signing keys.",
+        "operationId": "list-signing-keys",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Number of items to include in the response",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 25
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Offset by this many pages, of the size of `limit`",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "x-required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "x-required": [
+                          "id",
+                          "created_at"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "description": "Unique identifier for the Signing Key."
+                          },
+                          "created_at": {
+                            "type": "string",
+                            "format": "int64",
+                            "description": "Time at which the object was created. Measured in seconds since the Unix epoch."
+                          },
+                          "private_key": {
+                            "type": "string",
+                            "format": "byte",
+                            "description": "A Base64 encoded private key that can be used with the RS256 algorithm when creating a [JWT](https://jwt.io/). **Note that this value is only returned once when creating a URL signing key.**"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "vI5KTQ78ohYriuvWKHY6COtZWXexHGLllxksOdZuya8",
+                      "created_at": "1610108345"
+                    },
+                    {
+                      "id": "jc6lJiCLMjyC202EXtRQ644sShzDv6x5tWJrbvUFpvmo",
+                      "created_at": "1608632647"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/system/v1/signing-keys/{SIGNING_KEY_ID}": {
+      "get": {
+        "tags": [
+          "Signing Keys"
+        ],
+        "summary": "Retrieve a signing key",
+        "description": "Retrieves the details of a signing key that has previously\nbeen created. Supply the unique signing key ID that was returned from your\nprevious request, and Mux will return the corresponding signing key information.\n**The private key is not returned in this response.**\n",
+        "operationId": "get-signing-key",
+        "parameters": [
+          {
+            "name": "SIGNING_KEY_ID",
+            "in": "path",
+            "description": "The ID of the signing key.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "x-required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "x-required": [
+                        "id",
+                        "created_at"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "Unique identifier for the Signing Key."
+                        },
+                        "created_at": {
+                          "type": "string",
+                          "format": "int64",
+                          "description": "Time at which the object was created. Measured in seconds since the Unix epoch."
+                        },
+                        "private_key": {
+                          "type": "string",
+                          "format": "byte",
+                          "description": "A Base64 encoded private key that can be used with the RS256 algorithm when creating a [JWT](https://jwt.io/). **Note that this value is only returned once when creating a URL signing key.**"
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "data": {
+                    "id": "jc6lJiCLMjyC202EXtRQ644sShzDv6x5tWJrbvUFpvmo",
+                    "created_at": "1608632647"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Signing Keys"
+        ],
+        "summary": "Delete a signing key",
+        "description": "Deletes an existing signing key. Use with caution, as this will invalidate any existing signatures and no JWTs can be signed using the key again.",
+        "operationId": "delete-signing-key",
+        "parameters": [
+          {
+            "name": "SIGNING_KEY_ID",
+            "in": "path",
+            "description": "The ID of the signing key.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    }
+  },
+  "components": {}
+}```
