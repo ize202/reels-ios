@@ -49,7 +49,53 @@ func tuistProject() -> Project {
 		"NSPhotoLibraryUsageDescription": "We need Photo Library Access for the App to work.",
 		"UILaunchStoryboardName": "LaunchScreen",
 		"UISupportedInterfaceOrientations": .array(["UIInterfaceOrientationPortrait"]),  //Only Support Portrait on iphone
-	]
+        "GADApplicationIdentifier": "ENTER_GOOGLE_AD_APP_IDENTIFIER",
+        "GADNativeAdValidatorEnabled": "NO",
+        "SKAdNetworkItems": .array([
+            .dictionary(["SKAdNetworkIdentifier": "cstr6suwn9.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "4fzdc2evr5.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "2fnua5tdw4.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "ydx93a7ass.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "p78axxw29g.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "v72qych5uu.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "ludvb6z3bs.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "cp8zw746q7.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "3sh42y64q3.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "c6k4g5qg8m.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "s39g8k73mm.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "3qy4746246.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "hs6bdukanm.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "mlmmfzh3r3.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "v4nxqhlyqp.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "wzmmz9fp6w.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "su67r6k2v3.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "yclnxrl5pm.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "7ug5zh24hu.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "gta9lk7p23.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "vutu7akeur.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "y5ghdn5j9k.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "v9wttpbfk9.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "n38lu8286q.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "47vhws6wlr.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "kbd757ywx3.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "9t245vhmpl.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "a2p9lx4jpn.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "22mmun2rn5.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "4468km3ulz.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "2u9pt9hc89.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "8s468mfl3y.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "ppxm28t8ap.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "uw77j35x4d.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "pwa73g5rt2.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "578prtvx9j.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "4dzt52r2t5.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "tl55sbb4fm.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "e5fvkxwrpn.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "8c4e2ghe7u.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "3rd42ekr43.skadnetwork"]),
+            .dictionary(["SKAdNetworkIdentifier": "3qcr597p9d.skadnetwork"]),
+        ]),
+    ]
 
 	// Info Property List values that are included with each module (usable by extending the default info plist
 	let defaultModuleInfoPlist: [String: Plist.Value] = [
@@ -65,6 +111,7 @@ func tuistProject() -> Project {
 	addNotifKit()
 	let iapKit = addInAppPurchaseKit()
 	addSupabaseKit()
+    addAdsKit()
 
 	addApp()
 
@@ -139,6 +186,37 @@ func tuistProject() -> Project {
 		appDependencies.append(sharedKit)
 		projectTargets.append(sharedTarget)
 	}
+    
+    // Google AdMob
+    func addAdsKit() {
+        let targetName = "AdsKit"
+        let adsKitTarget: Target = .target(
+            name: targetName,
+            destinations: destinations,
+            product: .framework,
+            bundleId: "\(bundleID).\(targetName)",
+            deploymentTargets: .iOS(osVersion),
+            infoPlist: .extendingDefault(with: defaultModuleInfoPlist),
+            sources: ["Targets/\(targetName)/Sources/**"],
+            resources: [baseAppResources],
+            dependencies: [
+                TargetDependency.package(product: "GoogleMobileAds", type: .runtime),
+                sharedKit,
+            ],
+            settings: .settings(base: [
+                "ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS": "YES"
+            ])
+        )
+        appDependencies.append(TargetDependency.target(name: targetName))
+        projectPackages
+            .append(
+                .remote(
+                    url: "https://github.com/googleads/swift-package-manager-google-mobile-ads.git",
+                    requirement: .upToNextMajor(from: "11.12.0")
+                )
+            )
+        projectTargets.append(adsKitTarget)
+    }
 
 	func addInAppPurchaseKit() -> TargetDependency {
 		let targetName = "InAppPurchaseKit"
