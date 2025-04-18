@@ -1,0 +1,209 @@
+# You're an expert AI development assistant helping build advanced iOS apps.
+
+## Code Architecture
+
+### MVVM Implementation
+- **Models**: Pure data structures, preferably structs
+- **Views**: SwiftUI views with minimal logic
+- **ViewModels**: Business logic, data transformation, state management
+- **Services**: Core functionality abstracted through protocols
+
+## Naming Conventions
+
+### General Rules
+- Use `camelCase` for variables, properties, functions, and methods
+- Use `PascalCase` for types (structs, classes, enums, protocols)
+- Use descriptive names that clearly communicate purpose
+
+### Specific Guidelines
+- **Functions/Methods**: Start with verbs (e.g., `fetchData()`, `calculateTotal()`)
+- **Boolean Properties**: Use `is`, `has`, or `should` prefixes (e.g., `isEnabled`, `hasCompletedSetup`)
+- **Enums**: Use singular nouns for type names, cases in camelCase
+- **Protocol Names**: Use nouns, adjectives, or ending with `-able`, `-ible`, or `-ing`
+
+## Swift Best Practices
+
+### Type System
+- Leverage Swift's strong type system
+- Use value types (structs) over reference types (classes) when possible
+- Prefer composition over inheritance
+- Use enums with associated values for representing states
+
+### Optionals
+- Avoid force unwrapping (`!`)
+- Use optional binding (`if let`, `guard let`) for safe unwrapping
+- Utilize optional chaining where appropriate
+- Consider using `nil` coalescing operator (`??`) for default values
+
+### Immutability
+- Prefer `let` over `var` for immutable values
+- Create immutable models where possible
+- Use `private(set)` for properties that should be read-only externally
+
+### Modern Swift Features
+- Use property wrappers appropriately (`@Published`, `@State`, etc.)
+- Implement async/await for asynchronous operations
+- Use structured concurrency with `Task` and `TaskGroup`
+- Utilize the `Result` type for representing success/failure outcomes
+
+### Error Handling
+- Define domain-specific error types using enums
+- Implement comprehensive error handling with do-catch blocks
+- Use async/await with structured error handling
+- Provide meaningful error messages and recovery suggestions
+
+## SwiftUI Implementation
+
+### State Management
+- `@State`: For simple view-local state
+- `@Binding`: For two-way connections to state owned elsewhere
+- `@StateObject`: For view-owned observable objects
+- `@ObservedObject`: For objects passed to a view
+- `@EnvironmentObject`: For objects shared across the view hierarchy
+- `@Published`: For observable properties in ObservableObject classes
+- `@AppStorage`: For values stored in UserDefaults
+- `@SceneStorage`: For UI state restoration
+
+### View Structure
+- Keep views small and focused on a single responsibility
+- Extract complex view logic into helper methods
+- Use view builders and custom container views for reusable UI patterns
+- Implement view modifiers for consistent styling
+
+### Layout
+- Use `GeometryReader` for responsive layouts
+- Respect safe areas and dynamic type sizes
+- Support all device orientations
+- Implement appropriate keyboard handling
+- Support both light and dark mode
+- Always follow the Human Interface Guidelines for type sizes, spacing, and other UI elements
+
+### Performance
+- Lazy load views with `LazyVStack`/`LazyHStack`
+- Use `@ViewBuilder` for conditional UI components
+- Optimize lists with `LazyVGrid`/`LazyHGrid`
+- Implement pagination for large data sets
+- Use `AsyncImage` for efficient image loading
+
+## Human Interface Guidelines
+
+### Visual Design
+- Leverage SF Symbols for iconography
+- Follow Apple's color palette and contrast guidelines
+- Maintain proper spacing and alignment (8-point grid system)
+- Support dynamic type and bolded text accessibility options
+
+### Navigation & Structure
+- Follow standard navigation patterns (hierarchical, flat, or content-driven)
+- Implement proper tab bar usage (5 tabs maximum)
+- Use appropriate transition animations
+- Provide clear navigation titles and back buttons
+- Implement proper deep linking support
+
+### UI Controls
+- Use standard controls when possible
+- Maintain minimum tap target size (44×44 points)
+- Implement proper form design with clear input fields
+- Provide clear feedback for user actions
+- Use appropriate system-standard gestures
+
+### Accessibility
+- Include proper VoiceOver support with accessibility labels
+- Support Dynamic Type for text scaling
+- Implement sufficient color contrast (4.5:1 minimum)
+- Support reduced motion preferences
+- Test with Accessibility Inspector
+
+## Data Management
+
+### Network Layer
+- Implement protocol-based network services
+- Use async/await for network calls
+- Properly handle authentication and refresh tokens
+- Implement proper caching strategies
+- Add comprehensive error handling and retry logic
+
+### Persistence
+- Use appropriate storage based on requirements:
+  - `CoreData` for complex relational data
+  - `SwiftData` for simpler data models in iOS 17+
+  - `UserDefaults` for user preferences
+  - `Keychain` for sensitive information
+- Implement proper migrations
+- Handle data validation and error cases
+
+### State Restoration
+- Preserve important user state between app launches
+- Use `@SceneStorage` for UI state
+- Implement proper deep linking support
+- Handle background/foreground transitions gracefully
+
+## Testing Requirements
+
+### Unit Testing
+- Use XCTest framework
+- Achieve high test coverage for business logic
+- Implement dependency injection for testability
+- Write tests for failure cases and edge conditions
+- Use mocks and stubs for external dependencies
+
+### UI Testing
+- Implement XCUITest for critical user flows
+- Test accessibility compliance
+- Test different device sizes and orientations
+- Verify proper handling of system interruptions
+
+### Performance Testing
+- Profile with Instruments
+- Test startup time
+- Measure and optimize memory usage
+- Verify smooth scrolling performance
+- Test battery consumption for background operations
+
+## Security Best Practices
+
+### Data Protection
+- Encrypt sensitive data using CryptoKit
+- Store credentials in Keychain
+- Implement proper certificate pinning
+- Use App Transport Security (ATS)
+- Sanitize and validate all user input
+
+## Development Process
+
+### Version Control
+- Follow Git-flow branching strategy
+- Write clear commit messages
+- Create focused pull requests
+- Perform code reviews for all changes
+
+### Documentation
+- Write clear code comments for complex logic
+- Focus on explaining "why" not just "what"
+- Document public interfaces with proper doc comments
+- Create architecture diagrams for complex features
+
+### Build System
+- Use **Tuist** for project generation and dependency management
+- Use **Swift Package Manager (SPM)** for dependencies
+- Define environments via configuration files or Tuist targets
+- Keep `.xcworkspace` out of version control unless necessary
+
+## Debugging Philosophy
+- Consider 5–7 possible causes before jumping to conclusions
+- Log and validate assumptions before implementing a fix
+- Write reproducible test cases for any bug that reaches production
+
+## Code Quality
+- Run `swiftlint` before every commit
+- Use SwiftFormat with consistent team settings
+- All public APIs must include doc comments
+
+## Code Review Criteria
+- Code follows SOLID principles
+- Proper error handling is implemented
+- UI follows Human Interface Guidelines
+- Performance considerations are addressed
+- Security best practices are followed
+- Existing comments are preserved
+- Documentation is clear and complete

@@ -1,0 +1,123 @@
+---
+description: Guidelines for working with supabase anonymous sign in
+globs: 
+alwaysApply: false
+---
+**Supabase Anonymous Authentication Rules & Integration Guide for Swift (Olli App)**
+
+---
+
+### Purpose
+Provide clear, structured rules and technical guidance for integrating and using Supabase’s `signInAnonymously()` feature in the Olli AI BFF app. This allows seamless onboarding while preserving user anonymity and supporting future account linking.
+
+---
+
+### When to Use Anonymous Auth
+- Instant onboarding with **no friction**
+- No need for email, password, or OAuth upfront
+- Encourages emotional connection before commitment
+- Allows users to test Olli without providing PII
+- Converts well when paired with personalization or subscription triggers
+
+---
+
+### Key Behavior
+- `signInAnonymously()` creates a **real user** in the `auth.users` table
+- These users are assigned a JWT with the `is_anonymous = true` claim
+- They use the **authenticated** Postgres role — same access level as signed-in users unless restricted via RLS
+- Their credentials are **lost** if:
+  - They log out manually
+  - App data is cleared
+  - They switch devices without linking
+
+---
+
+### Swift Integration Code
+```swift
+// 1. Sign in anonymously on app launch if no session exists
+let session = try await supabase.auth.signInAnonymously()
+
+// 2. Update user with email to upgrade from anonymous to permanent
+try await supabase.auth.updateUser(
+  user: UserAttributes(email: "user@email.com")
+)
+
+// 3. Or link an OAuth provider
+try await supabase.auth.linkIdentity(provider: .google)
+```
+
+---
+
+### Link Account Flow (Settings > Link Identity)
+- Call `updateUser()` for email
+- Call `linkIdentity()` for OAuth
+- On conflict (e.g. email already in use), inform user to log in to existing account
+- After login, **manually migrate** any data (e.g. chat logs, preferences)
+
+---
+
+### RLS & Access Control
+- All anonymous users use the `authenticated` role
+- Use the `is_anonymous` claim in JWT for fine-grained control
+
+```sql
+-- Only permanent users can insert
+create policy "Only permanent users can insert"
+on messages as restrictive for insert
+to authenticated
+with check ((auth.jwt() ->> 'is_anonymous')::boolean = false);
+
+-- All users (including anonymous) can read
+create policy "All users can select"
+on messages for select
+to authenticated
+using (true);
+```
+
+---
+
+### Cleanup Strategy
+- No automatic cleanup of anonymous users
+- Use cron or scheduled SQL to clean up old anonymous accounts:
+```sql
+DELETE FROM auth.users
+WHERE is_anonymous = true AND created_at < NOW() - INTERVAL '30 days';
+```
+
+---
+
+### Abuse Prevention
+- Enable CAPTCHA or Turnstile to prevent bot-based user creation
+- Supabase enforces IP-based rate limiting: **30 requests/hour** (adjustable)
+
+---
+
+### Edge Cases
+**Linking to Existing Account:**
+- If `updateUser()` fails because email exists, fallback to login and reassign data:
+```swift
+// 1. Sign in to existing account
+let login = try await supabase.auth.signInWithPassword(
+  email: "existing@user.com",
+  password: "securePassword"
+)
+
+// 2. Migrate anonymous user data
+try await supabase.from("chat_logs")
+  .update(["user_id": login.user.id])
+  .eq("user_id", anonSession.user.id)
+```
+
+**Conflict Resolution Options:**
+- Overwrite permanent data with anonymous session
+- Discard anonymous session data
+- Merge data (recommended for chat logs, preferences)
+
+---
+
+### Best Practices Summary
+- Use anonymous sign-in for all first-time sessions
+- Gate personalization & syncing behind "Link Account"
+- Add `is_anonymous` checks in all RLS logic
+- Build conflict resolution logic early to prevent migration issues
+- Schedule cleanup to avoid bloat

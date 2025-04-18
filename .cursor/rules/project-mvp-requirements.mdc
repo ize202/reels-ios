@@ -1,0 +1,136 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Short Drama App – MVP Requirements (iOS Only)
+Like tiktok but for short drama series
+
+## Overview
+
+Build a vertically optimized short drama streaming app for iOS. The app will deliver binge-worthy, serialized micro-dramas (60–90 sec episodes) with a freemium content model. MVP should prioritize speed, content consumption, monetization funnel, and high retention loops.
+
+
+## Core Goals
+
+- Deliver short-form drama episodes in vertical video format
+- Drive binge consumption through addictive, cliffhanger-style storytelling
+- Support freemium model with microtransactions and optional ads
+- Enable fast discovery and repeat viewing
+- Prioritize smooth, responsive UI optimized for iOS
+
+## Key Features
+
+### 1. **Tab Navigation**
+
+- 4 Tabs: Home, Library, Rewards, Profile
+
+### 2. **Home Feed / Discover**
+
+- Entry point when app opens (no onboarding flow)
+- Anonymous users are created automatically on first open using Supabase Anonymous Sign-In
+- Users can browse and watch content without signing in
+- Curated carousel: Trending, New Releases, Top Rated
+- Tap into series → starts playing episodes
+
+### 3. **Library**
+
+- User-saved or followed series
+- Display progress on each saved series
+- Quick access to continue watching
+
+### 4. **Rewards**
+
+- Daily rewards (claim free coins)
+- Watch streak tracker (bonus for watching daily)
+- Watch ad to earn coins
+- Option to sign in for bonus coin rewards and data persistence across devices
+- VIP subscriptions
+
+### 5. **Video Player**
+
+- Vertical full-screen player
+- Tap to skip episode, swipe down to exit
+- Autoplay next episode
+- Episode progress bar
+- Floating "Continue" button if user leaves mid-episode
+
+### 6. **Series Page**
+
+- Series thumbnail, title, genre, description
+- Episode list with unlock status (free, locked, watch ad, buy with coin)
+- Progress tracking (watched, % complete)
+
+### 7. **Monetization**
+
+- In-App Currency ("Coins")
+  - Users earn coins via IAP or rewarded ads
+  - Use coins to unlock next episode
+- Rewarded Video Ads
+  - Watch ad to earn coin(s)
+- IAP Options
+  - Coin packs: $1.99 / $4.99 / $9.99
+  - VIP Subscriptions (Optional MVP): Weekly or Monthly unlimited access
+
+### 8. **Profile**
+
+- View coin balance
+- Purchase history
+- Settings: Notifications, App Support, Restore Purchases
+- Optional Sign In (Apple or Email) to upgrade from anonymous account
+
+
+## Content Management (Admin-side, not MVP related)
+
+- Supabase-driven backend for series metadata, episode video URLs, pricing info, and unlock rules
+- Mux for video hosting, encoding, HLS streaming, and analytics
+- Possibly an Admin dashboard to manage content (add/edit series, upload video to Mux, track engagement)
+
+### Playback Restrictions
+
+- First few episodes of each series are free to watch
+- Remaining episodes are locked and require:
+  - Coin unlock
+  - Watching a rewarded ad
+  - VIP subscription access
+- Playback uses tokenized Mux URLs to enforce secure access
+
+
+## Design Guidelines
+
+- Mobile-first, vertical UX
+- Inspired by TikTok/ReelShort UI (familiar feel)
+- Minimalist, bingeable, focus on video playback
+- Smooth transitions and haptic feedback
+
+
+## Tech Stack
+
+- Swift + SwiftUI (native iOS)
+- AVKit for video playback (via Mux HLS stream URLs)
+- Supabase for backend: Auth (including Anonymous Sign-In), Database, File storage, content logic
+- Mux for video hosting, streaming, thumbnails, analytics
+- RevenueCat for IAP
+- AdMob for rewarded ads
+- Push notifications via OneSignal
+- Mixpanel for analytics
+- Sentry for crashlytics
+
+
+## MVP Success Metrics
+
+- Session duration
+- Series completion rate
+- % of users who purchase coins or watch ads
+- Retention Day 1 / 7 / 30
+- Daily active users (DAU)
+
+### Basic Analytics to Track (MVP)
+
+- Episode started / completed
+- Ad watched
+- Coin balance changes (earned/spent)
+- Purchases made (coin packs or subscriptions)
+- Series completion % per user
+- Source of unlock (coin vs ad vs VIP)
+
