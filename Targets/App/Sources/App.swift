@@ -10,7 +10,9 @@
 //
 
 import AnalyticsKit
+import Mixpanel
 import CrashlyticsKit
+import Sentry
 import InAppPurchaseKit
 import NotifKit
 import OneSignalFramework
@@ -46,9 +48,16 @@ struct MainApp: App {
 
                     // Identify OneSignal with Supabase user (NotifKit & AuthKit)
                     PushNotifications.associateUserWithID(user.id.uuidString)
-
-                    // Get PostHog Associated User Properties (AnalyticsKit & AuthKit)
+					
+                    // Get Mixpanel Associated User Properties (AnalyticsKit & AuthKit)
                     var userProperties = DB.convertAuthUserToAnalyticsUserProperties(user)
+                    
+                    let mixpanelProperties = userProperties.reduce(into: Properties()) { result, element in
+                        // Only add values that conform to MixpanelType
+                        if let value = element.value as? MixpanelType {
+                            result[element.key] = value
+                        }
+                    }
 
                     // Identify RevenueCat SDK with Supabase user (InAppPurchaseKit & AuthKit)
                     InAppPurchases.associateUserWithID(
@@ -58,7 +67,7 @@ struct MainApp: App {
                     ) {
                         userProperties = $0
                     }
-                    Analytics.associateUserWithID(user.id.uuidString, userProperties: userProperties)
+                    Analytics.associateUserWithID(user.id.uuidString, userProperties: mixpanelProperties)
                 } else {
                     Analytics.removeUserIDAssociation()
                     InAppPurchases.removeUserIDAssociation()
