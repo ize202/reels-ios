@@ -15,6 +15,7 @@ import InAppPurchaseKit
 import NotifKit
 import OneSignalFramework
 import SharedKit
+import Supabase
 import SupabaseKit
 import SwiftUI
 import UIKit
@@ -48,28 +49,15 @@ struct MainApp: App {
 					PushNotifications.associateUserWithID(user.id.uuidString)
 
 					// Get Mixpanel Associated User Properties (AnalyticsKit & AuthKit)
-					let userProperties: [String: Any] = [
-						"user_id": user.id,
-						"email": user.email ?? "no_email",
-						"phone": user.phone ?? "no_phone",
-						"created_at": user.createdAt.description,
-						"last_sign_in_at": user.lastSignInAt?.description ?? "never",
-						"app_metadata": user.appMetadata,
-						"user_metadata": user.userMetadata,
-					]
+                    var userProperties = DB.convertAuthUserToAnalyticsUserProperties(user)
 
-					// Set Sentry user context
-					Crashlytics.setUser(
-						id: user.id.uuidString,
-						email: user.email,
-						data: userProperties
-					)
+					// Set Sentry user context (simplified)
+					Crashlytics.setUser(id: user.id.uuidString)
 
 					// Identify RevenueCat SDK with Supabase user (InAppPurchaseKit & AuthKit)
 					InAppPurchases.associateUserWithID(
-						user.id.uuidString
-
-							, currentUserProperties: userProperties
+						user.id.uuidString,
+						currentUserProperties: userProperties
 					) {
 						userProperties = $0
 					}

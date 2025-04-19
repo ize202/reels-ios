@@ -1,11 +1,12 @@
 import SwiftUI
+import AVKit
 import MuxPlayerSwift
 import SharedKit
 import AnalyticsKit
 
-/// A SwiftUI view that wraps the Mux Player
+/// A SwiftUI view that wraps an AVPlayerLayer for Mux video playback
 public struct MuxPlayerView: UIViewRepresentable {
-    private let player: MuxPlayer
+    private let playbackId: String
     private let autoPlay: Bool
     private let isMuted: Bool
     private let metadata: [String: Any]
@@ -22,21 +23,40 @@ public struct MuxPlayerView: UIViewRepresentable {
         isMuted: Bool = false,
         metadata: [String: Any] = [:]
     ) {
-        self.player = VideoPlayer.createPlayer(playbackId: playbackId, metadata: metadata)
+        self.playbackId = playbackId
         self.autoPlay = autoPlay
         self.isMuted = isMuted
         self.metadata = metadata
     }
     
-    public func makeUIView(context: Context) -> MuxPlayerView.UIViewType {
-        let playerView = player.view
-        playerView.backgroundColor = .black
+    public func makeUIView(context: Context) -> UIView {
+        // Create container view
+        let containerView = UIView()
+        containerView.backgroundColor = .black
+        
+        // Create player layer
+        let playerLayer = VideoPlayer.createPlayerLayer(
+            playbackId: playbackId,
+            metadata: metadata
+        )
+        
+        // Configure player layer
+        playerLayer.videoGravity = .resizeAspectFill
+        containerView.layer.addSublayer(playerLayer)
         
         // Configure initial state
-        player.isMuted = isMuted
-        
-        if autoPlay {
-            player.play()
+        if let player = playerLayer.player {
+            player.isMuted = isMuted
+            
+            // Create URL for the Mux stream
+            if let url = URL(string: "https://stream.mux.com/\(playbackId).m3u8") {
+                let playerItem = AVPlayerItem(url: url)
+                player.replaceCurrentItem(with: playerItem)
+                
+                if autoPlay {
+                    player.play()
+                }
+            }
         }
         
         // Track view appearance
@@ -45,20 +65,16 @@ public struct MuxPlayerView: UIViewRepresentable {
             id: "video_view_created",
             longDescription: "[VIDEO] Created video view",
             source: .general,
-            properties: metadata
         )
         
-        return playerView
+        return containerView
     }
     
-    public func updateUIView(_ uiView: MuxPlayerView.UIViewType, context: Context) {
-        // Handle any view updates if needed
-    }
-    
-    /// Get the underlying MuxPlayer instance
-    /// - Returns: The MuxPlayer instance
-    public func getPlayer() -> MuxPlayer {
-        return player
+    public func updateUIView(_ uiView: UIView, context: Context) {
+        // Ensure player layer fills the container
+        if let playerLayer = uiView.layer.sublayers?.first as? AVPlayerLayer {
+            playerLayer.frame = uiView.bounds
+        }
     }
 }
 
