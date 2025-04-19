@@ -170,6 +170,7 @@
 - Sanitize and validate all user input
 
 ## Development Process
+Very important: Keep things as simple as possible. This is an MVP so we need to focus on getting the app out the door. Keep the code clean and easy to understand, and efficient. Less complex code is better.
 
 ### Version Control
 - Follow Git-flow branching strategy
