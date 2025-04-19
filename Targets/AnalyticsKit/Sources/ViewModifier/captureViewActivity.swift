@@ -4,29 +4,33 @@
 //  https://docs.swiftylaun.ch/module/analyticskit/capture-view-activity
 //
 
-import SwiftUI
-import SharedKit
 import Mixpanel
+import SharedKit
+import SwiftUI
 
-/// A view modifier that captures screen views.
-public struct CaptureViewActivity: ViewModifier {
-	let screenName: String
+struct CaptureScreenModifier: ViewModifier {
 
-	public init(_ screenName: String) {
-		self.screenName = screenName
-	}
+    @Environment(\.scenePhase) var scenePhase
+    let viewName: String
 
-	public func body(content: Content) -> some View {
-		content
-			.onAppear {
-				Mixpanel.mainInstance().track(event: "screen_view", properties: ["screen_name": screenName])
-			}
-	}
+    func body(content: Content) -> some View {
+        content
+            .onAppear {
+                captureScreenView(viewName)
+            }
+    }
+
+    private func captureScreenView(_ screenName: String) {
+        print("[ANALYTICS] Captured active screen: \(screenName)")
+
+        Mixpanel.mainInstance().track(event: "Screen View", properties: ["screen_name": screenName])
+    }
+
 }
 
-/// This modifier will notify Mixpanel when a View is active
-public extension View {
-	func captureViewActivity(_ screenName: String) -> some View {
-		modifier(CaptureViewActivity(screenName))
-	}
+extension View {
+    /// This modifier will notify Mixpanel when a View is active
+    public func captureViewActivity(as viewName: String) -> some View {
+        modifier(CaptureScreenModifier(viewName: viewName))
+    }
 }

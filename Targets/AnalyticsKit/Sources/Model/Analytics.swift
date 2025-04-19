@@ -8,17 +8,16 @@
 //
 
 import Foundation
-import SharedKit
 import Mixpanel
-import os.log
+import SharedKit
 
 /// Defines the type of the event.
 ///
 /// The event type will be prefixed before every outgoing event.
 public enum EventType: String {
-	case error = "error"
-	case info = "info"
-	case success = "success"
+    case error = "error"
+    case info = "info"
+    case success = "success"
 }
 
 /// Defines the relevancy of an event.
@@ -26,9 +25,9 @@ public enum EventType: String {
 /// All events have medium relevancy by default, except 'error', which has a
 /// high relevancy by default.
 public enum EventRelevancy: String {
-	case low = "low"
-	case medium = "medium"
-	case high = "high"
+    case low = "low"
+    case medium = "medium"
+    case high = "high"
 }
 
 /// Defines the event source, or the "category" of the event
@@ -36,218 +35,102 @@ public enum EventRelevancy: String {
 /// SwiftyLaunch has created the most common event sources for its modules, but
 /// don't be afraid to extend this enum.
 public enum EventSource: String {
-	/// Catch-all event source for events don't fit into any other category. Be sure to create a distinct source where needed
-	case general = "general"
+    /// Catch-all event source for events don't fit into any other category. Be sure to create a distinct source where needed
+    case general = "general"
 
-	/// For events that are related to AuthKit / Supabase Auth
-	case auth = "auth"
+    /// For events that are related to AuthKit / Supabase Auth
+    case auth = "auth"
 
-	/// For events that are related to DB interactions / Supabase DB
-	case db = "db"
+    /// For events that are related to DB interactions / Supabase DB
+    case db = "db"
 
-	/// For events that are related to In-App Purchases / RevenueCat
-	case iap = "iap"
-
-	/// For events that are related to Push Notifications / OneSignal
-	case notif = "notif"
-
-	/// For events that are related to AnalyticsKit itself / Mixpanel
-	case analytics = "analytics"
-}
-
-/// A type that represents an analytics event.
-public protocol AnalyticsEvent {
-	/// The name of the event.
-	var name: String { get }
-	/// The properties of the event.
-	var properties: [String: Any] { get }
-}
-
-/// A type that represents an analytics event with a screen name.
-public protocol AnalyticsScreenEvent: AnalyticsEvent {
-	/// The name of the screen.
-	var screenName: String { get }
-}
-
-/// A type that represents an analytics event with a button name.
-public protocol AnalyticsButtonEvent: AnalyticsEvent {
-	/// The name of the button.
-	var buttonName: String { get }
-}
-
-/// A type that represents an analytics event with a user ID.
-public protocol AnalyticsUserEvent: AnalyticsEvent {
-	/// The ID of the user.
-	var userId: String { get }
-}
-
-/// A type that represents an analytics event with a value.
-public protocol AnalyticsValueEvent: AnalyticsEvent {
-	/// The value of the event.
-	var value: Double { get }
-}
-
-/// A type that represents an analytics event with a duration.
-public protocol AnalyticsDurationEvent: AnalyticsEvent {
-	/// The duration of the event.
-	var duration: TimeInterval { get }
-}
-
-/// A type that represents an analytics event with an error.
-public protocol AnalyticsErrorEvent: AnalyticsEvent {
-	/// The error that occurred.
-	var error: Error { get }
-}
-
-/// For events that are related to AnalyticsKit itself / Mixpanel
-public enum AnalyticsKitEvent: AnalyticsEvent {
-	case userIdentified(id: String)
-	case userReset
-
-	public var name: String {
-		switch self {
-		case .userIdentified: return "user_identified"
-		case .userReset: return "user_reset"
-		}
-	}
-
-	public var properties: [String: Any] {
-		switch self {
-		case .userIdentified(let id):
-			return ["user_id": id]
-		case .userReset:
-			return [:]
-		}
-	}
+    /// For events that are related to AnalyticsKit itself / PostHog
+    case analytics = "analytics"
 }
 
 /// Wrapper around the Mixpanel SDK
-public enum Analytics {
-	private static let logger = Logger(subsystem: "com.reels.analytics", category: "Analytics")
-	
-	/// Capture an event and send it to Mixpanel.
-	/// - Parameter event: The event to capture.
-	public static func capture(_ event: AnalyticsEvent) {
-		/// A wrapper of the "flexible" version that takes in raw input and sends it to Mixpanel.
-		/// - Parameters:
-		///   - event: The name of the event.
-		///   - properties: The properties of the event.
-		func captureRaw(_ event: AnalyticsEvent) {
-            var propertiesToSend: [String: MixpanelType] = event.properties as! [String: MixpanelType]
+public class Analytics {
 
-			// Add screen name if available
-			if let screenEvent = event as? AnalyticsScreenEvent {
-				propertiesToSend["screen_name"] = screenEvent.screenName as MixpanelType
-			}
+    /// Initialize Mixpanel
+    static public func initMixpanel() {
+        guard let token = try? getPlistEntry("MIXPANEL_TOKEN", in: "Mixpanel-Info"), !token.isEmpty else {
+            fatalError("ERROR: Couldn't find MIXPANEL_TOKEN in Mixpanel-Info.plist!")
+        }
 
-			// Add button name if available
-			if let buttonEvent = event as? AnalyticsButtonEvent {
-				propertiesToSend["button_name"] = buttonEvent.buttonName as MixpanelType
-			}
+        Mixpanel.initialize(token: token, trackAutomaticEvents: false)
+    }
 
-			// Add user ID if available
-			if let userEvent = event as? AnalyticsUserEvent {
-				propertiesToSend["user_id"] = userEvent.userId as MixpanelType
-			}
+    /// Capture an event and send it to Mixpanel.
+    static public func capture(
+        _ eventType: EventType,
+        id: String,
+        longDescription: String? = nil,
+        source: EventSource,
+        fromView: String? = nil,
+        relevancy: EventRelevancy? = nil
+    ) {
+        // To get an overview of what's being captured, we print it into the console
+        print(
+            "[ANALYTICS] Captured \(eventType.rawValue) event '\(id)' of type '\(source.rawValue)': \(longDescription ?? "No description")"
+        )
 
-			// Add value if available
-			if let valueEvent = event as? AnalyticsValueEvent {
-				propertiesToSend["value"] = valueEvent.value as MixpanelType
-			}
+        var properties: Properties = [
+            "relevancy": relevancy != nil
+                ? relevancy!.rawValue
+                : eventType == .error ? EventRelevancy.high.rawValue : EventRelevancy.medium.rawValue,
+            "source": source.rawValue
+        ]
 
-			// Add duration if available
-			if let durationEvent = event as? AnalyticsDurationEvent {
-				propertiesToSend["duration"] = durationEvent.duration as MixpanelType
-			}
+        if let longDescription = longDescription {
+            properties["long_description"] = longDescription
+        }
 
-			// Add error if available
-			if let errorEvent = event as? AnalyticsErrorEvent {
-				propertiesToSend["error"] = errorEvent.error.localizedDescription as MixpanelType
-			}
+        if let fromView = fromView {
+            properties["screen_name"] = fromView
+        }
 
-			Mixpanel.mainInstance().track(event: event.name, properties: propertiesToSend)
-		}
+        Analytics.captureEvent("\(eventType.rawValue)_\(id)", properties: properties)
+    }
 
-		captureRaw(event)
-	}
+    /// Capture an event and send it to Mixpanel.
+    static public func captureEvent(_ event: String, properties: Properties?) {
+        let propertiesToSend = properties ?? Properties()
+        Mixpanel.mainInstance().track(event: event, properties: propertiesToSend)
+    }
 
-	/// Initialize Mixpanel with the provided token.
-	/// Is only used once in App.swift to initialize Mixpanel.
-	public static func initMixpanel(token: String) {
-		guard !token.isEmpty else {
-			logger.error("ERROR: Empty Mixpanel token provided!")
-			return
-		}
+    /// Is called from the .captureTaps() view modifier (https://docs.swiftylaun.ch/module/analyticskit/capture-taps) , but we
+    /// can also manually send these events with this function.
+    static public func captureTap(
+        _ tapTargetId: String,
+        fromView screenName: String?,
+        relevancy: EventRelevancy = .medium
+    ) {
+        print("[ANALYTICS] Captured tap on \(tapTargetId)")
 
-		// Initialize Mixpanel with automatic events disabled
-		Mixpanel.initialize(token: token, trackAutomaticEvents: false)
-		
-		// Enable debug logging in development
-		#if DEBUG
-		Mixpanel.mainInstance().loggingEnabled = true
-		#endif
-		
-		logger.info("Successfully initialized Mixpanel")
-	}
+        var properties: Properties = ["relevancy": relevancy.rawValue]
+        if let screenName = screenName {
+            properties["screen_name"] = screenName
+        }
 
-	/// Identifies a user in Mixpanel
-	/// - Parameters:
-	///   - id: The ID of the user.
-	///   - userProperties: The properties of the user.
-	public static func identify(id: String, userProperties: [String: Any] = [:]) {
-		Mixpanel.mainInstance().identify(distinctId: id)
-		if !userProperties.isEmpty {
-            let properties: [String: MixpanelType] = userProperties as! [String: MixpanelType]
-			Mixpanel.mainInstance().people.set(properties: properties)
-		}
-		
-		capture(AnalyticsKitEvent.userIdentified(id: id))
-		
-		logger.info("Connected Auth and Mixpanel for User with ID \(id)")
-	}
-	
-	/// Reset the current user's identity and clear their data
-	public static func reset() {
-		capture(AnalyticsKitEvent.userReset)
-		Mixpanel.mainInstance().reset()
-		logger.info("Reset Mixpanel user data")
-	}
-	
-	/// Force flush any queued events
-	public static func flush() {
-		Mixpanel.mainInstance().flush()
-	}
-}
+        Analytics.captureEvent("user_tapped_on_\(tapTargetId)", properties: properties)
+    }
 
-// MARK: - Only for App.swift
-extension Analytics {
-	// We don't do this inside init of Analytics because we never initialize the Analytics object.
-	// Is only used once in App.swift to initialize Mixpanel.
-	static public func initMixpanel() {
-		guard let token = try? getPlistEntry("MIXPANEL_TOKEN", in: "Mixpanel-Info"), !token.isEmpty else {
-			logger.error("ERROR: Couldn't find MIXPANEL_TOKEN in Mixpanel-Info.plist!")
-			return
-		}
+    /// Allows us to connect a user with our Supabase Auth UID
+    /// https://docs.swiftylaun.ch/module/analyticskit#actions-when-user-signes-in-or-out-only-with-firebasekit
+    static public func associateUserWithID(_ id: String, userProperties: Properties) {
+        Mixpanel.mainInstance().identify(distinctId: id)
+        Mixpanel.mainInstance().people.set(properties: userProperties)
+        Analytics.capture(
+            .info,
+            id: "connected_user_between_auth_and_mixpanel",
+            longDescription: "[ANALYTICS<>AUTH] Connected Auth and Mixpanel for User with ID \(id).",
+            source: .analytics
+        )
+    }
 
-		// Initialize Mixpanel with automatic events disabled
-		Mixpanel.initialize(token: token, trackAutomaticEvents: false)
-		
-		// Enable debug logging in development
-		#if DEBUG
-		Mixpanel.mainInstance().loggingEnabled = true
-		#endif
-		
-		logger.info("Successfully initialized Mixpanel")
-	}
+    /// Disconnects Mixpanel ID from Supabase Auth UID
+    static public func removeUserIDAssociation() {
+        Mixpanel.mainInstance().reset()
+    }
 
-	/// Allows us to connect a user with our Supabase Auth UID
-	/// https://docs.swiftylaun.ch/module/analyticskit#actions-when-user-signes-in-or-out-only-with-firebasekit
-	static public func associateUserWithID(_ id: String, userProperties: [String: Any]) {
-		identify(id: id, userProperties: userProperties)
-	}
-
-	/// Disconnects Mixpanel ID from Supabase Auth UID
-	static public func removeUserIDAssociation() {
-		reset()
-	}
 }
