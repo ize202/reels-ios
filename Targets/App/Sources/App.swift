@@ -15,7 +15,6 @@ import InAppPurchaseKit
 import NotifKit
 import OneSignalFramework
 import SharedKit
-import Supabase
 import SupabaseKit
 import SwiftUI
 import UIKit
@@ -37,40 +36,37 @@ struct MainApp: App {
 	// We use this to clear push notifications when the app is opened.
 	@Environment(\.scenePhase) var scenePhase
 
-	init() {
+    init() {
 
-		_db = StateObject(
-			wrappedValue: DB(onAuthStateChange: { event, session in
-				if let user = session?.user {
-					// Logged in => Privacy Consent Given during signup (NotifKit)
-					PushNotifications.oneSignalConsentGiven()
+        _db = StateObject(
+            wrappedValue: DB(onAuthStateChange: { event, session in
+                if let user = session?.user {
+                    // Logged in => Privacy Consent Given during signup (NotifKit)
+                    PushNotifications.oneSignalConsentGiven()
 
-					// Identify OneSignal with Supabase user (NotifKit & AuthKit)
-					PushNotifications.associateUserWithID(user.id.uuidString)
+                    // Identify OneSignal with Supabase user (NotifKit & AuthKit)
+                    PushNotifications.associateUserWithID(user.id.uuidString)
 
-					// Get Mixpanel Associated User Properties (AnalyticsKit & AuthKit)
+                    // Get PostHog Associated User Properties (AnalyticsKit & AuthKit)
                     var userProperties = DB.convertAuthUserToAnalyticsUserProperties(user)
 
-					// Set Sentry user context (simplified)
-					Crashlytics.setUser(id: user.id.uuidString)
+                    // Identify RevenueCat SDK with Supabase user (InAppPurchaseKit & AuthKit)
+                    InAppPurchases.associateUserWithID(
+                        user.id.uuidString
 
-					// Identify RevenueCat SDK with Supabase user (InAppPurchaseKit & AuthKit)
-					InAppPurchases.associateUserWithID(
-						user.id.uuidString,
-						currentUserProperties: userProperties
-					) {
-						userProperties = $0
-					}
-					Analytics.associateUserWithID(user.id.uuidString, userProperties: userProperties)
-				} else {
-					Analytics.removeUserIDAssociation()
-					Crashlytics.clearUser()
-					InAppPurchases.removeUserIDAssociation()
-					PushNotifications.removeUserIDAssociation()
-				}
-			}))
-	}
-
+                            , currentUserProperties: userProperties
+                    ) {
+                        userProperties = $0
+                    }
+                    Analytics.associateUserWithID(user.id.uuidString, userProperties: userProperties)
+                } else {
+                    Analytics.removeUserIDAssociation()
+                    InAppPurchases.removeUserIDAssociation()
+                    PushNotifications.removeUserIDAssociation()
+                }
+            }))
+    }
+    
 	var body: some Scene {
 		WindowGroup {
 			ContentView()
@@ -119,9 +115,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, OSNotificationLifecycleListe
 	) -> Bool {
 		// Initialize AnalyticsKit
 		Analytics.initMixpanel()
-		Crashlytics.initSentry()
-		VideoPlayer.initMuxPlayer()
+        Crashlytics.shared.configure()
 		InAppPurchases.initRevenueCat()
+        VideoPlayer.initMuxPlayer()
 
 		// If OneSignal initialized successfully, we set up the push notification observers and clear all notifications when the app is opened
 		PushNotifications.initOneSignal(launchOptions)
