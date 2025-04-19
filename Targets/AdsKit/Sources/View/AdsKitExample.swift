@@ -8,25 +8,27 @@
 import GoogleMobileAds
 import SwiftUI
 
-public struct AdsKitExamples: View {
-
+public struct AdsKitExample: View {
+    @State private var coins: Int = 0
+    
     public init() {}
-
+    
     public var body: some View {
-        NavigationStack {
-            VStack {
-
-                // replace this test ad unit id with your actual ad unit id
-                RewardedAd(adUnitID: "ca-app-pub-3940256099942544/3986624511")
-
-                Spacer()
+        VStack(spacing: 20) {
+            Text("Current Coins: \(coins)")
+                .font(.title)
+            
+            RewardedAdView(
+                adUnitID: "ca-app-pub-3940256099942544/1712485313"  // Test ad unit ID
+            ) { reward in
+                // Handle the reward
+                coins += Int(truncating: reward.amount)
             }
-            .navigationTitle("AdsKit Showroom")
-            .navigationBarTitleDisplayMode(.inline)
         }
+        .padding()
     }
 }
 
 #Preview {
-    AdsKitExamples()
+    AdsKitExample()
 }

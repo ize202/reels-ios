@@ -9,81 +9,146 @@ import GoogleMobileAds
 import SharedKit
 import SwiftUI
 
-/// You can use this View to place AdBanners wherever you need in your app.
 /// Make sure to follow Google AdMob guidelines and policies.
 /// https://support.google.com/admob/answer/6329638
-public struct AdBanner: View {
 
-    @StateObject private var nativeViewModel: NativeAdBannerViewModel
-
+public class RewardedAdController: NSObject, GADFullScreenContentDelegate {
+    private var rewardedAd: GADRewardedAd?
+    private var isLoading = false
+    private let adUnitID: String
+    
+    public var onAdLoaded: (() -> Void)?
+    public var onAdDismissed: (() -> Void)?
+    public var onAdFailedToLoad: ((Error) -> Void)?
+    public var onReward: ((GADAdReward) -> Void)?
+    
     public init(adUnitID: String) {
-        _nativeViewModel = StateObject(wrappedValue: NativeAdBannerViewModel(adUnitID: adUnitID))
+        self.adUnitID = adUnitID
+        super.init()
+        loadRewardedAd()
     }
+    
+    public func loadRewardedAd() {
+        guard !isLoading else { return }
+        isLoading = true
+        
+        let request = GADRequest()
+        GADRewardedAd.load(withAdUnitID: adUnitID, request: request) { [weak self] ad, error in
+            self?.isLoading = false
+            
+            if let error = error {
+                print("Failed to load rewarded ad with error: \(error.localizedDescription)")
+                self?.onAdFailedToLoad?(error)
+                return
+            }
+            
+            print("Rewarded ad loaded successfully")
+            self?.rewardedAd = ad
+            self?.rewardedAd?.fullScreenContentDelegate = self
+            self?.onAdLoaded?()
+        }
+    }
+    
+    public func showAd(from viewController: UIViewController) {
+        guard let rewardedAd = rewardedAd else {
+            print("Ad not ready")
+            loadRewardedAd()
+            return
+        }
+        
+        rewardedAd.present(fromRootViewController: viewController) { [weak self] in
+            print("User earned reward: \(rewardedAd.adReward.amount) \(rewardedAd.adReward.type)")
+            self?.onReward?(rewardedAd.adReward)
+        }
+    }
+    
+    // MARK: - GADFullScreenContentDelegate
+    
+    public func adDidDismissFullScreenContent(_ ad: GADFullScreenPresentingAd) {
+        print("Ad dismissed")
+        onAdDismissed?()
+        loadRewardedAd() // Load the next ad
+    }
+    
+    public func ad(_ ad: GADFullScreenPresentingAd, didFailToPresentFullScreenContentWithError error: Error) {
+        print("Ad failed to present with error: \(error.localizedDescription)")
+        loadRewardedAd() // Try to load another ad
+    }
+}
 
+public struct RewardedAdView: View {
+    @StateObject private var viewModel: RewardedAdViewModel
+    let onReward: (GADAdReward) -> Void
+    
+    public init(adUnitID: String, onReward: @escaping (GADAdReward) -> Void) {
+        _viewModel = StateObject(wrappedValue: RewardedAdViewModel(adUnitID: adUnitID))
+        self.onReward = onReward
+    }
+    
     public var body: some View {
-        NativeAdView(nativeViewModel: nativeViewModel)
-            .frame(height: 75)
-            .onAppear {
-                nativeViewModel.refreshAd()
+        Button(action: {
+            viewModel.showAd(onReward: onReward)
+        }) {
+            HStack {
+                Image(systemName: "play.circle.fill")
+                    .foregroundColor(.blue)
+                Text("Watch Ad for Reward")
+                    .foregroundColor(.blue)
             }
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(Color.blue, lineWidth: 1)
+            )
+        }
+        .disabled(!viewModel.isAdReady)
+        .opacity(viewModel.isAdReady ? 1.0 : 0.5)
     }
+}
 
-    private struct NativeAdView: UIViewRepresentable {
-        public typealias UIViewType = GADNativeAdView
-
-        @ObservedObject var nativeViewModel: NativeAdBannerViewModel
-
-        public init(nativeViewModel: NativeAdBannerViewModel) {
-            self.nativeViewModel = nativeViewModel
+class RewardedAdViewModel: ObservableObject {
+    private let adController: RewardedAdController
+    @Published private(set) var isAdReady = false
+    
+    init(adUnitID: String) {
+        self.adController = RewardedAdController(adUnitID: adUnitID)
+        setupCallbacks()
+    }
+    
+    private func setupCallbacks() {
+        adController.onAdLoaded = { [weak self] in
+            DispatchQueue.main.async {
+                self?.isAdReady = true
+            }
         }
-
-        public func makeUIView(context: Context) -> GADNativeAdView {
-            return NativeAdBannerView()
+        
+        adController.onAdDismissed = { [weak self] in
+            DispatchQueue.main.async {
+                self?.isAdReady = false
+            }
         }
-
-        public func updateUIView(_ nativeAdView: GADNativeAdView, context: Context) {
-            guard let nativeAd = nativeViewModel.nativeAd else { return }
-
-            // headline
-            if let headlineView = nativeAdView.headlineView as? UILabel {
-                headlineView.text = nativeAd.headline
-                headlineView.isHidden = false
-            } else {
-                // no headline present
+        
+        adController.onAdFailedToLoad = { [weak self] _ in
+            DispatchQueue.main.async {
+                self?.isAdReady = false
             }
-
-            // body
-            if let bodyView = nativeAdView.bodyView as? UILabel, let bodyContents = nativeAd.body {
-                bodyView.text = bodyContents
-                bodyView.isHidden = false
-            } else {
-                // no body present
-            }
-
-            // icon
-            if let iconView = nativeAdView.iconView as? UIImageView, let iconContents = nativeAd.icon {
-                iconView.image = iconContents.image
-                iconView.isHidden = false
-            } else {
-                // no image present
-            }
-
-            // button
-            if let ctaView = nativeAdView.callToActionView as? UIButton, let ctaContents = nativeAd.callToAction {
-                ctaView.isUserInteractionEnabled = false
-                ctaView.setTitle(ctaContents, for: .normal)
-                ctaView.isHidden = false
-            } else {
-                // no cta button present
-            }
-
-            // Associate the native ad view with the native ad object. This is required to make the ad clickable.
-            // Note: this should always be done after populating the ad views.
-            nativeAdView.nativeAd = nativeAd
         }
+    }
+    
+    func showAd(onReward: @escaping (GADAdReward) -> Void) {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootViewController = windowScene.windows.first?.rootViewController else {
+            print("Failed to get root view controller")
+            return
+        }
+        
+        adController.onReward = onReward
+        adController.showAd(from: rootViewController)
     }
 }
 
 #Preview {
-    AdBanner(adUnitID: "ca-app-pub-3940256099942544/3986624511")
+    RewardedAdView(adUnitID: "ca-app-pub-3940256099942544/1712485313") { reward in
+        print("Reward earned: \(reward.amount) \(reward.type)")
+    }
 }

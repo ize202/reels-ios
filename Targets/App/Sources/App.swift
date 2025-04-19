@@ -18,6 +18,7 @@ import SharedKit
 import SupabaseKit
 import SwiftUI
 import UIKit
+import VideoPlayerKit
 
 @main
 struct MainApp: App {
@@ -131,6 +132,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, OSNotificationLifecycleListe
 		// Initialize AnalyticsKit
 		Analytics.initMixpanel()
 		Crashlytics.initSentry()
+		VideoPlayer.initMuxPlayer()
 		InAppPurchases.initRevenueCat()
 
 		// If OneSignal initialized successfully, we set up the push notification observers and clear all notifications when the app is opened
