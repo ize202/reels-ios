@@ -3,9 +3,12 @@ import SharedKit
 import MuxPlayerSwift
 import AnalyticsKit
 import CrashlyticsKit
+import os
 
 /// Wrapper around the Mux Player SDK for video playback
 public enum VideoPlayer {
+    private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "VideoPlayer")
+    
     /// Initialize Mux Player with configuration from Mux-Info.plist
     static public func initMuxPlayer() {
         guard let envKey = try? getPlistEntry("MUX_ENV_KEY", in: "Mux-Info"), !envKey.isEmpty else {
@@ -14,13 +17,7 @@ public enum VideoPlayer {
         
         MuxSDK.setCustomerData(envKey: envKey)
         
-        Logger.info(
-            id: "mux_player_initialized",
-            longDescription: "[VIDEO] Initialized Mux Player SDK.",
-            properties: [
-                "env_key": envKey
-            ]
-        )
+        logger.info("[VIDEO] Initialized Mux Player SDK with env key: \(envKey)")
     }
     
     /// Create a new MuxPlayer instance for a given playback ID
@@ -66,11 +63,7 @@ public enum VideoPlayer {
             }
         }
         
-        Logger.info(
-            id: "mux_player_created",
-            longDescription: "[VIDEO] Created Mux Player instance for playback ID: \(playbackId)",
-            properties: metadata
-        )
+        logger.info("[VIDEO] Created Mux Player instance for playback ID: \(playbackId)")
         
         return player
     }

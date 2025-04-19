@@ -2,9 +2,12 @@ import Foundation
 import SharedKit
 import Sentry
 import AnalyticsKit
+import os
 
 /// Wrapper around the Sentry SDK for crash reporting and performance monitoring
 public enum Crashlytics {
+    private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "Crashlytics")
+    
     /// Initialize Sentry with configuration from Sentry-Info.plist
     static public func initSentry() {
         guard let dsn = try? getPlistEntry("SENTRY_DSN", in: "Sentry-Info"), !dsn.isEmpty else {
@@ -28,13 +31,7 @@ public enum Crashlytics {
             options.enableAutoBreadcrumbTracking = true
         }
         
-        Analytics.capture(
-            .info,
-            id: "sentry_initialized",
-            longDescription: "[CRASHLYTICS] Initialized Sentry in '\(environment)' environment.",
-            source: .crashlytics,
-            relevancy: .medium
-        )
+        logger.info("[CRASHLYTICS] Initialized Sentry in '\(environment)' environment")
     }
     
     /// Capture an error and send it to Sentry
@@ -43,7 +40,6 @@ public enum Crashlytics {
     ///   - extras: Additional context to attach to the error
     static public func captureError(
         _ error: Error,
-        level: SentryLevel = .error,
         extras: [String: Any] = [:]
     ) {
         var context = extras
@@ -53,14 +49,7 @@ public enum Crashlytics {
             scope.setExtras(context)
         }
         
-        // Also log to analytics for tracking
-        Analytics.capture(
-            .error,
-            id: "error_captured",
-            longDescription: error.localizedDescription,
-            source: .general,
-            relevancy: .high
-        )
+        logger.error("[CRASHLYTICS] Error captured: \(error.localizedDescription)")
     }
     
     /// Start a new transaction for performance monitoring
@@ -77,12 +66,7 @@ public enum Crashlytics {
             operation: operation
         )
         
-        Analytics.capture(
-            .info,
-            id: "transaction_started",
-            longDescription: "[CRASHLYTICS] Started transaction '\(name)' with operation '\(operation)'.",
-            source: .crashlytics
-        )
+        logger.info("[CRASHLYTICS] Started transaction '\(name)' with operation '\(operation)'")
         
         return transaction
     }
@@ -103,25 +87,14 @@ public enum Crashlytics {
         
         SentrySDK.setUser(user)
         
-        Analytics.capture(
-            .info,
-            id: "user_context_set",
-            longDescription: "[CRASHLYTICS] Set user context for ID: \(id)",
-            source: .crashlytics,
-            relevancy: .medium
-        )
+        logger.info("[CRASHLYTICS] Set user context for ID: \(id)")
     }
     
     /// Clear the current user information from Sentry
     static public func clearUser() {
         SentrySDK.setUser(nil)
         
-        Analytics.capture(
-            .info,
-            id: "user_context_cleared",
-            longDescription: "[CRASHLYTICS] Cleared user context",
-            source: .crashlytics
-        )
+        logger.info("[CRASHLYTICS] Cleared user context")
     }
     
     /// Add a breadcrumb to help track the sequence of events leading to an error
