@@ -52,6 +52,9 @@ public enum EventSource: String {
     
     /// For events that are related to push notifications and OneSignal
     case notif = "notif"
+    
+    /// For events that are related to crash reporting and Sentry
+    case crashlytics = "crashlytics"
 }
 
 /// Wrapper around the Mixpanel SDK

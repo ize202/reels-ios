@@ -28,20 +28,18 @@ public enum Crashlytics {
             options.enableAutoBreadcrumbTracking = true
         }
         
-        Logger.info(
+        Analytics.capture(
+            .info,
             id: "sentry_initialized",
             longDescription: "[CRASHLYTICS] Initialized Sentry in '\(environment)' environment.",
-            properties: [
-                "traces_sample_rate": environment == "development" ? 1.0 : 0.1,
-                "profiles_sample_rate": environment == "development" ? 1.0 : 0.1
-            ]
+            source: .crashlytics,
+            relevancy: .medium
         )
     }
     
     /// Capture an error and send it to Sentry
     /// - Parameters:
     ///   - error: The error to capture
-    ///   - level: The severity level of the error
     ///   - extras: Additional context to attach to the error
     static public func captureError(
         _ error: Error,
@@ -52,7 +50,6 @@ public enum Crashlytics {
         context["error_description"] = error.localizedDescription
         
         SentrySDK.capture(error: error) { scope in
-            scope.level = level
             scope.setExtras(context)
         }
         
@@ -80,9 +77,11 @@ public enum Crashlytics {
             operation: operation
         )
         
-        Logger.info(
+        Analytics.capture(
+            .info,
             id: "transaction_started",
-            longDescription: "[CRASHLYTICS] Started transaction '\(name)' with operation '\(operation)'."
+            longDescription: "[CRASHLYTICS] Started transaction '\(name)' with operation '\(operation)'.",
+            source: .crashlytics
         )
         
         return transaction
@@ -104,10 +103,12 @@ public enum Crashlytics {
         
         SentrySDK.setUser(user)
         
-        Logger.info(
+        Analytics.capture(
+            .info,
             id: "user_context_set",
             longDescription: "[CRASHLYTICS] Set user context for ID: \(id)",
-            properties: userData
+            source: .crashlytics,
+            relevancy: .medium
         )
     }
     
@@ -115,9 +116,11 @@ public enum Crashlytics {
     static public func clearUser() {
         SentrySDK.setUser(nil)
         
-        Logger.info(
+        Analytics.capture(
+            .info,
             id: "user_context_cleared",
-            longDescription: "[CRASHLYTICS] Cleared user context"
+            longDescription: "[CRASHLYTICS] Cleared user context",
+            source: .crashlytics
         )
     }
     
