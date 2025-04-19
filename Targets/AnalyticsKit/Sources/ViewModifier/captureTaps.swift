@@ -22,9 +22,9 @@ public struct CaptureTaps: ViewModifier {
 	public func body(content: Content) -> some View {
 		content
 			.onTapGesture {
-				var properties: [String: Any] = ["button_name": buttonName]
+				var properties: [String: MixpanelType] = ["button_name": buttonName as MixpanelType]
 				if let screenName = screenName {
-					properties["screen_name"] = screenName
+					properties["screen_name"] = screenName as MixpanelType
 				}
 				Mixpanel.mainInstance().track(event: "button_tap", properties: properties)
 			}

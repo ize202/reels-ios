@@ -10,6 +10,7 @@
 import Foundation
 import SharedKit
 import Mixpanel
+import os.log
 
 /// Defines the type of the event.
 ///
@@ -122,6 +123,8 @@ public enum AnalyticsKitEvent: AnalyticsEvent {
 
 /// Wrapper around the Mixpanel SDK
 public enum Analytics {
+	private static let logger = Logger(subsystem: "com.reels.analytics", category: "Analytics")
+	
 	/// Capture an event and send it to Mixpanel.
 	/// - Parameter event: The event to capture.
 	public static func capture(_ event: AnalyticsEvent) {
@@ -129,120 +132,122 @@ public enum Analytics {
 		/// - Parameters:
 		///   - event: The name of the event.
 		///   - properties: The properties of the event.
-		func captureRaw(_ event: String, properties: [String: Any]) {
-			var propertiesToSend = properties
+		func captureRaw(_ event: AnalyticsEvent) {
+            var propertiesToSend: [String: MixpanelType] = event.properties as! [String: MixpanelType]
 
 			// Add screen name if available
 			if let screenEvent = event as? AnalyticsScreenEvent {
-				propertiesToSend["screen_name"] = screenEvent.screenName
+				propertiesToSend["screen_name"] = screenEvent.screenName as MixpanelType
 			}
 
 			// Add button name if available
 			if let buttonEvent = event as? AnalyticsButtonEvent {
-				propertiesToSend["button_name"] = buttonEvent.buttonName
+				propertiesToSend["button_name"] = buttonEvent.buttonName as MixpanelType
 			}
 
 			// Add user ID if available
 			if let userEvent = event as? AnalyticsUserEvent {
-				propertiesToSend["user_id"] = userEvent.userId
+				propertiesToSend["user_id"] = userEvent.userId as MixpanelType
 			}
 
 			// Add value if available
 			if let valueEvent = event as? AnalyticsValueEvent {
-				propertiesToSend["value"] = valueEvent.value
+				propertiesToSend["value"] = valueEvent.value as MixpanelType
 			}
 
 			// Add duration if available
 			if let durationEvent = event as? AnalyticsDurationEvent {
-				propertiesToSend["duration"] = durationEvent.duration
+				propertiesToSend["duration"] = durationEvent.duration as MixpanelType
 			}
 
 			// Add error if available
 			if let errorEvent = event as? AnalyticsErrorEvent {
-				propertiesToSend["error"] = errorEvent.error.localizedDescription
+				propertiesToSend["error"] = errorEvent.error.localizedDescription as MixpanelType
 			}
 
 			Mixpanel.mainInstance().track(event: event.name, properties: propertiesToSend)
 		}
 
-		captureRaw(event.name, properties: event.properties)
+		captureRaw(event)
 	}
 
+	/// Initialize Mixpanel with the provided token.
 	/// Is only used once in App.swift to initialize Mixpanel.
-	static public func initMixpanel() {
-		guard let token = try? getPlistEntry("MIXPANEL_TOKEN", in: "Mixpanel-Info"), !token.isEmpty else {
-			fatalError("ERROR: Couldn't find MIXPANEL_TOKEN in Mixpanel-Info.plist!")
+	public static func initMixpanel(token: String) {
+		guard !token.isEmpty else {
+			logger.error("ERROR: Empty Mixpanel token provided!")
+			return
 		}
 
-		Mixpanel.initialize(token: token)
+		// Initialize Mixpanel with automatic events disabled
+		Mixpanel.initialize(token: token, trackAutomaticEvents: false)
 		
-		// Enable automatic screen tracking
-		Mixpanel.mainInstance().trackAutomaticEvents = true
+		// Enable debug logging in development
+		#if DEBUG
+		Mixpanel.mainInstance().loggingEnabled = true
+		#endif
+		
+		logger.info("Successfully initialized Mixpanel")
 	}
 
 	/// Identifies a user in Mixpanel
 	/// - Parameters:
 	///   - id: The ID of the user.
 	///   - userProperties: The properties of the user.
-	static public func identify(id: String, userProperties: [String: Any] = [:]) {
+	public static func identify(id: String, userProperties: [String: Any] = [:]) {
 		Mixpanel.mainInstance().identify(distinctId: id)
 		if !userProperties.isEmpty {
-			Mixpanel.mainInstance().people.set(properties: userProperties)
+            let properties: [String: MixpanelType] = userProperties as! [String: MixpanelType]
+			Mixpanel.mainInstance().people.set(properties: properties)
 		}
 		
 		capture(AnalyticsKitEvent.userIdentified(id: id))
 		
-		Logger.info(
-			id: "connected_user_between_auth_and_mixpanel",
-			longDescription: "[ANALYTICS<>AUTH] Connected Auth and Mixpanel for User with ID \(id).",
-			properties: userProperties
-		)
+		logger.info("Connected Auth and Mixpanel for User with ID \(id)")
 	}
-
-	/// Disconnects Mixpanel ID from Supabase Auth UID
-	static public func reset() {
-		Mixpanel.mainInstance().reset()
+	
+	/// Reset the current user's identity and clear their data
+	public static func reset() {
 		capture(AnalyticsKitEvent.userReset)
+		Mixpanel.mainInstance().reset()
+		logger.info("Reset Mixpanel user data")
+	}
+	
+	/// Force flush any queued events
+	public static func flush() {
+		Mixpanel.mainInstance().flush()
 	}
 }
 
 // MARK: - Only for App.swift
 extension Analytics {
-
 	// We don't do this inside init of Analytics because we never initialize the Analytics object.
 	// Is only used once in App.swift to initialize Mixpanel.
 	static public func initMixpanel() {
 		guard let token = try? getPlistEntry("MIXPANEL_TOKEN", in: "Mixpanel-Info"), !token.isEmpty else {
-			fatalError("ERROR: Couldn't find MIXPANEL_TOKEN in Mixpanel-Info.plist!")
+			logger.error("ERROR: Couldn't find MIXPANEL_TOKEN in Mixpanel-Info.plist!")
+			return
 		}
 
-		Mixpanel.initialize(token: token)
+		// Initialize Mixpanel with automatic events disabled
+		Mixpanel.initialize(token: token, trackAutomaticEvents: false)
 		
-		// Enable automatic screen tracking
-		Mixpanel.mainInstance().trackAutomaticEvents = true
+		// Enable debug logging in development
+		#if DEBUG
+		Mixpanel.mainInstance().loggingEnabled = true
+		#endif
+		
+		logger.info("Successfully initialized Mixpanel")
 	}
 
 	/// Allows us to connect a user with our Supabase Auth UID
 	/// https://docs.swiftylaun.ch/module/analyticskit#actions-when-user-signes-in-or-out-only-with-firebasekit
 	static public func associateUserWithID(_ id: String, userProperties: [String: Any]) {
-		Mixpanel.mainInstance().identify(distinctId: id)
-		if !userProperties.isEmpty {
-			Mixpanel.mainInstance().people.set(properties: userProperties)
-		}
-		
-		capture(AnalyticsKitEvent.userIdentified(id: id))
-		
-		Logger.info(
-			id: "connected_user_between_auth_and_mixpanel",
-			longDescription: "[ANALYTICS<>AUTH] Connected Auth and Mixpanel for User with ID \(id).",
-			properties: userProperties
-		)
+		identify(id: id, userProperties: userProperties)
 	}
 
 	/// Disconnects Mixpanel ID from Supabase Auth UID
 	static public func removeUserIDAssociation() {
-		Mixpanel.mainInstance().reset()
-		capture(AnalyticsKitEvent.userReset)
+		reset()
 	}
-
 }
