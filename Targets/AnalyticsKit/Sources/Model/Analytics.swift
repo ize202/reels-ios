@@ -46,6 +46,12 @@ public enum EventSource: String {
 
     /// For events that are related to AnalyticsKit itself / PostHog
     case analytics = "analytics"
+    
+    /// For events that are related to in-app purchases and RevenueCat
+    case iap = "iap"
+    
+    /// For events that are related to push notifications and OneSignal
+    case notif = "notif"
 }
 
 /// Wrapper around the Mixpanel SDK
