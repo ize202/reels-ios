@@ -106,10 +106,12 @@ func tuistProject() -> Project {
 	let sharedKit = TargetDependency.target(name: "SharedKit")
 	let analyticsKit = TargetDependency.target(name: "AnalyticsKit")
 	let crashlyticsKit = TargetDependency.target(name: "CrashlyticsKit")
+	let videoPlayerKit = TargetDependency.target(name: "VideoPlayerKit")
 
 	addSharedKit()
 	addAnalyticsKit()
 	addCrashlyticsKit()
+	addVideoPlayerKit()
 	addNotifKit()
 	let iapKit = addInAppPurchaseKit()
 	addSupabaseKit()
@@ -425,5 +427,39 @@ func tuistProject() -> Project {
 			)
 		projectTargets.append(crashlyticsTarget)
 		appResources.append("Targets/\(targetName)/Config/Sentry-Info.plist")
+	}
+
+	// Mux Video Player
+	func addVideoPlayerKit() {
+		let targetName = "VideoPlayerKit"
+		let videoPlayerTarget: Target = .target(
+			name: targetName,
+			destinations: destinations,
+			product: .framework,
+			bundleId: "\(bundleID).\(targetName)",
+			deploymentTargets: .iOS(osVersion),
+			infoPlist: .extendingDefault(with: defaultModuleInfoPlist),
+			sources: ["Targets/\(targetName)/Sources/**"],
+			resources: [baseAppResources],
+			dependencies: [
+				sharedKit,
+				analyticsKit,
+				crashlyticsKit,
+				TargetDependency.package(product: "MuxPlayerSwift", type: .runtime),
+			],
+			settings: .settings(base: [
+				"ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS": "YES"
+			])
+		)
+		appDependencies.append(videoPlayerKit)
+		projectPackages
+			.append(
+				.remote(
+					url: "https://github.com/muxinc/mux-player-swift",
+					requirement: .upToNextMajor(from: "1.0.0")
+				)
+			)
+		projectTargets.append(videoPlayerTarget)
+		appResources.append("Targets/\(targetName)/Config/Mux-Info.plist")
 	}
 }

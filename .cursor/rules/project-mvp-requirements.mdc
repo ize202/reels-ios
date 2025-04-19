@@ -107,9 +107,8 @@ Build a vertically optimized short drama streaming app for iOS. The app will del
 ## Tech Stack
 
 - Swift + SwiftUI (native iOS)
-- AVKit for video playback (via Mux HLS stream URLs)
 - Supabase for backend: Auth (including Anonymous Sign-In), Database, File storage, content logic
-- Mux for video hosting, streaming, thumbnails, analytics
+- Mux for video hosting, streaming, thumbnails, analytics, playback using MuxPlayerSwift
 - RevenueCat for IAP
 - AdMob for rewarded ads
 - Push notifications via OneSignal
