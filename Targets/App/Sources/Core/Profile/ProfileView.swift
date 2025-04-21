@@ -68,7 +68,7 @@ struct ProfileView: View {
                         HStack {
                             Image(systemName: "crown.fill")
                                 .foregroundColor(.primary)
-                            Text("Become VIP to enjoy all series")
+                            Text("Become VIP to enjoy all series unlocked")
                                 .font(.subheadline)
                             Spacer()
                             Image(systemName: "chevron.right")
@@ -110,7 +110,7 @@ struct ProfileView: View {
                                     .foregroundColor(.white)
                                     .padding(.horizontal, 16)
                                     .padding(.vertical, 8)
-                                    .background(Color.accentColor)
+                                    .background(Color(hex: "503370"))
                                     .cornerRadius(8)
                             }
                         }
@@ -148,11 +148,20 @@ struct ProfileView: View {
                     .cornerRadius(12)
                     .padding(.horizontal)
 
-                    // App version - System styling
-                    Text("Version 1.0.0")
-                        .font(.footnote)
-                        .foregroundColor(.secondary)
-                        .padding(.top, 8)
+                    // App version and copyright
+                    VStack(spacing: 4) {
+                        if let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String,
+                           let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String {
+                            Text("Version \(version)")
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        Text("© 2025 Slips LLC")
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.top, 8)
                 }
                 .padding(.vertical)
             }

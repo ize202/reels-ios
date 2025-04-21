@@ -23,6 +23,8 @@ Build a vertically optimized short drama streaming app for iOS. The app will del
 
 ### Color Scheme
 - app will always use a dark theme regardless of the users mode, so that means the bg will be black (#000000) and the text white (#ffffff) and then other typohraphy should use the reguler apple HIG colours and hierarchy 
+- Primary color: #9B79C1
+- Secondary color: #503370
 
 ### 1. **Tab Navigation**
 

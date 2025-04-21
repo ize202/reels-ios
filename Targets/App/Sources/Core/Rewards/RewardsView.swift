@@ -56,7 +56,7 @@ struct RewardsView: View {
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(viewModel.isCheckinAvailable ? Color.blue : Color.gray)
+                            .background(viewModel.isCheckinAvailable ? Color(hex: "503370") : Color.gray)
                             .cornerRadius(12)
                     }
                     .disabled(!viewModel.isCheckinAvailable)
@@ -301,7 +301,7 @@ struct FlatButtonStyle: ButtonStyle {
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
             .background(
-                disabled ? Color.gray : (configuration.isPressed ? Color.blue.opacity(0.8) : Color.blue)
+                disabled ? Color.gray : (configuration.isPressed ? Color(hex: "503370").opacity(0.8) : Color(hex: "503370"))
             )
             .cornerRadius(8)
             .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
