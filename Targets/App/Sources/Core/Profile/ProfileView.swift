@@ -106,15 +106,6 @@ struct ProfileView: View {
                                 .font(.headline)
                                 .foregroundColor(.white)
                             Spacer()
-                            NavigationLink(destination: Text("Wallet Detail View")) {
-                                HStack {
-                                    Text("Detail")
-                                        .font(.subheadline)
-                                    Image(systemName: "chevron.right")
-                                        .font(.caption)
-                                }
-                                .foregroundColor(.gray)
-                            }
                         }
                         .padding(.horizontal)
                         .padding(.top, 12)
