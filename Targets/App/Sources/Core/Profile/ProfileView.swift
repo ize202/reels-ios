@@ -9,179 +9,156 @@ import SupabaseKit
 
 struct ProfileView: View {
     @StateObject private var viewModel = ProfileViewModel()
-    
+    @Environment(\.colorScheme) var colorScheme
+
     var body: some View {
         NavigationView {
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: 20) {
+                    // Profile Header - Simplified
                     HStack(spacing: 16) {
+                        // Profile Image - Using system background
                         Image(systemName: viewModel.isSignedIn ? "person.fill" : "person.crop.circle.fill")
-                            .font(.system(size: 60))
-                            .foregroundColor(.gray)
-                            .frame(width: 70, height: 70)
-                            .background(Color.gray.opacity(0.3))
+                            .font(.system(size: 50))
+                            .foregroundColor(.secondary)
+                            .frame(width: 60, height: 60)
+                            .background(Color(UIColor.tertiarySystemFill))
                             .clipShape(Circle())
 
+                        // User Info - Cleaner typography
                         VStack(alignment: .leading, spacing: 4) {
                             Text(viewModel.userName ?? "Guest")
-                                .font(.title2)
-                                .fontWeight(.bold)
-                                .foregroundColor(.white)
-
+                                .font(.headline)
+                            
                             if let uid = viewModel.userUID {
                                 Text(uid)
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                            }
-                            
-                            if viewModel.isSignedIn, let email = viewModel.userEmail {
-                                Text(email)
                                     .font(.footnote)
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(.secondary)
                             }
                         }
 
                         Spacer()
 
+                        // Sign In/Out - More subtle styling
                         if viewModel.isSignedIn {
                             Button("Sign Out") {
                                 viewModel.handleSignOut()
                             }
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundColor(.red)
-                            .padding(8)
-                            .background(Color.red.opacity(0.2))
-                            .cornerRadius(8)
                         } else {
                             Button {
                                 viewModel.handleSignInTap()
                             } label: {
-                                HStack {
-                                    Text("Sign in")
-                                        .font(.subheadline)
-                                        .fontWeight(.medium)
-                                    Image(systemName: "chevron.right")
-                                        .font(.caption)
-                                }
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .background(Color.blue)
-                                .cornerRadius(16)
+                                Text("Sign in")
+                                    .font(.subheadline)
+                                    .foregroundColor(.accentColor)
                             }
                         }
                     }
+                    .padding()
+                    .background(Color(UIColor.secondarySystemGroupedBackground))
+                    .cornerRadius(12)
                     .padding(.horizontal)
-                    .padding(.vertical, 12)
 
+                    // VIP Banner - More subtle design
                     Button(action: {
                         print("VIP Banner Tapped")
                     }) {
                         HStack {
                             Image(systemName: "crown.fill")
-                                .foregroundColor(.yellow)
-                            Text("Become VIP to enjoy all series for FREE")
+                                .foregroundColor(.primary)
+                            Text("Become VIP to enjoy all series")
                                 .font(.subheadline)
-                                .fontWeight(.medium)
-                                .foregroundColor(.white)
                             Spacer()
-                            Text("GO")
+                            Image(systemName: "chevron.right")
                                 .font(.caption)
-                                .fontWeight(.bold)
-                                .foregroundColor(.black)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(Color.yellow)
-                                .cornerRadius(12)
+                                .foregroundColor(.secondary)
                         }
                         .padding()
-                        .background(Color.gray.opacity(0.3))
+                        .background(Color(UIColor.secondarySystemGroupedBackground))
                         .cornerRadius(12)
                     }
+                    .buttonStyle(PlainButtonStyle())
                     .padding(.horizontal)
 
+                    // Wallet Card - Simplified
                     VStack(spacing: 0) {
                         HStack {
                             Text("My Wallet")
                                 .font(.headline)
-                                .foregroundColor(.white)
                             Spacer()
                         }
-                        .padding(.horizontal)
-                        .padding(.top, 12)
-                        .padding(.bottom, 8)
-
-                        Divider().background(Color.gray.opacity(0.5))
+                        .padding()
+                        
+                        Divider()
+                            .background(Color(UIColor.separator))
 
                         HStack {
-                            HStack(spacing: 8) {
-                                Image(systemName: "dollarsign.circle.fill")
-                                    .foregroundColor(.yellow)
-                                    .font(.title2)
-                                Text("\(viewModel.coinBalance)")
-                                    .font(.title2)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.white)
-                            }
+                            // Coin balance
+                            Label(
+                                title: { Text("\(viewModel.coinBalance)").font(.title3).bold() },
+                                icon: { Image(systemName: "circle.fill").foregroundColor(.yellow) }
+                            )
+                            
                             Spacer()
+                            
+                            // Top Up button
                             Button(action: viewModel.handleRefillTap) {
-                                Text(viewModel.isSignedIn ? "Top Up" : "Refill")
+                                Text(viewModel.isSignedIn ? "Top Up" : "Get Coins")
                                     .font(.subheadline)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(viewModel.isSignedIn ? .black : .white)
-                                    .padding(.horizontal, 20)
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 16)
                                     .padding(.vertical, 8)
-                                    .background(viewModel.isSignedIn ? Color.yellow : Color.pink)
-                                    .cornerRadius(20)
+                                    .background(Color.accentColor)
+                                    .cornerRadius(8)
                             }
                         }
-                        .padding(.horizontal)
-                        .padding(.vertical, 12)
+                        .padding()
                     }
-                    .background(Color(UIColor.secondarySystemBackground))
+                    .background(Color(UIColor.secondarySystemGroupedBackground))
                     .cornerRadius(12)
                     .padding(.horizontal)
 
+                    // Settings List - Using system grouping
                     VStack(spacing: 0) {
-                        NavigationLink(destination: Text("Membership View")) {
-                            SettingsOptionRow(option: SettingsOption(icon: "crown.fill", title: "Membership", color: .yellow))
-                        }
-                        Divider().padding(.leading, 56).background(Color.gray.opacity(0.5))
-
-                        NavigationLink(destination: Text("Library View")) {
-                            SettingsOptionRow(option: SettingsOption(icon: "list.bullet.below.rectangle", title: "My List", color: .blue))
-                        }
-                        Divider().padding(.leading, 56).background(Color.gray.opacity(0.5))
-                        
-                        Button(action: { print("Rate Us Tapped")}) {
-                            SettingsOptionRow(option: SettingsOption(icon: "star.fill", title: "Rate Us", color: .orange))
-                        }
-                        Divider().padding(.leading, 56).background(Color.gray.opacity(0.5))
-
-                        NavigationLink(destination: Text("Contact Us View")) {
-                            SettingsOptionRow(option: SettingsOption(icon: "envelope.fill", title: "Contact Us", color: .green))
-                        }
-                        Divider().padding(.leading, 56).background(Color.gray.opacity(0.5))
-
-                        NavigationLink(destination: Text("Settings View")) {
-                            SettingsOptionRow(option: SettingsOption(icon: "gearshape.fill", title: "Settings", color: .gray))
+                        Group {
+                            NavigationLink(destination: Text("Membership")) {
+                                SettingsRow(icon: "crown", title: "Membership")
+                            }
+                            Divider()
+                            NavigationLink(destination: Text("Library")) {
+                                SettingsRow(icon: "rectangle.stack", title: "Library")
+                            }
+                            Divider()
+                            Button(action: { print("Rate Us Tapped") }) {
+                                SettingsRow(icon: "star", title: "Rate Us")
+                            }
+                            Divider()
+                            NavigationLink(destination: Text("Contact Us")) {
+                                SettingsRow(icon: "envelope", title: "Contact Us")
+                            }
+                            Divider()
+                            NavigationLink(destination: Text("Settings")) {
+                                SettingsRow(icon: "gearshape", title: "Settings")
+                            }
                         }
                     }
-                    .background(Color(UIColor.secondarySystemBackground))
+                    .background(Color(UIColor.secondarySystemGroupedBackground))
                     .cornerRadius(12)
                     .padding(.horizontal)
 
-                    Text("App Version 1.0.0 (Build 1)")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                        .padding(.top)
+                    // App version - System styling
+                    Text("Version 1.0.0")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                        .padding(.top, 8)
                 }
                 .padding(.vertical)
             }
             .navigationTitle("Profile")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarColorScheme(.dark, for: .navigationBar)
-            .background(Color.black.ignoresSafeArea())
+            .navigationBarTitleDisplayMode(.large)
+            .background(Color(UIColor.systemGroupedBackground).ignoresSafeArea())
             .sheet(isPresented: $viewModel.showSignInSheet) {
                 SignInView(
                     onSignInSuccess: { uid, email, name in
@@ -190,130 +167,99 @@ struct ProfileView: View {
                     onCancel: viewModel.handleSignInCancel
                 )
             }
-            .onAppear {
-                viewModel.fetchUserData()
-            }
         }
-        .accentColor(.white)
     }
 }
 
-struct SettingsOption: Identifiable {
-    let id = UUID()
+// MARK: - Supporting Views
+struct SettingsRow: View {
     let icon: String
     let title: String
-    let color: Color
-}
-
-struct SettingsOptionRow: View {
-    let option: SettingsOption
     
     var body: some View {
         HStack {
-            Image(systemName: option.icon)
-                .font(.headline)
-                .foregroundColor(option.color)
-                .frame(width: 28, height: 28)
-                .padding(6)
-                .background(option.color.opacity(0.15))
-                .cornerRadius(8)
+            Image(systemName: icon)
+                .font(.system(size: 18))
+                .frame(width: 24, height: 24)
+                .foregroundColor(.primary)
             
-            Text(option.title)
-                .font(.subheadline)
-                .foregroundColor(.white)
+            Text(title)
+                .font(.body)
             
             Spacer()
             
             Image(systemName: "chevron.right")
                 .font(.caption)
-                .foregroundColor(.gray)
+                .foregroundColor(.secondary)
         }
-        .padding(.horizontal)
-        .padding(.vertical, 12)
+        .padding()
     }
 }
 
+// MARK: - SignInView
 struct SignInView: View {
     var onSignInSuccess: (_ uid: String, _ email: String?, _ name: String?) -> Void
     var onCancel: () -> Void
     
     @State private var email = ""
     @State private var password = ""
+    @Environment(\.dismiss) var dismiss
 
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
-                Spacer()
-
+            VStack(spacing: 24) {
+                // Sign in options
                 Button {
                     print("Apple Sign In Tapped")
                     onSignInSuccess("simulated_apple_uid", "apple@example.com", "Apple User")
                 } label: {
                     HStack {
                         Image(systemName: "apple.logo")
-                        Text("Sign in with Apple")
+                        Text("Continue with Apple")
                     }
-                    .font(.headline)
-                    .padding()
                     .frame(maxWidth: .infinity)
-                    .background(Color.white)
-                    .foregroundColor(.black)
-                    .cornerRadius(10)
+                    .padding()
+                    .background(Color(.systemBackground))
+                    .cornerRadius(12)
                 }
-                .padding(.horizontal)
 
-                TextField("Email", text: $email)
-                    .keyboardType(.emailAddress)
-                    .autocapitalization(.none)
-                    .padding()
-                    .background(Color.gray.opacity(0.2))
-                    .cornerRadius(10)
-                    .padding(.horizontal)
-
-                SecureField("Password", text: $password)
-                    .padding()
-                    .background(Color.gray.opacity(0.2))
-                    .cornerRadius(10)
-                    .padding(.horizontal)
-
-                Button {
-                    print("Email Sign In Tapped")
-                    onSignInSuccess("simulated_email_uid", email, "Email User")
-                } label: {
-                    HStack {
-                        Image(systemName: "envelope")
-                        Text("Sign in with Email")
+                VStack(spacing: 16) {
+                    TextField("Email", text: $email)
+                        .textContentType(.emailAddress)
+                        .keyboardType(.emailAddress)
+                        .autocapitalization(.none)
+                        .textFieldStyle(.roundedBorder)
+                    
+                    SecureField("Password", text: $password)
+                        .textContentType(.password)
+                        .textFieldStyle(.roundedBorder)
+                    
+                    Button {
+                        onSignInSuccess("simulated_email_uid", email, "Email User")
+                    } label: {
+                        Text("Continue with Email")
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.accentColor)
+                            .foregroundColor(.white)
+                            .cornerRadius(12)
                     }
-                    .font(.headline)
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
+                    .disabled(email.isEmpty || password.isEmpty)
                 }
-                .padding(.horizontal)
-                .disabled(email.isEmpty || password.isEmpty)
-
-                Spacer()
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.black.ignoresSafeArea())
+            .padding()
             .navigationTitle("Sign In")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarColorScheme(.dark, for: .navigationBar, .tabBar)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        onCancel()
-                    }
-                    .foregroundColor(.white)
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel", action: onCancel)
                 }
             }
         }
-        .accentColor(.white)
     }
 }
 
+// MARK: - Preview
 struct ProfileView_Previews: PreviewProvider {
     static var previews: some View {
         ProfileView()
