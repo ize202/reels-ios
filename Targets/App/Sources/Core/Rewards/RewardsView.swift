@@ -117,7 +117,7 @@ struct RewardsView: View {
                         }
                     }
                 }
-                .padding(.vertical)
+                .padding(.top) // Changed from .padding(.vertical) to only top padding
                 
                 // Buy Coins Section
                 VStack(alignment: .leading, spacing: 16) {
@@ -157,7 +157,6 @@ struct RewardsView: View {
                     }
                     .padding(.horizontal)
                 }
-                .padding(.vertical)
                 
                 Spacer(minLength: 32)
             }
