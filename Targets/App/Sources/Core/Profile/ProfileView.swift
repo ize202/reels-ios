@@ -107,10 +107,10 @@ struct ProfileView: View {
                             Button(action: viewModel.handleRefillTap) {
                                 Text(viewModel.isSignedIn ? "Top Up" : "Get Coins")
                                     .font(.subheadline)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.black)
                                     .padding(.horizontal, 16)
                                     .padding(.vertical, 8)
-                                    .background(Color(hex: "503370"))
+                                    .background(Color(hex: "9B79C1"))
                                     .cornerRadius(8)
                             }
                         }

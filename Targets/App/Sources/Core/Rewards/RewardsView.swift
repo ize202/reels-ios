@@ -53,10 +53,10 @@ struct RewardsView: View {
                     } label: {
                         Text(viewModel.isCheckinAvailable ? "Check-in" : "Checked in for Today")
                             .font(.body.weight(.semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(.black)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(viewModel.isCheckinAvailable ? Color(hex: "503370") : Color.gray)
+                            .background(viewModel.isCheckinAvailable ? Color(hex: "9B79C1") : Color.gray)
                             .cornerRadius(12)
                     }
                     .disabled(!viewModel.isCheckinAvailable)
@@ -297,11 +297,11 @@ struct FlatButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.subheadline.weight(.semibold))
-            .foregroundColor(.white)
+            .foregroundColor(.black)
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
             .background(
-                disabled ? Color.gray : (configuration.isPressed ? Color(hex: "503370").opacity(0.8) : Color(hex: "503370"))
+                disabled ? Color.gray : (configuration.isPressed ? Color(hex: "9B79C1").opacity(0.8) : Color(hex: "9B79C1"))
             )
             .cornerRadius(8)
             .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
