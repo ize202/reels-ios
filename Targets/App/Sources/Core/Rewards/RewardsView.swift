@@ -158,9 +158,9 @@ struct RewardsView: View {
                         GridItem(.flexible(), spacing: 12),
                         GridItem(.flexible(), spacing: 12)
                     ], spacing: 12) {
-                        CoinPackCard(amount: 100, bonusAmount: 200, price: "$0.99")
+                        CoinPackCard(amount: 100, bonusAmount: 20, price: "$0.99")
                             .onTapGesture {
-                                print("Buy 100 (+200) coins pack tapped")
+                                print("Buy 100 (+20) coins pack tapped")
                                 // TODO: Initiate purchase via InAppPurchaseKit
                             }
                         

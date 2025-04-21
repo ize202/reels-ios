@@ -374,6 +374,7 @@ func tuistProject() -> Project {
 			])
 		)
 		appDependencies.append(videoPlayerKit)
+		appDependencies.append(TargetDependency.package(product: "MuxPlayerSwift", type: .runtime))
 		projectPackages
 			.append(
 				.remote(
