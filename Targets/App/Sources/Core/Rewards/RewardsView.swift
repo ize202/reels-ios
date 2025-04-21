@@ -10,9 +10,9 @@ import InAppPurchaseKit
 struct RewardsView: View {
     @StateObject private var viewModel = RewardsViewModel()
     
-    // Define the gradient used for buttons
+    // Define the gradient used for buttons (Use AccentColor or standard system colors)
     let buttonGradient = LinearGradient(
-        gradient: Gradient(colors: [Color.pink, Color.orange]),
+        gradient: Gradient(colors: [Color.blue, Color.purple]), // Example: Standard blue/purple
         startPoint: .leading,
         endPoint: .trailing
     )
@@ -20,23 +20,21 @@ struct RewardsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                // Coin Balance Header (Simple version)
+                // Coin Balance Header
                 HStack {
                     Text("\(viewModel.coinBalance)")
                         .font(.system(size: 34, weight: .bold))
-                        .foregroundColor(.primary)
-                    Image(systemName: "bitcoinsign.circle.fill") // Placeholder coin icon
+                        .foregroundColor(.primary) // Use primary for main text
+                    Image(systemName: "ticket.fill") // Changed icon
                         .resizable()
                         .scaledToFit()
                         .frame(width: 28, height: 28)
-                        .foregroundColor(.yellow) // Adjust color
+                        .foregroundColor(.yellow) // Keep yellow for coins/rewards accent
                     Text("Balance")
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.secondary) // Use secondary for less important text
                     Spacer()
-                    // Optional: Rules button like in screenshot
                     Button("Rules") {
-                        // Action for rules
                         print("Rules tapped")
                     }
                     .font(.caption)
@@ -70,14 +68,45 @@ struct RewardsView: View {
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(viewModel.isCheckinAvailable ? buttonGradient : LinearGradient(colors: [.gray], startPoint: .leading, endPoint: .trailing))
+                            .background(viewModel.isCheckinAvailable ? buttonGradient : LinearGradient(colors: [Color.gray], startPoint: .leading, endPoint: .trailing))
                             .cornerRadius(10)
                     }
                     .disabled(!viewModel.isCheckinAvailable)
                     .padding(.horizontal)
                 }
                 .padding(.vertical)
-                .background(Color.systemSecondaryBackground) // Subtle background
+                .background(Color.systemSecondaryBackground) // Use adaptive background
+                .cornerRadius(12)
+                .padding(.horizontal)
+                
+                // Membership Section
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Membership")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+                    
+                    HStack {
+                        Image(systemName: "crown.fill")
+                            .foregroundColor(.yellow) // Keep yellow for VIP/Crown
+                        Text("Current Tier: \(viewModel.membershipStatus)")
+                            .font(.subheadline)
+                            .foregroundColor(.primary) // Use primary
+                        Spacer()
+                        Button("Upgrade") {
+                            print("Upgrade membership tapped")
+                            // Placeholder action remains
+                            viewModel.handleRewardAction(actionId: viewModel.rewardActions.first(where: {$0.actionType == .membership})?.id ?? UUID())
+                        }
+                        .buttonStyle(GradientButtonStyle(gradient: buttonGradient, disabled: false))
+                    }
+                    
+                    Text("Unlock exclusive series and enjoy ad-free viewing!")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding()
+                .background(Color.systemSecondaryBackground) // Use adaptive background
                 .cornerRadius(12)
                 .padding(.horizontal)
                 
@@ -93,54 +122,23 @@ struct RewardsView: View {
                     // List of Reward Actions
                     ForEach(viewModel.rewardActions) { action in
                         RewardActionRow(action: action, buttonGradient: buttonGradient) {
-                            // Action to perform when button is tapped
                             viewModel.handleRewardAction(actionId: action.id)
                         }
                         Divider().padding(.leading, 50) // Indent divider
                     }
                 }
                 
-                // Membership Section (Placeholder)
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Membership")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.primary)
-                    
-                    HStack {
-                        Image(systemName: "crown.fill")
-                            .foregroundColor(.yellow)
-                        Text("Current Tier: \(viewModel.membershipStatus)")
-                            .font(.subheadline)
-                        Spacer()
-                        Button("Upgrade") {
-                            // Navigate to IAP/Membership view
-                            print("Upgrade membership tapped")
-                            viewModel.handleRewardAction(actionId: viewModel.rewardActions.first(where: {$0.actionType == .membership})?.id ?? UUID()) // Trigger placeholder action
-                        }
-                        .buttonStyle(GradientButtonStyle(gradient: buttonGradient, disabled: false)) // Use style
-                    }
-                    
-                    Text("Unlock exclusive series and enjoy ad-free viewing!")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                .padding()
-                .background(Color.systemSecondaryBackground)
-                .cornerRadius(12)
-                .padding(.horizontal)
-                
                 Spacer() // Push content to top
             }
         }
-        .background(Color.black.ignoresSafeArea()) // Ensure black background
-        .preferredColorScheme(.dark) // Force dark mode for consistency
-        .navigationTitle("Rewards") // Assuming this view is inside a NavigationView
+        .background(Color.black.ignoresSafeArea()) 
+        .preferredColorScheme(.dark) // Keep forcing dark mode
+        .navigationTitle("Rewards")
         .navigationBarTitleDisplayMode(.inline)
     }
 }
 
-// View for each day in the check-in row
+// View for each day in the check-in row - UPDATED ICONS/COLORS
 struct DailyCheckinItemView: View {
     let day: DailyCheckinDay
     
@@ -149,14 +147,14 @@ struct DailyCheckinItemView: View {
             Text("+\(day.rewardAmount)")
                 .font(.caption)
                 .fontWeight(.medium)
-                .foregroundColor(day.status == .checkedIn ? .secondary : .primary)
+                .foregroundColor(day.status == .upcoming ? .secondary : .primary) // Dim upcoming text
                 .padding(.horizontal, 4)
                 .padding(.vertical, 2)
                 .background(day.status == .available ? Color.yellow.opacity(0.3) : Color.clear)
                 .cornerRadius(4)
             
-            Image(systemName: day.status == .checkedIn ? "checkmark.circle.fill" : "circle")
-                .foregroundColor(day.status == .checkedIn ? .green : (day.status == .available ? .yellow : .gray))
+            Image(systemName: iconName(for: day.status)) // Use helper for icon
+                .foregroundColor(iconColor(for: day.status)) // Use helper for color
                 .font(.title3)
             
             Text("Day \(day.id)")
@@ -164,6 +162,30 @@ struct DailyCheckinItemView: View {
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity) // Distribute space evenly
+    }
+    
+    // Helper for icon name based on status
+    private func iconName(for status: DailyCheckinDay.CheckinStatus) -> String {
+        switch status {
+        case .checkedIn:
+            return "checkmark.circle.fill"
+        case .available:
+            return "gift.fill" // Changed to gift
+        case .upcoming:
+            return "lock.fill" // Changed to lock
+        }
+    }
+    
+    // Helper for icon color based on status
+    private func iconColor(for status: DailyCheckinDay.CheckinStatus) -> Color {
+        switch status {
+        case .checkedIn:
+            return .green
+        case .available:
+            return .yellow
+        case .upcoming:
+            return .gray
+        }
     }
 }
 
@@ -177,18 +199,18 @@ struct RewardActionRow: View {
         HStack(spacing: 15) {
             Image(systemName: action.iconName)
                 .font(.title2)
-                .frame(width: 25) // Align icons
-                .foregroundColor(.secondary)
+                .frame(width: 25)
+                .foregroundColor(.secondary) // Use secondary for icon tint
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(action.title)
                     .font(.subheadline)
                     .fontWeight(.medium)
-                    .foregroundColor(.primary)
+                    .foregroundColor(.primary) // Use primary
                 HStack(spacing: 4) {
                     Text(action.description)
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.secondary) // Use secondary
                 }
             }
             
@@ -196,7 +218,7 @@ struct RewardActionRow: View {
             
             Button(action.buttonLabel, action: performAction)
                 .buttonStyle(GradientButtonStyle(gradient: buttonGradient, disabled: action.isButtonDisabled))
-                .font(.caption) // Smaller font for buttons in list
+                .font(.caption)
         }
         .padding(.vertical, 10)
         .padding(.horizontal)
