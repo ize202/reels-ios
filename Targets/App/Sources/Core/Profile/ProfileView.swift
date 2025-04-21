@@ -8,170 +8,202 @@ import SharedKit
 import SupabaseKit
 
 struct ProfileView: View {
-    @State private var isSignedIn = false
-    @State private var showSignInSheet = false
+    @StateObject private var viewModel = ProfileViewModel()
     
     var body: some View {
         NavigationView {
             ScrollView {
-                VStack(spacing: 20) {
-                    // Profile header
-                    VStack(spacing: 16) {
-                        if isSignedIn {
-                            // User profile image
-                            Circle()
-                                .fill(Color.gray.opacity(0.3))
-                                .frame(width: 100, height: 100)
-                                .overlay(
-                                    Image(systemName: "person.fill")
-                                        .font(.system(size: 40))
-                                        .foregroundColor(.white)
-                                )
-                            
-                            // User info
-                            Text("User Name")
+                VStack(spacing: 24) {
+                    HStack(spacing: 16) {
+                        Image(systemName: viewModel.isSignedIn ? "person.fill" : "person.crop.circle.fill")
+                            .font(.system(size: 60))
+                            .foregroundColor(.gray)
+                            .frame(width: 70, height: 70)
+                            .background(Color.gray.opacity(0.3))
+                            .clipShape(Circle())
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(viewModel.userName ?? "Guest")
                                 .font(.title2)
                                 .fontWeight(.bold)
-                            
-                            Text("user@example.com")
-                                .foregroundColor(.secondary)
-                                
-                            // Stats
-                            HStack(spacing: 30) {
-                                StatItem(value: "150", label: "Coins")
-                                StatItem(value: "5", label: "Series")
-                                StatItem(value: "32", label: "Episodes")
+                                .foregroundColor(.white)
+
+                            if let uid = viewModel.userUID {
+                                Text(uid)
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
                             }
-                            .padding(.top, 8)
                             
-                            // Sign out button
+                            if viewModel.isSignedIn, let email = viewModel.userEmail {
+                                Text(email)
+                                    .font(.footnote)
+                                    .foregroundColor(.gray)
+                            }
+                        }
+
+                        Spacer()
+
+                        if viewModel.isSignedIn {
                             Button("Sign Out") {
-                                // Sign out logic
-                                isSignedIn = false
+                                viewModel.handleSignOut()
                             }
+                            .font(.caption)
                             .foregroundColor(.red)
-                            .padding(.top, 8)
-                            
+                            .padding(8)
+                            .background(Color.red.opacity(0.2))
+                            .cornerRadius(8)
                         } else {
-                            // Not signed in
-                            Circle()
-                                .fill(Color.gray.opacity(0.3))
-                                .frame(width: 100, height: 100)
-                                .overlay(
-                                    Image(systemName: "person.slash")
-                                        .font(.system(size: 40))
-                                        .foregroundColor(.white)
-                                )
-                            
-                            Text("Not Signed In")
-                                .font(.title2)
-                                .fontWeight(.bold)
-                            
-                            Text("Sign in to sync your progress and coins across devices")
-                                .multilineTextAlignment(.center)
-                                .foregroundColor(.secondary)
-                                .padding(.horizontal)
-                            
-                            Button(action: {
-                                showSignInSheet = true
-                            }) {
-                                Text("Sign In")
-                                    .font(.headline)
-                                    .padding()
-                                    .frame(maxWidth: .infinity)
-                                    .background(Color.blue)
-                                    .foregroundColor(.white)
-                                    .cornerRadius(10)
+                            Button {
+                                viewModel.handleSignInTap()
+                            } label: {
+                                HStack {
+                                    Text("Sign in")
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption)
+                                }
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(Color.blue)
+                                .cornerRadius(16)
                             }
-                            .padding(.horizontal, 40)
-                            .padding(.top, 8)
                         }
                     }
-                    .padding()
-                    .background(Color.gray.opacity(0.1))
-                    .cornerRadius(10)
                     .padding(.horizontal)
-                    
-                    // Settings sections
-                    SettingsSection(title: "Account", options: [
-                        SettingsOption(icon: "creditcard", title: "Purchase History", color: .blue),
-                        SettingsOption(icon: "bell", title: "Notifications", color: .red),
-                        SettingsOption(icon: "icloud.and.arrow.down", title: "Restore Purchases", color: .purple)
-                    ])
-                    
-                    SettingsSection(title: "Support", options: [
-                        SettingsOption(icon: "questionmark.circle", title: "Help Center", color: .green),
-                        SettingsOption(icon: "envelope", title: "Contact Us", color: .orange),
-                        SettingsOption(icon: "star", title: "Rate the App", color: .yellow)
-                    ])
-                    
-                    SettingsSection(title: "About", options: [
-                        SettingsOption(icon: "doc.text", title: "Terms of Service", color: .gray),
-                        SettingsOption(icon: "hand.raised", title: "Privacy Policy", color: .gray)
-                    ])
-                    
-                    // App version
-                    Text("App Version 1.0.0")
+                    .padding(.vertical, 12)
+
+                    Button(action: {
+                        print("VIP Banner Tapped")
+                    }) {
+                        HStack {
+                            Image(systemName: "crown.fill")
+                                .foregroundColor(.yellow)
+                            Text("Become VIP to enjoy all series for FREE")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(.white)
+                            Spacer()
+                            Text("GO")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundColor(.black)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(Color.yellow)
+                                .cornerRadius(12)
+                        }
+                        .padding()
+                        .background(Color.gray.opacity(0.3))
+                        .cornerRadius(12)
+                    }
+                    .padding(.horizontal)
+
+                    VStack(spacing: 0) {
+                        HStack {
+                            Text("My Wallet")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                            Spacer()
+                            NavigationLink(destination: Text("Wallet Detail View")) {
+                                HStack {
+                                    Text("Detail")
+                                        .font(.subheadline)
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption)
+                                }
+                                .foregroundColor(.gray)
+                            }
+                        }
+                        .padding(.horizontal)
+                        .padding(.top, 12)
+                        .padding(.bottom, 8)
+
+                        Divider().background(Color.gray.opacity(0.5))
+
+                        HStack {
+                            HStack(spacing: 8) {
+                                Image(systemName: "dollarsign.circle.fill")
+                                    .foregroundColor(.yellow)
+                                    .font(.title2)
+                                Text("\(viewModel.coinBalance)")
+                                    .font(.title2)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                            }
+                            Spacer()
+                            Button(action: viewModel.handleRefillTap) {
+                                Text(viewModel.isSignedIn ? "Top Up" : "Refill")
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(viewModel.isSignedIn ? .black : .white)
+                                    .padding(.horizontal, 20)
+                                    .padding(.vertical, 8)
+                                    .background(viewModel.isSignedIn ? Color.yellow : Color.pink)
+                                    .cornerRadius(20)
+                            }
+                        }
+                        .padding(.horizontal)
+                        .padding(.vertical, 12)
+                    }
+                    .background(Color(UIColor.secondarySystemBackground))
+                    .cornerRadius(12)
+                    .padding(.horizontal)
+
+                    VStack(spacing: 0) {
+                        NavigationLink(destination: Text("Membership View")) {
+                            SettingsOptionRow(option: SettingsOption(icon: "crown.fill", title: "Membership", color: .yellow))
+                        }
+                        Divider().padding(.leading, 56).background(Color.gray.opacity(0.5))
+
+                        NavigationLink(destination: Text("Library View")) {
+                            SettingsOptionRow(option: SettingsOption(icon: "list.bullet.below.rectangle", title: "My List", color: .blue))
+                        }
+                        Divider().padding(.leading, 56).background(Color.gray.opacity(0.5))
+                        
+                        Button(action: { print("Rate Us Tapped")}) {
+                            SettingsOptionRow(option: SettingsOption(icon: "star.fill", title: "Rate Us", color: .orange))
+                        }
+                        Divider().padding(.leading, 56).background(Color.gray.opacity(0.5))
+
+                        NavigationLink(destination: Text("Contact Us View")) {
+                            SettingsOptionRow(option: SettingsOption(icon: "envelope.fill", title: "Contact Us", color: .green))
+                        }
+                        Divider().padding(.leading, 56).background(Color.gray.opacity(0.5))
+
+                        NavigationLink(destination: Text("Settings View")) {
+                            SettingsOptionRow(option: SettingsOption(icon: "gearshape.fill", title: "Settings", color: .gray))
+                        }
+                    }
+                    .background(Color(UIColor.secondarySystemBackground))
+                    .cornerRadius(12)
+                    .padding(.horizontal)
+
+                    Text("App Version 1.0.0 (Build 1)")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.gray)
                         .padding(.top)
                 }
                 .padding(.vertical)
             }
             .navigationTitle("Profile")
-            .sheet(isPresented: $showSignInSheet) {
-                SignInView {
-                    // On successful sign in
-                    isSignedIn = true
-                    showSignInSheet = false
-                }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .background(Color.black.ignoresSafeArea())
+            .sheet(isPresented: $viewModel.showSignInSheet) {
+                SignInView(
+                    onSignInSuccess: { uid, email, name in
+                        viewModel.handleSignInSuccess(uid: uid, email: email, name: name)
+                    },
+                    onCancel: viewModel.handleSignInCancel
+                )
+            }
+            .onAppear {
+                viewModel.fetchUserData()
             }
         }
-    }
-}
-
-struct StatItem: View {
-    let value: String
-    let label: String
-    
-    var body: some View {
-        VStack {
-            Text(value)
-                .font(.title3)
-                .fontWeight(.bold)
-            Text(label)
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
-    }
-}
-
-struct SettingsSection: View {
-    let title: String
-    let options: [SettingsOption]
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(title.uppercased())
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .foregroundColor(.secondary)
-                .padding(.horizontal)
-            
-            VStack(spacing: 0) {
-                ForEach(options) { option in
-                    SettingsOptionRow(option: option)
-                    
-                    if option.id != options.last?.id {
-                        Divider()
-                            .padding(.leading, 56)
-                    }
-                }
-            }
-            .background(Color.gray.opacity(0.1))
-            .cornerRadius(10)
-            .padding(.horizontal)
-        }
+        .accentColor(.white)
     }
 }
 
@@ -186,85 +218,114 @@ struct SettingsOptionRow: View {
     let option: SettingsOption
     
     var body: some View {
-        Button(action: {
-            // Handle option selection
-        }) {
-            HStack {
-                Image(systemName: option.icon)
-                    .font(.title3)
-                    .foregroundColor(option.color)
-                    .frame(width: 32, height: 32)
-                
-                Text(option.title)
-                    .font(.subheadline)
-                
-                Spacer()
-                
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundColor(.gray)
-            }
-            .padding(.horizontal)
-            .padding(.vertical, 12)
+        HStack {
+            Image(systemName: option.icon)
+                .font(.headline)
+                .foregroundColor(option.color)
+                .frame(width: 28, height: 28)
+                .padding(6)
+                .background(option.color.opacity(0.15))
+                .cornerRadius(8)
+            
+            Text(option.title)
+                .font(.subheadline)
+                .foregroundColor(.white)
+            
+            Spacer()
+            
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundColor(.gray)
         }
-        .foregroundColor(.primary)
+        .padding(.horizontal)
+        .padding(.vertical, 12)
     }
 }
 
-// Placeholder for SignInView
 struct SignInView: View {
-    var onSignInSuccess: () -> Void
+    var onSignInSuccess: (_ uid: String, _ email: String?, _ name: String?) -> Void
+    var onCancel: () -> Void
     
+    @State private var email = ""
+    @State private var password = ""
+
     var body: some View {
-        VStack(spacing: 20) {
-            Text("Sign In")
-                .font(.title)
-                .fontWeight(.bold)
-            
-            // Sign in options
-            Button(action: {
-                // Handle Apple sign in
-                onSignInSuccess()
-            }) {
-                HStack {
-                    Image(systemName: "apple.logo")
-                    Text("Sign in with Apple")
+        NavigationView {
+            VStack(spacing: 20) {
+                Spacer()
+
+                Button {
+                    print("Apple Sign In Tapped")
+                    onSignInSuccess("simulated_apple_uid", "apple@example.com", "Apple User")
+                } label: {
+                    HStack {
+                        Image(systemName: "apple.logo")
+                        Text("Sign in with Apple")
+                    }
+                    .font(.headline)
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(Color.white)
+                    .foregroundColor(.black)
+                    .cornerRadius(10)
                 }
-                .font(.headline)
-                .padding()
-                .frame(maxWidth: .infinity)
-                .background(Color.black)
-                .foregroundColor(.white)
-                .cornerRadius(10)
-            }
-            .padding(.horizontal)
-            
-            Button(action: {
-                // Handle email sign in
-                onSignInSuccess()
-            }) {
-                HStack {
-                    Image(systemName: "envelope")
-                    Text("Sign in with Email")
+                .padding(.horizontal)
+
+                TextField("Email", text: $email)
+                    .keyboardType(.emailAddress)
+                    .autocapitalization(.none)
+                    .padding()
+                    .background(Color.gray.opacity(0.2))
+                    .cornerRadius(10)
+                    .padding(.horizontal)
+
+                SecureField("Password", text: $password)
+                    .padding()
+                    .background(Color.gray.opacity(0.2))
+                    .cornerRadius(10)
+                    .padding(.horizontal)
+
+                Button {
+                    print("Email Sign In Tapped")
+                    onSignInSuccess("simulated_email_uid", email, "Email User")
+                } label: {
+                    HStack {
+                        Image(systemName: "envelope")
+                        Text("Sign in with Email")
+                    }
+                    .font(.headline)
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
                 }
-                .font(.headline)
-                .padding()
-                .frame(maxWidth: .infinity)
-                .background(Color.blue)
-                .foregroundColor(.white)
-                .cornerRadius(10)
+                .padding(.horizontal)
+                .disabled(email.isEmpty || password.isEmpty)
+
+                Spacer()
             }
-            .padding(.horizontal)
-            
-            Button("Cancel") {
-                // Dismiss sheet
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.black.ignoresSafeArea())
+            .navigationTitle("Sign In")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarColorScheme(.dark, for: .navigationBar, .tabBar)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        onCancel()
+                    }
+                    .foregroundColor(.white)
+                }
             }
-            .padding(.top)
         }
-        .padding()
+        .accentColor(.white)
     }
 }
 
-#Preview {
-    ProfileView()
+struct ProfileView_Previews: PreviewProvider {
+    static var previews: some View {
+        ProfileView()
+            .preferredColorScheme(.dark)
+    }
 } 
