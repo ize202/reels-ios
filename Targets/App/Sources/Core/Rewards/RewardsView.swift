@@ -98,7 +98,7 @@ struct RewardsView: View {
                         .buttonStyle(FlatButtonStyle())
                     }
                     
-                    Text("Unlock exclusive series and enjoy ad-free viewing!")
+                    Text("Upgrade to unlock unlimited access to all series and ad-free viewing!")
                         .font(.footnote)
                         .foregroundColor(.secondary)
                 }
