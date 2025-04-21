@@ -24,7 +24,7 @@ struct ContentView: View {
 			
 			// Library Tab
 			LibraryView()
-				.tabItem { Label("Library", systemImage: "books.vertical") }
+				.tabItem { Label("Library", systemImage: "bookmark") }
 			
 			// Rewards Tab
 			RewardsView()

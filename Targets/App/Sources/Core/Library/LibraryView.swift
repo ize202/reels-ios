@@ -7,137 +7,149 @@ import SwiftUI
 import SharedKit
 
 struct LibraryView: View {
+    // Use the ViewModel
+    @StateObject private var viewModel = LibraryViewModel()
+
+    // Grid columns for My Collection
+    let columns: [GridItem] = [
+        GridItem(.flexible(), spacing: 15),
+        GridItem(.flexible(), spacing: 15),
+        GridItem(.flexible(), spacing: 15)
+    ]
+
     var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    // Continue Watching section
-                    if !continueWatchingSeries.isEmpty {
-                        SectionHeader(title: "Continue Watching")
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 15) {
-                                ForEach(continueWatchingSeries) { series in
-                                    ContinueWatchingCard(series: series)
-                                }
+        // Removed NavigationView
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                // Screen Title
+                Text("Library")
+                    .font(.title)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+                    .padding(.horizontal)
+                    .padding(.top, 10)
+
+                // Continue Watching section
+                if !viewModel.recentlyWatched.isEmpty {
+                    LibrarySectionHeader(title: "Recently Watched")
+                        .padding(.top, -8)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 15) {
+                            ForEach(viewModel.recentlyWatched) { series in
+                                RecentlyWatchedCard(series: series)
                             }
-                            .padding(.horizontal)
                         }
+                        .padding(.horizontal)
                     }
-                    
-                    // My Series section
-                    SectionHeader(title: "My Series")
-                    LazyVGrid(columns: [
-                        GridItem(.adaptive(minimum: 150, maximum: 170), spacing: 15)
-                    ], spacing: 20) {
-                        ForEach(savedSeries) { series in
-                            SeriesLibraryCard(series: series)
+                }
+                
+                // My Collection section
+                if !viewModel.savedCollection.isEmpty {
+                    LibrarySectionHeader(title: "Saved Series")
+                        .padding(.top, -8)
+                    LazyVGrid(columns: columns, spacing: 15) {
+                        ForEach(viewModel.savedCollection) { series in
+                            MyCollectionCard(series: series)
                         }
                     }
                     .padding(.horizontal)
                 }
-                .padding(.vertical)
-            }
-            .navigationTitle("Library")
-        }
-    }
-    
-    // Sample data
-    var continueWatchingSeries: [SeriesItem] {
-        [
-            SeriesItem(id: "1", title: "The Last Hope", episodes: 12, progress: 0.3),
-            SeriesItem(id: "2", title: "Dark Waters", episodes: 8, progress: 0.7),
-            SeriesItem(id: "3", title: "City Lights", episodes: 10, progress: 0.1)
-        ]
-    }
-    
-    var savedSeries: [SeriesItem] {
-        [
-            SeriesItem(id: "1", title: "The Last Hope", episodes: 12, progress: 0.3),
-            SeriesItem(id: "2", title: "Dark Waters", episodes: 8, progress: 0.7),
-            SeriesItem(id: "3", title: "City Lights", episodes: 10, progress: 0.1),
-            SeriesItem(id: "4", title: "Broken Promises", episodes: 15, progress: 0.5),
-            SeriesItem(id: "5", title: "New Dawn", episodes: 6, progress: 0)
-        ]
-    }
-}
-
-struct SeriesItem: Identifiable {
-    let id: String
-    let title: String
-    let episodes: Int
-    let progress: Double // 0.0 to 1.0
-}
-
-struct ContinueWatchingCard: View {
-    let series: SeriesItem
-    
-    var body: some View {
-        VStack(alignment: .leading) {
-            ZStack(alignment: .bottomLeading) {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.gray.opacity(0.3))
-                    .frame(width: 250, height: 140)
-                    .overlay(
-                        Image(systemName: "play.circle.fill")
-                            .font(.system(size: 40))
-                            .foregroundColor(.white)
-                    )
                 
-                // Progress bar
-                GeometryReader { geometry in
-                    Rectangle()
-                        .fill(Color.blue)
-                        .frame(width: geometry.size.width * series.progress, height: 4)
+                // Handle empty state
+                if viewModel.recentlyWatched.isEmpty && viewModel.savedCollection.isEmpty && !viewModel.isLoading {
+                    Text("Your library is empty.")
+                        .font(.headline)
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top, 50)
                 }
-                .frame(height: 4)
             }
-            
-            Text(series.title)
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .lineLimit(1)
-            
-            Text("\(Int(series.progress * 100))% complete • \(series.episodes) episodes")
-                .font(.caption)
-                .foregroundColor(.secondary)
+            .padding(.vertical, 10)
         }
-        .frame(width: 250)
+        .background(Color.black) // Apply black background
+        .preferredColorScheme(.dark) // Force dark mode
+        .overlay {
+            if viewModel.isLoading {
+                ProgressView()
+            }
+            // Optional: Add error message display if needed
+        }
     }
 }
 
-struct SeriesLibraryCard: View {
-    let series: SeriesItem
+// --- Simplified Section Header --- 
+struct LibrarySectionHeader: View {
+    let title: String
     
     var body: some View {
-        VStack(alignment: .leading) {
+        Text(title)
+            .font(.title3)
+            .fontWeight(.semibold)
+            .foregroundColor(.primary)
+            .padding(.horizontal)
+            .padding(.bottom, 4)
+    }
+}
+
+// --- Card Views for Library ---
+
+// Card for "Recently Watched" section
+struct RecentlyWatchedCard: View {
+    let series: WatchedSeries
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            // Placeholder Thumbnail - Apply same aspect ratio as MyCollectionCard
             RoundedRectangle(cornerRadius: 8)
-                .fill(Color.gray.opacity(0.3))
-                .frame(height: 220)
+                .fill(Color.systemSecondaryBackground) 
+                .aspectRatio(2/3, contentMode: .fit) // Use portrait aspect ratio
+                // Let the ScrollView's context determine width, but set a height constraint for the row
                 .overlay(
-                    VStack {
-                        Spacer()
-                        // Progress indicator
-                        GeometryReader { geometry in
-                            ZStack(alignment: .leading) {
-                                Rectangle()
-                                    .fill(Color.gray.opacity(0.5))
-                                    .frame(height: 4)
-                                
-                                Rectangle()
-                                    .fill(Color.blue)
-                                    .frame(width: geometry.size.width * series.progress, height: 4)
-                            }
-                        }
-                        .frame(height: 4)
-                    }
+                    Image(systemName: "play.rectangle.fill") // Keep play icon maybe?
+                        .font(.largeTitle)
+                        .foregroundColor(.gray)
                 )
             
             Text(series.title)
-                .font(.subheadline)
+                .font(.subheadline) // Slightly smaller than headline
                 .fontWeight(.medium)
+                .foregroundColor(.primary)
                 .lineLimit(1)
             
-            Text("\(Int(series.progress * 100))% • \(series.episodes) episodes")
+            Text(series.progressString)
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .frame(width: 160) // Constrain card width
+        // Remove fixed width for the VStack, let content define it within limits
+        // .frame(width: 160)
+    }
+}
+
+// Card for "My Collection" section (similar to HomeView SeriesCard)
+struct MyCollectionCard: View {
+    let series: SavedSeries
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            // Placeholder Thumbnail
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color.systemSecondaryBackground) // Use shared color
+                .aspectRatio(2/3, contentMode: .fit) // Portrait aspect ratio
+                .overlay(
+                    Image(systemName: "photo.fill.on.rectangle.fill")
+                        .font(.largeTitle)
+                        .foregroundColor(.gray)
+                )
+            
+            Text(series.title)
+                .font(.headline)
+                .fontWeight(.medium)
+                .foregroundColor(.primary)
+                .lineLimit(1)
+                .padding(.top, 2)
+            
+            Text(series.episodesString)
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
