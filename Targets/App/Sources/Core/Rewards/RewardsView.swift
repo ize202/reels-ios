@@ -148,28 +148,41 @@ struct RewardsView: View {
                 
                 // Buy Coins Section
                 VStack(alignment: .leading, spacing: 16) {
-                    Text("Buy Coins")
-                        .font(.title2)
+                    Text("COINS")
+                        .font(.title3)
                         .fontWeight(.bold)
                         .foregroundColor(.primary)
                         .padding(.horizontal)
                     
-                    VStack(spacing: 0) {
-                        CoinPackRow(amount: 100, price: "$1.99") { 
-                            print("Buy 100 coins tapped")
-                            // TODO: Initiate purchase via InAppPurchaseKit
-                        }
-                        Divider().padding(.horizontal)
-                        CoinPackRow(amount: 550, price: "$9.99") { 
-                            print("Buy 550 coins tapped")
-                            // TODO: Initiate purchase via InAppPurchaseKit
-                        }
-                        Divider().padding(.horizontal)
-                        CoinPackRow(amount: 1200, price: "$19.99") { 
-                            print("Buy 1200 coins tapped")
-                            // TODO: Initiate purchase via InAppPurchaseKit
-                        }
+                    LazyVGrid(columns: [
+                        GridItem(.flexible(), spacing: 12),
+                        GridItem(.flexible(), spacing: 12)
+                    ], spacing: 12) {
+                        CoinPackCard(amount: 100, bonusAmount: 200, price: "$0.99")
+                            .onTapGesture {
+                                print("Buy 100 (+200) coins pack tapped")
+                                // TODO: Initiate purchase via InAppPurchaseKit
+                            }
+                        
+                        CoinPackCard(amount: 300, price: "$3.99")
+                            .onTapGesture {
+                                print("Buy 300 coins pack tapped")
+                                // TODO: Initiate purchase via InAppPurchaseKit
+                            }
+                        
+                        CoinPackCard(amount: 500, bonusAmount: 50, price: "$6.99")
+                            .onTapGesture {
+                                print("Buy 500 (+50) coins pack tapped")
+                                // TODO: Initiate purchase via InAppPurchaseKit
+                            }
+                        
+                        CoinPackCard(amount: 1000, bonusAmount: 150, price: "$12.99")
+                            .onTapGesture {
+                                print("Buy 1000 (+150) coins pack tapped")
+                                // TODO: Initiate purchase via InAppPurchaseKit
+                            }
                     }
+                    .padding(.horizontal)
                 }
                 .padding(.vertical)
                 
@@ -272,25 +285,39 @@ struct StaticRewardActionRow: View {
     }
 }
 
-// View for coin pack rows
-struct CoinPackRow: View {
+// Updated CoinPackCard view for grid layout
+struct CoinPackCard: View {
     let amount: Int
+    var bonusAmount: Int? = nil
     let price: String
-    let purchaseAction: () -> Void
     
     var body: some View {
-        HStack {
-            Text("\(amount) Coins")
-                .font(.subheadline)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Image(systemName: "circle.fill")
+                    .font(.caption)
+                    .foregroundColor(.yellow)
+                
+                Text("\(amount)")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+                
+                Text(bonusAmount != nil ? "+ \(bonusAmount!)" : "")
+                    .font(.headline)
+                    .foregroundColor(.gray)
+                    .opacity(bonusAmount != nil ? 1 : 0)
+            }
+            
+            Text(price)
+                .font(.headline)
                 .foregroundColor(.primary)
-            
-            Spacer()
-            
-            Button(price, action: purchaseAction)
-                .buttonStyle(FlatButtonStyle())
+                .padding(.top, 4)
         }
-        .padding(.horizontal)
-        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, minHeight: 80, alignment: .leading)
+        .padding()
+        .background(Color(UIColor.systemGray6))
+        .cornerRadius(12)
     }
 }
 
