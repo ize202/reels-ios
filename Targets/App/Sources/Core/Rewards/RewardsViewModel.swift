@@ -15,6 +15,9 @@ struct DailyCheckinDay: Identifiable {
     }
 }
 
+// --- Reward Action Model ---
+// (Moved StaticRewardAction struct definition to RewardAction.swift)
+
 @MainActor
 class RewardsViewModel: ObservableObject {
 
@@ -23,6 +26,7 @@ class RewardsViewModel: ObservableObject {
     @Published var dailyCheckinDays: [DailyCheckinDay] = []
     @Published var isCheckinAvailable: Bool = false
     @Published var membershipStatus: String = "Free Tier"
+    @Published var staticRewardActions: [StaticRewardAction] = [] // New state for static rewards
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -31,6 +35,7 @@ class RewardsViewModel: ObservableObject {
 
     init() {
         setupInitialCheckinState()
+        setupStaticRewardActions() // Initialize static rewards
     }
 
     // Initialize with hardcoded state (Day 1 available)
@@ -43,7 +48,18 @@ class RewardsViewModel: ObservableObject {
         self.isCheckinAvailable = self.dailyCheckinDays.contains { $0.status == .available }
     }
 
-    // --- Actions --- 
+    // Initialize the list of static reward actions
+    func setupStaticRewardActions() {
+        // In a real app, load `isClaimed` status from persistence
+        staticRewardActions = [
+            StaticRewardAction(type: .loginApple, iconName: "apple.logo", title: "Login with Apple", descriptionFormat: "+%d Coins", rewardAmount: 50, isClaimed: false),
+            StaticRewardAction(type: .share, iconName: "square.and.arrow.up", title: "Share with friends", descriptionFormat: "+%d Coins", rewardAmount: 20, isClaimed: false),
+            StaticRewardAction(type: .pushNotification, iconName: "bell.badge.fill", title: "Turn on push notification", descriptionFormat: "+%d Coins", rewardAmount: 20, isClaimed: false),
+            StaticRewardAction(type: .reviewApp, iconName: "star.fill", title: "Review the app", descriptionFormat: "+%d Coins", rewardAmount: 20, isClaimed: false)
+        ]
+    }
+
+    // --- Actions ---
 
     func performCheckin() {
         guard let todayIndex = dailyCheckinDays.firstIndex(where: { $0.status == .available }) else { return }
@@ -65,10 +81,46 @@ class RewardsViewModel: ObservableObject {
         // Update the check-in availability state
         isCheckinAvailable = dailyCheckinDays.contains { $0.status == .available }
         print("Checked in for Day \(currentStreak)! Earned \(rewardAmount) coins. New balance: \(coinBalance)")
-        
+
         // In a real app: Save currentStreak and dailyCheckinDays state to persistence
     }
-    
+
+    // New function to handle static reward actions
+    func performStaticRewardAction(id: UUID) {
+        guard let index = staticRewardActions.firstIndex(where: { $0.id == id }),
+              !staticRewardActions[index].isClaimed else {
+            print("Action already claimed or not found.")
+            return
+        }
+
+        let action = staticRewardActions[index]
+
+        // --- Trigger Side Effects Based on Action Type ---
+        // TODO: Implement the actual logic for each action type
+        switch action.type {
+        case .loginApple:
+            print("Attempting Apple Sign In...")
+            // Add Apple Sign In logic here
+        case .share:
+            print("Showing Share Sheet...")
+            // Add Share Sheet logic here
+        case .pushNotification:
+            print("Requesting Push Notification Permissions...")
+            // Add Push Notification logic here
+        case .reviewApp:
+            print("Requesting App Review...")
+            // Add StoreKit App Review logic here
+        }
+
+        // --- Update State (if side effect was successful or immediate) ---
+        // For now, assume success and claim reward immediately
+        staticRewardActions[index].isClaimed = true
+        claimReward(amount: action.rewardAmount)
+        print("Performed action: \(action.title). Claimed \(action.rewardAmount) coins.")
+
+        // In a real app: Save updated `isClaimed` status to persistence
+    }
+
     // Simple function to add coins
     func claimReward(amount: Int) {
         guard amount > 0 else { return }

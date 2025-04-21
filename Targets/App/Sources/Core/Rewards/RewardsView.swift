@@ -10,16 +10,6 @@ import InAppPurchaseKit
 struct RewardsView: View {
     @StateObject private var viewModel = RewardsViewModel()
     
-    // State variables to track claimed status of hardcoded rewards
-    @State private var isLoginClaimed: Bool = false
-    @State private var isShareClaimed: Bool = false
-    @State private var isPushClaimed: Bool = false
-    @State private var isReviewClaimed: Bool = false
-    
-    // Different reward amounts
-    private let loginRewardAmount = 50
-    private let standardRewardAmount = 20
-    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) { // Increased spacing between sections
@@ -107,7 +97,7 @@ struct RewardsView: View {
                 .cornerRadius(16)
                 .padding(.horizontal)
                 
-                // Earn Rewards Section - Hardcoded
+                // Earn Rewards Section - Now driven by ViewModel
                 VStack(alignment: .leading, spacing: 0) {
                     Text("Earn Rewards")
                         .font(.title2)
@@ -116,32 +106,15 @@ struct RewardsView: View {
                         .padding(.horizontal)
                         .padding(.bottom, 8)
                     
-                    // Hardcoded Rows
-                    StaticRewardActionRow(iconName: "apple.logo", title: "Login with Apple", description: "+\(loginRewardAmount) Coins", isClaimed: $isLoginClaimed) {
-                        print("Login with Apple action triggered")
-                        // Add actual Apple Sign In logic here
-                        viewModel.claimReward(amount: loginRewardAmount)
-                    }
-                    Divider().padding(.horizontal)
-                    
-                    StaticRewardActionRow(iconName: "square.and.arrow.up", title: "Share with friends", description: "+\(standardRewardAmount) Coins", isClaimed: $isShareClaimed) {
-                        print("Share action triggered")
-                        // Add actual Share Sheet logic here
-                        viewModel.claimReward(amount: standardRewardAmount)
-                    }
-                    Divider().padding(.horizontal)
-                    
-                    StaticRewardActionRow(iconName: "bell.badge.fill", title: "Turn on push notification", description: "+\(standardRewardAmount) Coins", isClaimed: $isPushClaimed) {
-                        print("Push notification action triggered")
-                        // Add actual Push Notification enablement logic here
-                        viewModel.claimReward(amount: standardRewardAmount)
-                    }
-                    Divider().padding(.horizontal)
-                    
-                    StaticRewardActionRow(iconName: "star.fill", title: "Review the app", description: "+\(standardRewardAmount) Coins", isClaimed: $isReviewClaimed) {
-                        print("Review action triggered")
-                        // Add actual App Store Review logic here (e.g., using StoreKit)
-                        viewModel.claimReward(amount: standardRewardAmount)
+                    // Loop through actions from ViewModel
+                    ForEach(viewModel.staticRewardActions) { action in
+                        StaticRewardActionRow(action: action) { // Pass action ID to closure
+                            viewModel.performStaticRewardAction(id: action.id)
+                        }
+                        // Add divider if it's not the last item
+                        if action.id != viewModel.staticRewardActions.last?.id {
+                            Divider().padding(.leading, 55) // Indent divider
+                        }
                     }
                 }
                 .padding(.vertical)
@@ -245,40 +218,37 @@ struct DailyCheckinItemView: View {
     }
 }
 
-// View for HARDCODED Earn Rewards list items
+// View for HARDCODED Earn Rewards list items - UPDATED
 struct StaticRewardActionRow: View {
-    let iconName: String
-    let title: String
-    let description: String
-    @Binding var isClaimed: Bool // Use Binding to update state
-    let performAction: () -> Void
-    
+    let action: StaticRewardAction // Accept the model object
+    let performAction: () -> Void // Keep simple closure for button tap
+
     var body: some View {
         HStack(spacing: 15) {
-            Image(systemName: iconName)
+            Image(systemName: action.iconName)
                 .font(.title3)
                 .frame(width: 24)
                 .foregroundColor(.secondary)
-            
+
             VStack(alignment: .leading, spacing: 2) {
-                Text(title)
+                Text(action.title)
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .foregroundColor(.primary)
-                Text(description)
+                Text(action.description) // Use computed description from model
                     .font(.footnote)
                     .foregroundColor(.secondary)
             }
-            
+
             Spacer()
-            
-            Button(isClaimed ? "Claimed" : "Claim", action: {
-                if !isClaimed {
-                    performAction() // Execute the passed-in action (e.g., show share sheet)
-                    isClaimed = true // Mark as claimed after action
+
+            Button(action.isClaimed ? "Claimed" : "Claim", action: {
+                if !action.isClaimed {
+                    performAction() // Call the closure passed from the parent
                 }
             })
-            .buttonStyle(FlatButtonStyle(disabled: isClaimed))
+            .buttonStyle(FlatButtonStyle(disabled: action.isClaimed))
+            .disabled(action.isClaimed) // Ensure button is disabled based on model state
         }
         .padding(.horizontal)
         .padding(.vertical, 12) // Increased padding for better spacing
