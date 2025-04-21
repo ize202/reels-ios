@@ -10,73 +10,75 @@ import InAppPurchaseKit
 struct RewardsView: View {
     @StateObject private var viewModel = RewardsViewModel()
     
-    // Define the gradient used for buttons (Use AccentColor or standard system colors)
-    let buttonGradient = LinearGradient(
-        gradient: Gradient(colors: [Color.blue, Color.purple]), // Example: Standard blue/purple
-        startPoint: .leading,
-        endPoint: .trailing
-    )
+    // State variables to track claimed status of hardcoded rewards
+    @State private var isLoginClaimed: Bool = false
+    @State private var isShareClaimed: Bool = false
+    @State private var isPushClaimed: Bool = false
+    @State private var isReviewClaimed: Bool = false
+    
+    // Different reward amounts
+    private let loginRewardAmount = 50
+    private let standardRewardAmount = 20
     
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 24) { // Increased spacing between sections
                 // Coin Balance Header - Simplified
                 HStack {
                     Text("\(viewModel.coinBalance)")
-                        .font(.system(size: 34, weight: .bold))
+                        .font(.system(size: 40, weight: .bold)) // Increased size for emphasis
                         .foregroundColor(.primary)
-                    // Image(systemName: "ticket.fill") // Removed icon
                     Text("Balance")
-                        .font(.subheadline)
+                        .font(.headline)
                         .foregroundColor(.secondary)
+                        .padding(.leading, 4)
                     Spacer()
-                    // Button("Rules") { // Removed button
-                    //     print("Rules tapped")
-                    // }
-                    // .font(.caption)
-                    // .foregroundColor(.secondary)
                 }
                 .padding(.horizontal)
-                .padding(.top)
+                .padding(.top, 8)
                 
                 // Daily Check-in Section
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("You've checked in for \(viewModel.currentStreak) day\(viewModel.currentStreak == 1 ? "" : "s")!")
-                        .font(.headline)
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Daily Check-in")
+                        .font(.title2)
+                        .fontWeight(.bold)
                         .foregroundColor(.primary)
                         .padding(.horizontal)
                     
-                    // Daily Check-in Row
+                    Text("You've checked in for \(viewModel.currentStreak) day\(viewModel.currentStreak == 1 ? "" : "s")!")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal)
+                    
                     HStack(spacing: 10) {
                         ForEach(viewModel.dailyCheckinDays) { day in
                             DailyCheckinItemView(day: day)
                         }
                     }
                     .padding(.horizontal)
-                    .frame(maxWidth: .infinity) // Ensure HStack takes full width
+                    .frame(maxWidth: .infinity)
                     
-                    // Check-in Button
                     Button {
                         viewModel.performCheckin()
                     } label: {
                         Text(viewModel.isCheckinAvailable ? "Check-in" : "Checked in for Today")
-                            .fontWeight(.semibold)
+                            .font(.body.weight(.semibold))
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(viewModel.isCheckinAvailable ? buttonGradient : LinearGradient(colors: [Color.gray], startPoint: .leading, endPoint: .trailing))
-                            .cornerRadius(10)
+                            .background(viewModel.isCheckinAvailable ? Color.blue : Color.gray)
+                            .cornerRadius(12)
                     }
                     .disabled(!viewModel.isCheckinAvailable)
                     .padding(.horizontal)
                 }
                 .padding(.vertical)
-                .background(Color.systemSecondaryBackground) // Use adaptive background
-                .cornerRadius(12)
+                .background(Color.systemSecondaryBackground)
+                .cornerRadius(16)
                 .padding(.horizontal)
                 
                 // Membership Section
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 12) {
                     Text("Membership")
                         .font(.title2)
                         .fontWeight(.bold)
@@ -84,123 +86,140 @@ struct RewardsView: View {
                     
                     HStack {
                         Image(systemName: "crown.fill")
-                            .foregroundColor(.yellow) // Keep yellow for VIP/Crown
+                            .foregroundColor(.yellow)
+                            .font(.title3)
                         Text("Current Tier: \(viewModel.membershipStatus)")
                             .font(.subheadline)
-                            .foregroundColor(.primary) // Use primary
+                            .foregroundColor(.primary)
                         Spacer()
                         Button("Upgrade") {
-                            print("Upgrade membership tapped")
-                            viewModel.handleRewardAction(actionId: viewModel.rewardActions.first(where: {$0.actionType == .membership})?.id ?? UUID())
+                            viewModel.handleMembershipAction() // Call the updated VM function
                         }
-                        .buttonStyle(GradientButtonStyle(gradient: buttonGradient, disabled: false))
+                        .buttonStyle(FlatButtonStyle())
                     }
                     
                     Text("Unlock exclusive series and enjoy ad-free viewing!")
-                        .font(.caption)
+                        .font(.footnote)
                         .foregroundColor(.secondary)
                 }
                 .padding()
-                .background(Color.systemSecondaryBackground) // Use adaptive background
-                .cornerRadius(12)
+                .background(Color.systemSecondaryBackground)
+                .cornerRadius(16)
                 .padding(.horizontal)
                 
-                // Earn Rewards Section
+                // Earn Rewards Section - Hardcoded
                 VStack(alignment: .leading, spacing: 0) {
                     Text("Earn Rewards")
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(.primary)
-                        .padding([.horizontal, .top])
-                        .padding(.bottom, 5)
+                        .padding(.horizontal)
+                        .padding(.bottom, 8)
                     
-                    // List of Reward Actions
-                    ForEach(viewModel.rewardActions) { action in
-                        RewardActionRow(action: action, buttonGradient: buttonGradient) {
-                            viewModel.handleRewardAction(actionId: action.id)
-                        }
-                        Divider().padding(.leading, 50) // Indent divider
+                    // Hardcoded Rows
+                    StaticRewardActionRow(iconName: "apple.logo", title: "Login with Apple", description: "+\(loginRewardAmount) Coins", isClaimed: $isLoginClaimed) {
+                        print("Login with Apple action triggered")
+                        // Add actual Apple Sign In logic here
+                        viewModel.claimReward(amount: loginRewardAmount)
+                    }
+                    Divider().padding(.horizontal)
+                    
+                    StaticRewardActionRow(iconName: "square.and.arrow.up", title: "Share with friends", description: "+\(standardRewardAmount) Coins", isClaimed: $isShareClaimed) {
+                        print("Share action triggered")
+                        // Add actual Share Sheet logic here
+                        viewModel.claimReward(amount: standardRewardAmount)
+                    }
+                    Divider().padding(.horizontal)
+                    
+                    StaticRewardActionRow(iconName: "bell.badge.fill", title: "Turn on push notification", description: "+\(standardRewardAmount) Coins", isClaimed: $isPushClaimed) {
+                        print("Push notification action triggered")
+                        // Add actual Push Notification enablement logic here
+                        viewModel.claimReward(amount: standardRewardAmount)
+                    }
+                    Divider().padding(.horizontal)
+                    
+                    StaticRewardActionRow(iconName: "star.fill", title: "Review the app", description: "+\(standardRewardAmount) Coins", isClaimed: $isReviewClaimed) {
+                        print("Review action triggered")
+                        // Add actual App Store Review logic here (e.g., using StoreKit)
+                        viewModel.claimReward(amount: standardRewardAmount)
                     }
                 }
+                .padding(.vertical)
                 
-                // --- Buy Rewards Section Added ---
-                VStack(alignment: .leading, spacing: 10) {
+                // Buy Coins Section
+                VStack(alignment: .leading, spacing: 16) {
                     Text("Buy Coins")
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(.primary)
-                        .padding(.bottom, 5)
-
-                    // Placeholder coin packs - Integrate with InAppPurchaseKit
-                    CoinPackRow(icon: "ticket.fill", amount: 100, price: "$1.99", gradient: buttonGradient) { 
-                        print("Buy 100 coins tapped")
-                        // TODO: Initiate purchase via InAppPurchaseKit
-                    }
-                    Divider()
-                    CoinPackRow(icon: "ticket.fill", amount: 550, price: "$9.99", gradient: buttonGradient) { 
-                        print("Buy 550 coins tapped")
-                        // TODO: Initiate purchase via InAppPurchaseKit
-                    }
-                     Divider()
-                    CoinPackRow(icon: "ticket.fill", amount: 1200, price: "$19.99", gradient: buttonGradient) { 
-                        print("Buy 1200 coins tapped")
-                        // TODO: Initiate purchase via InAppPurchaseKit
+                        .padding(.horizontal)
+                    
+                    VStack(spacing: 0) {
+                        CoinPackRow(amount: 100, price: "$1.99") { 
+                            print("Buy 100 coins tapped")
+                            // TODO: Initiate purchase via InAppPurchaseKit
+                        }
+                        Divider().padding(.horizontal)
+                        CoinPackRow(amount: 550, price: "$9.99") { 
+                            print("Buy 550 coins tapped")
+                            // TODO: Initiate purchase via InAppPurchaseKit
+                        }
+                        Divider().padding(.horizontal)
+                        CoinPackRow(amount: 1200, price: "$19.99") { 
+                            print("Buy 1200 coins tapped")
+                            // TODO: Initiate purchase via InAppPurchaseKit
+                        }
                     }
                 }
-                .padding()
-                .background(Color.systemSecondaryBackground)
-                .cornerRadius(12)
-                .padding(.horizontal)
-
-                Spacer() // Push content to top
+                .padding(.vertical)
+                
+                Spacer(minLength: 32)
             }
         }
-        .background(Color.black.ignoresSafeArea()) 
-        .preferredColorScheme(.dark) // Keep forcing dark mode
+        .background(Color.black.ignoresSafeArea())
+        .preferredColorScheme(.dark)
         .navigationTitle("Rewards")
         .navigationBarTitleDisplayMode(.inline)
     }
 }
 
-// View for each day in the check-in row - UPDATED ICONS/COLORS
+// View for each day in the check-in row
 struct DailyCheckinItemView: View {
     let day: DailyCheckinDay
     
     var body: some View {
         VStack(spacing: 4) {
             Text("+\(day.rewardAmount)")
-                .font(.caption)
+                .font(.footnote)
                 .fontWeight(.medium)
-                .foregroundColor(day.status == .upcoming ? .secondary : .primary) // Dim upcoming text
+                .foregroundColor(day.status == .upcoming ? .secondary : .primary)
                 .padding(.horizontal, 4)
                 .padding(.vertical, 2)
                 .background(day.status == .available ? Color.yellow.opacity(0.3) : Color.clear)
                 .cornerRadius(4)
             
-            Image(systemName: iconName(for: day.status)) // Use helper for icon
-                .foregroundColor(iconColor(for: day.status)) // Use helper for color
+            Image(systemName: iconName(for: day.status))
+                .foregroundColor(iconColor(for: day.status))
                 .font(.title3)
             
             Text("Day \(day.id)")
                 .font(.caption2)
                 .foregroundColor(.secondary)
         }
-        .frame(maxWidth: .infinity) // Distribute space evenly
+        .frame(maxWidth: .infinity)
     }
     
-    // Helper for icon name based on status
     private func iconName(for status: DailyCheckinDay.CheckinStatus) -> String {
         switch status {
         case .checkedIn:
             return "checkmark.circle.fill"
         case .available:
-            return "gift.fill" // Changed to gift
+            return "gift.fill"
         case .upcoming:
-            return "lock.fill" // Changed to lock
+            return "lock.fill"
         }
     }
     
-    // Helper for icon color based on status
     private func iconColor(for status: DailyCheckinDay.CheckinStatus) -> Color {
         switch status {
         case .checkedIn:
@@ -213,87 +232,82 @@ struct DailyCheckinItemView: View {
     }
 }
 
-// View for each row in the Earn Rewards list
-struct RewardActionRow: View {
-    let action: RewardAction
-    let buttonGradient: LinearGradient
+// View for HARDCODED Earn Rewards list items
+struct StaticRewardActionRow: View {
+    let iconName: String
+    let title: String
+    let description: String
+    @Binding var isClaimed: Bool // Use Binding to update state
     let performAction: () -> Void
     
     var body: some View {
         HStack(spacing: 15) {
-            Image(systemName: action.iconName)
-                .font(.title2)
-                .frame(width: 25)
-                .foregroundColor(.secondary) // Use secondary for icon tint
+            Image(systemName: iconName)
+                .font(.title3)
+                .frame(width: 24)
+                .foregroundColor(.secondary)
             
             VStack(alignment: .leading, spacing: 2) {
-                Text(action.title)
+                Text(title)
                     .font(.subheadline)
                     .fontWeight(.medium)
-                    .foregroundColor(.primary) // Use primary
-                HStack(spacing: 4) {
-                    Text(action.description)
-                        .font(.caption)
-                        .foregroundColor(.secondary) // Use secondary
-                }
+                    .foregroundColor(.primary)
+                Text(description)
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
             }
             
             Spacer()
             
-            Button(action.buttonLabel, action: performAction)
-                .buttonStyle(GradientButtonStyle(gradient: buttonGradient, disabled: action.isButtonDisabled))
-                .font(.caption)
+            Button(isClaimed ? "Claimed" : "Claim", action: {
+                if !isClaimed {
+                    performAction() // Execute the passed-in action (e.g., show share sheet)
+                    isClaimed = true // Mark as claimed after action
+                }
+            })
+            .buttonStyle(FlatButtonStyle(disabled: isClaimed))
         }
-        .padding(.vertical, 10)
         .padding(.horizontal)
+        .padding(.vertical, 12) // Increased padding for better spacing
     }
 }
 
-// --- New View for Coin Pack Row ---
+// View for coin pack rows
 struct CoinPackRow: View {
-    let icon: String
     let amount: Int
     let price: String
-    let gradient: LinearGradient
     let purchaseAction: () -> Void
-
+    
     var body: some View {
         HStack {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundColor(.yellow)
-                .frame(width: 30)
-            
             Text("\(amount) Coins")
-                .font(.headline)
+                .font(.subheadline)
                 .foregroundColor(.primary)
             
             Spacer()
             
             Button(price, action: purchaseAction)
-                .buttonStyle(GradientButtonStyle(gradient: gradient))
-                .font(.caption.weight(.bold))
+                .buttonStyle(FlatButtonStyle())
         }
-        .padding(.vertical, 5)
+        .padding(.horizontal)
+        .padding(.vertical, 12)
     }
 }
 
-// Reusable Button Style
-struct GradientButtonStyle: ButtonStyle {
-    let gradient: LinearGradient
+// Flat Button Style (replacing gradient)
+struct FlatButtonStyle: ButtonStyle {
     var disabled: Bool = false
     
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .fontWeight(.semibold)
+            .font(.subheadline.weight(.semibold))
             .foregroundColor(.white)
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
             .background(
-                gradient
-                .opacity(disabled || configuration.isPressed ? 0.6 : 1.0) // Dim if disabled or pressed
+                disabled ? Color.gray : (configuration.isPressed ? Color.blue.opacity(0.8) : Color.blue)
             )
-            .cornerRadius(20) // Pill shape
+            .cornerRadius(8)
             .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
             .animation(.easeOut(duration: 0.1), value: configuration.isPressed)
             .disabled(disabled)
@@ -303,7 +317,6 @@ struct GradientButtonStyle: ButtonStyle {
 // Preview
 struct RewardsView_Previews: PreviewProvider {
     static var previews: some View {
-        // Embed in NavigationView for previewing title
         NavigationView {
             RewardsView()
         }
