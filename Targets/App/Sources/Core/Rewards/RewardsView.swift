@@ -208,7 +208,7 @@ struct DailyCheckinItemView: View {
     private func iconColor(for status: DailyCheckinDay.CheckinStatus) -> Color {
         switch status {
         case .checkedIn:
-            return .green
+            return Color(hex: "503370")
         case .available:
             return .yellow
         case .upcoming:
