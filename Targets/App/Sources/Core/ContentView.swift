@@ -18,21 +18,26 @@ struct ContentView: View {
 
 	var body: some View {
 		TabView {
-
-			// Example view on how to access the Database.
-			DatabaseExampleView()
-				.tabItem { Label("DB Exmpls.", systemImage: "externaldrive.badge.icloud") }
-
-			// Pre-made Settings View for easy native-looking settings screen.
-			SettingsView()
-				.tabItem { Label("Settings", systemImage: "gear") }
+			// Home Tab
+			HomeView()
+				.tabItem { Label("Home", systemImage: "house") }
+			
+			// Library Tab
+			LibraryView()
+				.tabItem { Label("Library", systemImage: "books.vertical") }
+			
+			// Rewards Tab
+			RewardsView()
+				.tabItem { Label("Rewards", systemImage: "gift") }
+			
+			// Profile Tab
+			ProfileView()
+				.tabItem { Label("Profile", systemImage: "person") }
 
 			#if DEBUG
-
 				// Use this to create quick settings and toggles to streamline the development process.
 				DeveloperSettingsView()
 					.tabItem { Label("Developer", systemImage: "hammer") }
-
 			#endif
 		}
 	}
