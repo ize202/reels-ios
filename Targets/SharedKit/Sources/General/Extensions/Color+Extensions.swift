@@ -95,4 +95,12 @@ extension Color {
 		}
 		return hexString
 	}
+
+	// MARK: - Standard System Colors (Adapting UIKit colors)
+
+	/// A color object that represents the secondary system background color.
+	public static let systemSecondaryBackground = Color(uiColor: .secondarySystemBackground)
+
+	/// A color object that represents the tertiary system background color.
+	public static let systemTertiaryBackground = Color(uiColor: .tertiarySystemBackground)
 }
