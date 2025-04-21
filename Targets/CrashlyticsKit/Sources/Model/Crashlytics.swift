@@ -9,12 +9,10 @@ public class Crashlytics {
     
     public func configure() {
         print("[CRASHLYTICS] Initializing...")
-        // Get DSN from plist
-        let bundle = Bundle(for: type(of: self))
         
-        if let path = bundle.path(forResource: "Sentry-info", ofType: "plist"),
-           let dict = NSDictionary(contentsOfFile: path) as? [String: Any],
-           let dsn = dict["SENTRY_DSN"] as? String {
+        do {
+            // Get DSN using the same approach as Analytics
+            let dsn = try getPlistEntry("SENTRY_DSN", in: "Sentry-Info")
             
             // Initialize Sentry
             SentrySDK.start { options in
@@ -33,8 +31,8 @@ public class Crashlytics {
                 #endif
             }
             print("[CRASHLYTICS] Successfully initialized")
-        } else {
-            print("[CRASHLYTICS] ERROR: Failed to initialize - Sentry-info.plist not found or invalid")
+        } catch {
+            print("[CRASHLYTICS] ERROR: Failed to initialize - \(error.localizedDescription)")
         }
     }
     
