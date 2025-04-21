@@ -20,25 +20,21 @@ struct RewardsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                // Coin Balance Header
+                // Coin Balance Header - Simplified
                 HStack {
                     Text("\(viewModel.coinBalance)")
                         .font(.system(size: 34, weight: .bold))
-                        .foregroundColor(.primary) // Use primary for main text
-                    Image(systemName: "ticket.fill") // Changed icon
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 28, height: 28)
-                        .foregroundColor(.yellow) // Keep yellow for coins/rewards accent
+                        .foregroundColor(.primary)
+                    // Image(systemName: "ticket.fill") // Removed icon
                     Text("Balance")
                         .font(.subheadline)
-                        .foregroundColor(.secondary) // Use secondary for less important text
+                        .foregroundColor(.secondary)
                     Spacer()
-                    Button("Rules") {
-                        print("Rules tapped")
-                    }
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                    // Button("Rules") { // Removed button
+                    //     print("Rules tapped")
+                    // }
+                    // .font(.caption)
+                    // .foregroundColor(.secondary)
                 }
                 .padding(.horizontal)
                 .padding(.top)
@@ -95,7 +91,6 @@ struct RewardsView: View {
                         Spacer()
                         Button("Upgrade") {
                             print("Upgrade membership tapped")
-                            // Placeholder action remains
                             viewModel.handleRewardAction(actionId: viewModel.rewardActions.first(where: {$0.actionType == .membership})?.id ?? UUID())
                         }
                         .buttonStyle(GradientButtonStyle(gradient: buttonGradient, disabled: false))
@@ -128,6 +123,35 @@ struct RewardsView: View {
                     }
                 }
                 
+                // --- Buy Rewards Section Added ---
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Buy Coins")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+                        .padding(.bottom, 5)
+
+                    // Placeholder coin packs - Integrate with InAppPurchaseKit
+                    CoinPackRow(icon: "ticket.fill", amount: 100, price: "$1.99", gradient: buttonGradient) { 
+                        print("Buy 100 coins tapped")
+                        // TODO: Initiate purchase via InAppPurchaseKit
+                    }
+                    Divider()
+                    CoinPackRow(icon: "ticket.fill", amount: 550, price: "$9.99", gradient: buttonGradient) { 
+                        print("Buy 550 coins tapped")
+                        // TODO: Initiate purchase via InAppPurchaseKit
+                    }
+                     Divider()
+                    CoinPackRow(icon: "ticket.fill", amount: 1200, price: "$19.99", gradient: buttonGradient) { 
+                        print("Buy 1200 coins tapped")
+                        // TODO: Initiate purchase via InAppPurchaseKit
+                    }
+                }
+                .padding()
+                .background(Color.systemSecondaryBackground)
+                .cornerRadius(12)
+                .padding(.horizontal)
+
                 Spacer() // Push content to top
             }
         }
@@ -222,6 +246,35 @@ struct RewardActionRow: View {
         }
         .padding(.vertical, 10)
         .padding(.horizontal)
+    }
+}
+
+// --- New View for Coin Pack Row ---
+struct CoinPackRow: View {
+    let icon: String
+    let amount: Int
+    let price: String
+    let gradient: LinearGradient
+    let purchaseAction: () -> Void
+
+    var body: some View {
+        HStack {
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundColor(.yellow)
+                .frame(width: 30)
+            
+            Text("\(amount) Coins")
+                .font(.headline)
+                .foregroundColor(.primary)
+            
+            Spacer()
+            
+            Button(price, action: purchaseAction)
+                .buttonStyle(GradientButtonStyle(gradient: gradient))
+                .font(.caption.weight(.bold))
+        }
+        .padding(.vertical, 5)
     }
 }
 
