@@ -1,0 +1,123 @@
+---
+description: the supabase db schema
+globs: 
+alwaysApply: false
+---
+# Reels App Database Schema
+
+## Overview
+This document outlines the database schema for the Reels app, a short-form drama streaming platform. The schema is designed to support both anonymous and authenticated users, with a focus on content delivery, user engagement, and monetization.
+
+## Core Tables
+
+### 1. Series
+Table: `public.series`
+- Primary key: `id` (uuid)
+- Fields:
+  - `title` (text, required): Series title
+  - `description` (text): Series description
+  - `genre` (text): Series genre
+  - `cover_url` (text): URL to series cover image
+  - `is_published` (boolean, default: false): Publication status
+  - `created_at` (timestamptz, default: now()): Creation timestamp
+
+### 2. Episodes
+Table: `public.episodes`
+- Primary key: `id` (uuid)
+- Foreign key: `series_id` references series(id)
+- Fields:
+  - `mux_asset_id` (text, required): Mux video asset ID
+  - `playback_url` (text, required): Mux playback URL
+  - `episode_number` (integer, required): Episode sequence number
+  - `unlock_type` (text, required): One of ['free', 'coin', 'ad', 'vip']
+  - `coin_cost` (integer): Cost in coins if unlock_type is 'coin'
+  - `created_at` (timestamptz, default: now()): Creation timestamp
+
+### 3. User Library
+Table: `public.user_library`
+- Composite Primary key: (user_id, series_id)
+- Foreign keys:
+  - `user_id` references auth.users(id)
+  - `series_id` references series(id)
+  - `last_episode_id` references episodes(id)
+- Fields:
+  - `is_saved` (boolean, default: false): Whether series is saved to library
+
+### 4. User Wallet
+Table: `public.user_wallet`
+- Primary key: `user_id` (uuid)
+- Foreign key: `user_id` references auth.users(id)
+- Fields:
+  - `coin_balance` (integer, default: 0): User's coin balance
+  - `is_vip` (boolean, default: false): VIP subscription status
+  - `updated_at` (timestamptz, default: now()): Last update timestamp
+
+### 5. Coin Transactions
+Table: `public.coin_transactions`
+- Primary key: `id` (uuid)
+- Foreign key: `user_id` references auth.users(id)
+- Fields:
+  - `amount` (integer, required): Transaction amount (positive for credits, negative for debits)
+  - `source` (text, required): Transaction source (e.g., 'purchase', 'reward', 'unlock')
+  - `created_at` (timestamptz, default: now()): Transaction timestamp
+
+### 6. Episode Likes
+Table: `public.episode_likes`
+- Composite Primary key: (user_id, episode_id)
+- Foreign keys:
+  - `user_id` references auth.users(id)
+  - `episode_id` references episodes(id)
+- Fields:
+  - `liked_at` (timestamptz, default: now()): Like timestamp
+
+## Row Level Security (RLS) Policies
+
+### Series & Episodes
+- All users (including anonymous) can view published series and episodes
+- Only admins can create/update/delete series and episodes
+
+### User Library
+- Non-anonymous users can view/manage their own library entries
+- Anonymous users cannot save to library (must upgrade)
+
+### User Wallet
+- All users (including anonymous) can have a wallet
+- Users can only view/manage their own wallet
+- Wallet is created automatically on user creation (both anonymous and regular)
+### Coin Transactions
+- All users (including anonymous) can create/view their own transactions
+- Users can only view their own transaction history
+
+### Episode Likes
+- Non-anonymous users can like/unlike episodes
+- Anonymous users cannot like episodes (must upgrade)
+- Users can only view their own likes
+
+## Database Functions
+
+### handle_new_user()
+- Trigger: AFTER INSERT ON auth.users
+- Creates a wallet for all new users (both anonymous and regular)
+- No initial coin balance
+
+## Authentication
+
+### User Types
+1. Anonymous Users
+   - Created automatically on first app open
+   - Can watch free content
+   - Can earn and spend coins
+   - Cannot save to library or like episodes
+
+2. Regular Users (Upgraded)
+   - Can do everything anonymous users can
+   - Can save series to library
+   - Can like episodes
+   - Wallet and coins carry over from anonymous account
+
+## Notes
+- All timestamps use timestamptz for timezone awareness
+- UUIDs used for most primary keys for scalability
+- Composite keys used where appropriate (user_library, episode_likes)
+- RLS policies ensure data security at row level
+- Automatic wallet creation ensures all users can participate in coin economy 

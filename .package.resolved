@@ -1,6 +1,42 @@
 {
-  "originHash" : "96381bf2a47baa5b225bcf3a81cafd4a66536c54029b620e83cb3b910b96e74d",
+  "originHash" : "d428634e10d2d9891341f8aa41e4538ae347ece2059c7687982c17ae32527f6c",
   "pins" : [
+    {
+      "identity" : "gcdwebserver",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/yene/GCDWebServer",
+      "state" : {
+        "revision" : "c2f837b30038ef716b77225f40cc8d104b6ff645",
+        "version" : "3.5.7"
+      }
+    },
+    {
+      "identity" : "mixpanel-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/mixpanel/mixpanel-swift.git",
+      "state" : {
+        "revision" : "c550cbef7654e59d06bf9c224ea25f681dea8975",
+        "version" : "4.4.0"
+      }
+    },
+    {
+      "identity" : "mux-player-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/muxinc/mux-player-swift",
+      "state" : {
+        "revision" : "d29c15791cb0c5ea68bf63df713d1e1bf7283eb6",
+        "version" : "1.2.0"
+      }
+    },
+    {
+      "identity" : "mux-stats-sdk-avplayer",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/muxinc/mux-stats-sdk-avplayer",
+      "state" : {
+        "revision" : "ddac23a67cbde6e294937a9d6ed54d71ff80e213",
+        "version" : "3.6.1"
+      }
+    },
     {
       "identity" : "onesignal-ios-sdk",
       "kind" : "remoteSourceControl",
@@ -11,21 +47,30 @@
       }
     },
     {
-      "identity" : "posthog-ios",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/PostHog/posthog-ios.git",
-      "state" : {
-        "revision" : "1b011434301250ca75098c40fecad9ba3d209307",
-        "version" : "3.24.0"
-      }
-    },
-    {
       "identity" : "purchases-ios",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/RevenueCat/purchases-ios.git",
       "state" : {
         "revision" : "96545bf014ca3d5a2b0ffd2c8de7105ca0705a19",
         "version" : "5.22.0"
+      }
+    },
+    {
+      "identity" : "sentry-cocoa",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/getsentry/sentry-cocoa.git",
+      "state" : {
+        "revision" : "2c6c1b81d9f6e6178064b4e9b457abe1c118bcda",
+        "version" : "8.49.0"
+      }
+    },
+    {
+      "identity" : "stats-sdk-objc",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/muxinc/stats-sdk-objc.git",
+      "state" : {
+        "revision" : "d72b1d40ae9f568d2c6be890c48a17b1ff11c9af",
+        "version" : "4.7.1"
       }
     },
     {
