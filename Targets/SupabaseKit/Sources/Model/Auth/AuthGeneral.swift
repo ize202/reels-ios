@@ -13,26 +13,46 @@ import Supabase
 extension DB {
 
 	// Supabase calls this function when user state changes
-	func registerAuthStateListener(additionalHandler: @escaping (AuthChangeEvent, Session?) -> Void) async {
-		if authStateHandler == nil {
-			authStateHandler = await _db.auth.onAuthStateChange { event, session in
-				Analytics.capture(
-					.info,
-					id: "auth_state_change",
-					longDescription:
-						"New Auth State Change: \(event.rawValue)",
-					source: .auth
-				)
-
-				Task { @MainActor in
+	@MainActor
+	internal func registerAuthStateListener(
+		additionalHandler: @escaping (AuthChangeEvent, Session?) -> Void
+	) async {
+		// Clean up existing handler if any
+		authStateHandler?.remove()
+		
+		// Register new handler
+		authStateHandler = await _db.auth.onAuthStateChange { [weak self] event, session in
+			Analytics.capture(
+				.info,
+				id: "auth_state_change",
+				longDescription: "New Auth State Change: \(event)",
+				source: .auth
+			)
+			
+			Task { @MainActor in
+				guard let self = self else { return }
+				
+				switch event {
+				case .initialSession, .signedIn:
 					self.currentUser = session?.user
-					if session?.user != nil {
-						self.authState = .signedIn
-					} else {
-						self.authState = .signedOut
-					}
-					additionalHandler(event, session)
+					self.authState = .signedIn
+				case .signedOut:
+					self.currentUser = nil
+					self.authState = .signedOut
+				case .passwordRecovery, .tokenRefreshed, .userUpdated, .userDeleted, .mfaChallengeVerified:
+					break
 				}
+				
+				additionalHandler(event, session)
+			}
+		}
+		
+		// Try to sign in anonymously if needed
+		do {
+			try await signInAnonymouslyIfNeeded()
+		} catch {
+			if let authError = error as? AuthKitError {
+				authError.showAsInAppNotification()
 			}
 		}
 	}

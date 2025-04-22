@@ -18,6 +18,9 @@ public enum AuthKitError: Error {
 	// Sign Out Error
 	case defaultSignOutError
 
+	// Anonymous Sign In Error
+	case anonymousSignInError
+
 	// no user is signed in (for operations that are relevant to the user - account deletion, rename, etc)
 	case noUserSignedIn
 
@@ -34,6 +37,11 @@ public enum AuthKitError: Error {
 				return (
 					.init(title: "Couldn't Sign In", message: "Error Signing In with Apple"),
 					"signin_with_apple_catchall"
+				)
+			case .anonymousSignInError:
+				return (
+					.init(title: "Couldn't Create Guest Account", message: "Please try again later"),
+					"anonymous_signin_error"
 				)
 			case .noUserSignedIn:
 				return (

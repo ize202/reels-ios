@@ -27,6 +27,54 @@ struct PostData: Codable, Identifiable, Equatable {
 	let postUserID: UUID  // post author id
 }
 
+/// Represents a drama series in the app
+public struct Series: Codable, Identifiable, Equatable {
+	public let id: UUID
+	public let title: String
+	public let description: String?
+	public let genre: String
+	public let coverUrl: String?
+	public let isPublished: Bool
+	public let createdAt: Date
+	
+	private enum CodingKeys: String, CodingKey {
+		case id, title, description, genre
+		case coverUrl = "cover_url"
+		case isPublished = "is_published"
+		case createdAt = "created_at"
+	}
+}
+
+/// Represents an episode in a series
+public struct Episode: Codable, Identifiable, Equatable {
+	public let id: UUID
+	public let seriesId: UUID
+	public let muxAssetId: String
+	public let playbackUrl: String
+	public let episodeNumber: Int
+	public let unlockType: UnlockType
+	public let coinCost: Int?
+	public let createdAt: Date
+	
+	private enum CodingKeys: String, CodingKey {
+		case id
+		case seriesId = "series_id"
+		case muxAssetId = "mux_asset_id"
+		case playbackUrl = "playback_url"
+		case episodeNumber = "episode_number"
+		case unlockType = "unlock_type"
+		case coinCost = "coin_cost"
+		case createdAt = "created_at"
+	}
+	
+	public enum UnlockType: String, Codable {
+		case free
+		case coin
+		case ad
+		case vip
+	}
+}
+
 @MainActor
 public class DB: ObservableObject {
 
@@ -159,5 +207,134 @@ extension DB {
 				.error, id: "delete_post",
 				longDescription: "Error deleting post with ID: \(id): \(error.localizedDescription)", source: .db)
 		}
+	}
+}
+
+//MARK: - Series & Episodes
+extension DB {
+	/// Fetches all published series from the database
+	@MainActor
+	public func fetchAllSeries() async throws -> [Series] {
+		Analytics.capture(.info, id: "fetch_all_series_called", source: .db)
+		do {
+			let series: [Series] = try await _db
+				.from("series")
+				.select()
+				.eq("is_published", value: true)
+				.order("created_at", ascending: false)
+				.execute()
+				.value
+			
+			Analytics.capture(
+				.success,
+				id: "fetch_all_series",
+				longDescription: "Fetched \(series.count) series from the db.",
+				source: .db
+			)
+			
+			return series
+		} catch {
+			Analytics.capture(
+				.error,
+				id: "fetch_all_series",
+				longDescription: "Error fetching series: \(error)",
+				source: .db
+			)
+			throw error
+		}
+	}
+	
+	/// Fetches episodes for a specific series
+	@MainActor
+	public func fetchEpisodes(forSeriesId seriesId: UUID) async throws -> [Episode] {
+		Analytics.capture(.info, id: "fetch_episodes_called", source: .db)
+		do {
+			let episodes: [Episode] = try await _db
+				.from("episodes")
+				.select()
+				.eq("series_id", value: seriesId)
+				.order("episode_number")
+				.execute()
+				.value
+			
+			Analytics.capture(
+				.success,
+				id: "fetch_episodes",
+				longDescription: "Fetched \(episodes.count) episodes for series \(seriesId)",
+				source: .db
+			)
+			
+			return episodes
+		} catch {
+			Analytics.capture(
+				.error,
+				id: "fetch_episodes",
+				longDescription: "Error fetching episodes: \(error)",
+				source: .db
+			)
+			throw error
+		}
+	}
+}
+
+//MARK: - Auth
+extension DB {
+	/// Static flag to prevent multiple simultaneous anonymous sign-ins
+	private static var isSigningInAnonymously = false
+	
+	/// Signs in anonymously if no session exists
+	@MainActor
+	public func signInAnonymouslyIfNeeded() async throws {
+		Analytics.capture(.info, id: "check_anonymous_signin", source: .db)
+		
+		// Check if we already have a session
+		if let session = try? await _db.auth.session {
+			self.currentUser = session.user
+			self.authState = .signedIn
+			Analytics.capture(.info, id: "existing_session_found", source: .db)
+			return
+		}
+		
+		// Prevent multiple simultaneous sign-ins
+		guard !DB.isSigningInAnonymously else {
+			Analytics.capture(.info, id: "anonymous_signin_in_progress", source: .db)
+			return
+		}
+		
+		DB.isSigningInAnonymously = true
+		
+		do {
+			// Double-check session again in case another sign-in completed
+			if let session = try? await _db.auth.session {
+				self.currentUser = session.user
+				self.authState = .signedIn
+				Analytics.capture(.info, id: "existing_session_found_after_lock", source: .db)
+				DB.isSigningInAnonymously = false
+				return
+			}
+			
+			// No session exists, sign in anonymously
+			let session = try await _db.auth.signInAnonymously()
+			self.currentUser = session.user
+			self.authState = .signedIn
+			Analytics.capture(
+				.success,
+				id: "anonymous_signin",
+				longDescription: "Created anonymous user with ID: \(session.user.id)",
+				source: .db
+			)
+		} catch {
+			Analytics.capture(
+				.error,
+				id: "anonymous_signin",
+				longDescription: "Error during anonymous sign in: \(error)",
+				source: .db
+			)
+			self.authState = .signedOut
+			DB.isSigningInAnonymously = false
+			throw AuthKitError.anonymousSignInError
+		}
+		
+		DB.isSigningInAnonymously = false
 	}
 }
