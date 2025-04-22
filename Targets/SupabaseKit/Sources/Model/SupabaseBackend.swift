@@ -289,40 +289,32 @@ extension DB {
 		
 		// Check if we already have a session
 		if let session = try? await _db.auth.session {
+			Analytics.capture(
+				.info,
+				id: "existing_session_found",
+				longDescription: "User ID: \(session.user.id)",
+				source: .db
+			)
 			self.currentUser = session.user
 			self.authState = .signedIn
-			Analytics.capture(.info, id: "existing_session_found", source: .db)
 			return
 		}
 		
-		// Prevent multiple simultaneous sign-ins
-		guard !DB.isSigningInAnonymously else {
-			Analytics.capture(.info, id: "anonymous_signin_in_progress", source: .db)
-			return
-		}
-		
-		DB.isSigningInAnonymously = true
+		// No session exists, sign in anonymously
+		Analytics.capture(.info, id: "attempting_anonymous_signin", source: .db)
 		
 		do {
-			// Double-check session again in case another sign-in completed
-			if let session = try? await _db.auth.session {
-				self.currentUser = session.user
-				self.authState = .signedIn
-				Analytics.capture(.info, id: "existing_session_found_after_lock", source: .db)
-				DB.isSigningInAnonymously = false
-				return
-			}
-			
-			// No session exists, sign in anonymously
 			let session = try await _db.auth.signInAnonymously()
-			self.currentUser = session.user
-			self.authState = .signedIn
+			
 			Analytics.capture(
 				.success,
 				id: "anonymous_signin",
 				longDescription: "Created anonymous user with ID: \(session.user.id)",
 				source: .db
 			)
+			
+			self.currentUser = session.user
+			self.authState = .signedIn
 		} catch {
 			Analytics.capture(
 				.error,
@@ -331,10 +323,7 @@ extension DB {
 				source: .db
 			)
 			self.authState = .signedOut
-			DB.isSigningInAnonymously = false
 			throw AuthKitError.anonymousSignInError
 		}
-		
-		DB.isSigningInAnonymously = false
 	}
 }
