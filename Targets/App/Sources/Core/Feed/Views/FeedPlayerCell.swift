@@ -37,7 +37,8 @@ struct FeedPlayerCell: View {
                     playbackId: item.playbackId,
                     isMuted: false, // Assuming we removed the mute button, default to unmuted
                     player: $player,
-                    onTap: togglePlayPause
+                    onTap: togglePlayPause,
+                    safeArea: safeArea // Pass safe area down
                 )
                 .onChange(of: isPlaying) { shouldPlay in
                     if shouldPlay { player?.play() } else { player?.pause() }
