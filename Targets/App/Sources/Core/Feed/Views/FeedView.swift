@@ -104,7 +104,8 @@ struct FeedView: View {
                             addLikeAnimation(at: position)
                         }
                     )
-                    .frame(width: size.width, height: size.height)
+                    // Use containerRelativeFrame for height, let ScrollView handle width
+                    .containerRelativeFrame(.vertical) 
                     .id(index)
                     .onAppear {
                         // When this item appears, update the current index
@@ -112,9 +113,11 @@ struct FeedView: View {
                     }
                 }
             }
+            // Ensure the layout targets the views correctly for paging
+            .scrollTargetLayout() 
         }
-        .scrollTargetLayout()
-        .scrollTargetBehavior(.viewAligned)
+        .scrollIndicators(.hidden)
+        .scrollTargetBehavior(.paging) // Use paging for TikTok-like snapping
     }
     
     private func addLikeAnimation(at position: CGPoint) {
@@ -139,9 +142,9 @@ struct FeedReelView: View {
     let safeArea: EdgeInsets
     @Binding var isLiked: Bool
     @Binding var isSaved: Bool
-    let isCurrentlyActive: Bool
+    let isCurrentlyActive: Bool // This indicates if the view *should* be playing based on viewModel.currentIndex
     @State private var isMuted: Bool = false
-    @State private var isVisible: Bool = false
+    @State private var isVisible: Bool = false // Tracks actual visibility based on scroll position
     let addLikeAnimation: (CGPoint) -> Void
     
     var body: some View {
@@ -150,20 +153,15 @@ struct FeedReelView: View {
             
             MuxPlayerView(
                 playbackId: item.playbackId,
-                autoPlay: isCurrentlyActive,
+                 // We now control play/pause based on calculated visibility, not just isCurrentlyActive
+                autoPlay: isVisible, 
                 isMuted: isMuted
             )
-            .id("\(item.id)_\(isCurrentlyActive)") // Force recreation when active state changes
+            .id("\(item.id)_\(item.playbackId)") // Use playbackId for stability if item ID changes unnecessarily
             .preference(key: OffsetKey.self, value: rect)
             .onPreferenceChange(OffsetKey.self) { rect in
-                // Check visibility based on position in scrollview
-                let threshold = size.height * 0.5
-                let newIsVisible = -rect.minY < threshold && rect.minY < threshold
-                
-                if newIsVisible != isVisible {
-                    isVisible = newIsVisible
-                    print("Video \(item.episodeNumber) visibility changed to: \(isVisible)")
-                }
+                // Use the playPause function to update visibility state
+                updateVisibility(rect)
             }
             .overlay(alignment: .bottom) {
                 // Video Info Overlay
@@ -256,7 +254,31 @@ struct FeedReelView: View {
                 let generator = UIImpactFeedbackGenerator(style: .rigid)
                 generator.impactOccurred()
             }
+            // Consider adding a single tap gesture for play/pause toggle
+            .onTapGesture {
+                 // Example: Toggle mute on single tap (or implement play/pause control later)
+                 // isMuted.toggle() 
+            }
         }
+        // Ensure the FeedReelView itself doesn't absorb gestures meant for the ScrollView
+        .contentShape(Rectangle()) 
+    }
+    
+    /// Update visibility state based on scroll position
+    private func updateVisibility(_ rect: CGRect) {
+        // Check if the center of the view is within the visible bounds
+        let isNowVisible = -rect.minY < (size.height * 0.5) && rect.minY < (size.height * 0.5)
+        
+        if isNowVisible != isVisible {
+            isVisible = isNowVisible
+            print("Video \(item.episodeNumber) visibility changed to: \(isVisible)")
+            
+            // If it just became visible, ensure it plays (MuxPlayerView handles autoPlay based on isVisible)
+            // If it just became invisible, it will pause (MuxPlayerView handles this via autoPlay=false)
+        }
+        
+        // Add logic here later if we need to explicitly seek to zero when far off-screen
+        // For now, rely on MuxPlayerView pausing when autoPlay becomes false
     }
 }
 
