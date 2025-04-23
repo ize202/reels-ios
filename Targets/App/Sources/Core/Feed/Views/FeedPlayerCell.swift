@@ -38,28 +38,11 @@ struct FeedPlayerCell: View {
                 // --- Bottom Info/Controls Overlay ---
                 VStack {
                     Spacer() // Push content to bottom
-                    HStack(alignment: .bottom, spacing: 20) { // Keep increased spacing
-                        // Video Details
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(item.title).font(.headline).foregroundColor(.white)
-                            Text(item.description).font(.subheadline).foregroundColor(.white.opacity(0.8)).lineLimit(2)
-                            Text("Episode \(item.episodeNumber) of \(item.totalEpisodes)").font(.caption).foregroundColor(.white.opacity(0.6))
-                        }
-                        .padding(.leading, 16)
-                        .padding(.bottom, 10) // Keep added padding
-
-                        Spacer()
+                    HStack(alignment: .bottom, spacing: 20) {
+                        Spacer() // Remove the title/description VStack, let buttons take full width space initially
 
                         // Action Buttons
                         VStack(spacing: 24) {
-                            // Mute Button
-                            Button {
-                                isMuted.toggle()
-                                player?.isMuted = isMuted
-                            } label: {
-                                Image(systemName: isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                            }
-
                             // Like Button
                             Button { /* viewModel.toggleLike(item.id) */ } label: {
                                 Image(systemName: item.isLiked ? "heart.fill" : "heart")
@@ -72,13 +55,9 @@ struct FeedPlayerCell: View {
                                     .foregroundColor(item.isSaved ? Color(hex: "9B79C1") : .white)
                             }
 
-                            // Episodes Button
-                            Button { /* Show episodes modal */ } label: { Image(systemName: "list.bullet") }
-
-                            // Share Button
-                            Button { /* Share action */ } label: { Image(systemName: "paperplane") }
+                            // Remove Mute, Episodes, Share buttons
                         }
-                        .font(.system(size: 24))
+                        .font(.system(size: 24)) // Keep font size for remaining icons
                         .foregroundColor(.white)
                         .padding(.trailing, 16)
                     }

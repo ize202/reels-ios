@@ -7,7 +7,7 @@ import AVKit
 struct FeedView: View {
     @StateObject var viewModel: FeedViewModel
     @Environment(\.presentationMode) var presentationMode
-    @State private var scrollIndex: Int = 0
+    @State private var currentVisibleItemID: String? // Track the ID of the centered item
     
     init(db: DB, seriesId: UUID, startingEpisode: Int = 1) {
         print("Initializing FeedView with seriesId: \(seriesId), startingEpisode: \(startingEpisode)")
@@ -79,13 +79,30 @@ struct FeedView: View {
         .preferredColorScheme(.dark)
         .navigationBarBackButtonHidden(true) // Hide default back button
         .navigationBarItems(leading:
-            Button(action: {
-                presentationMode.wrappedValue.dismiss()
-            }) {
-                Image(systemName: "xmark")
-                    .foregroundColor(.white)
-                    .padding(8)
-                    .background(Circle().fill(Color.black.opacity(0.5)))
+            HStack(spacing: 10) { // Use HStack to place items horizontally
+                Button(action: {
+                    presentationMode.wrappedValue.dismiss()
+                }) {
+                    Image(systemName: "xmark")
+                        .foregroundColor(.white)
+                        .padding(8)
+                        .background(Circle().fill(Color.black.opacity(0.5)))
+                }
+
+                // Add Title and Episode Number
+                if !viewModel.feedItems.isEmpty && viewModel.currentIndex >= 0 && viewModel.currentIndex < viewModel.feedItems.count {
+                    let currentItem = viewModel.feedItems[viewModel.currentIndex]
+                    // Extract Series title (assuming format "Series Title - Episode X")
+                    let seriesTitle = currentItem.title.components(separatedBy: " - Episode").first ?? currentItem.title
+                    Text("\(seriesTitle) EP.\(currentItem.episodeNumber)")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                } else {
+                    // Optional: Placeholder or empty view if data isn't ready
+                    Text("")
+                }
             }
         )
         .onAppear {
@@ -119,18 +136,27 @@ struct FeedView: View {
                         size: size, 
                         safeArea: safeArea
                     )
-                    .id(item.id)
+                    .id(item.id) // Ensure the ID matches FeedItem.id for scrollPosition tracking
                     .containerRelativeFrame(.vertical)
-                    .onAppear {
-                        viewModel.currentIndex = index
-                        print("FeedView showing cell for episode \(item.episodeNumber), index: \(index)")
-                    }
                 }
             }
             .scrollTargetLayout()
         }
+        .scrollPosition(id: $currentVisibleItemID)
         .scrollIndicators(.hidden)
         .scrollTargetBehavior(.paging)
+        .onChange(of: currentVisibleItemID) { oldID, newID in
+            guard let newID = newID else { return }
+            // Find the index corresponding to the new visible item ID
+            if let newIndex = viewModel.feedItems.firstIndex(where: { $0.id == newID }) {
+                if viewModel.currentIndex != newIndex { // Update only if the index actually changed
+                    viewModel.currentIndex = newIndex
+                    print("Scroll position changed. New visible item ID: \(newID), updated currentIndex to: \(newIndex)")
+                }
+            } else {
+                 print("Scroll position changed to ID \(newID), but corresponding index not found in feedItems.")
+            }
+        }
     }
 }
 
