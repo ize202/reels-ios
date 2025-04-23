@@ -9,10 +9,23 @@ struct FeedPlayerCell: View {
     let size: CGSize // Pass geometry size from FeedView
     let safeArea: EdgeInsets // Pass safe area from FeedView
 
-    // === Self-Contained State ===
+    // === Player State ===
     @State private var player: AVPlayer?
-    @State private var isMuted: Bool = false // Default to not muted
-    @State private var isPlaying: Bool = false // Track playing state based on visibility
+    @State private var isPlaying: Bool = false
+
+    // === Interaction State (Local for feedback) ===
+    @State private var isLiked: Bool
+    @State private var isSaved: Bool
+
+    // Initializer to set local state from the item
+    init(item: FeedItem, size: CGSize, safeArea: EdgeInsets) {
+        self.item = item
+        self.size = size
+        self.safeArea = safeArea
+        // Initialize local state based on the passed item
+        _isLiked = State(initialValue: item.isLiked)
+        _isSaved = State(initialValue: item.isSaved)
+    }
 
     var body: some View {
         GeometryReader { geo in
@@ -22,95 +35,84 @@ struct FeedPlayerCell: View {
                 // --- Player View ---
                 MuxPlayerView(
                     playbackId: item.playbackId,
-                    isMuted: isMuted,
-                    player: $player, // Pass binding to our local player state
-                    onTap: togglePlayPause // Use local toggle function
+                    isMuted: false, // Assuming we removed the mute button, default to unmuted
+                    player: $player,
+                    onTap: togglePlayPause
                 )
                 .onChange(of: isPlaying) { shouldPlay in
-                    // Explicitly control play/pause based on visibility state
-                    if shouldPlay {
-                        player?.play()
-                    } else {
-                        player?.pause()
-                    }
+                    if shouldPlay { player?.play() } else { player?.pause() }
                 }
 
-                // --- Bottom Info/Controls Overlay ---
-                VStack {
-                    Spacer() // Push content to bottom
-                    HStack(alignment: .bottom, spacing: 20) {
-                        Spacer() // Remove the title/description VStack, let buttons take full width space initially
+                // --- Side Action Buttons (Aligned Right) ---
+                HStack {
+                    Spacer() // Pushes the VStack to the right
 
-                        // Action Buttons
-                        VStack(spacing: 24) {
+                    VStack {
+                        Spacer()
+                            .frame(height: geo.size.height * 0.45)
+                        
+                        VStack(spacing: 16) {
                             // Like Button
-                            Button { /* viewModel.toggleLike(item.id) */ } label: {
-                                Image(systemName: item.isLiked ? "heart.fill" : "heart")
-                                    .foregroundColor(item.isLiked ? .red : .white)
+                            Button { 
+                                isLiked.toggle()
+                                // TODO: Call viewModel method here later
+                            } label: {
+                                Image(systemName: isLiked ? "heart.fill" : "heart")
+                                    .font(.system(size: 32))
+                                    .foregroundColor(isLiked ? .red : .white)
+                                    .frame(width: 44, height: 44)
+                                    .contentShape(Rectangle())
+                                    .scaleEffect(isLiked ? 1.1 : 1.0) // Scale animation on state change
+                                    .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isLiked) // Animate the scale
                             }
 
                             // Save Button
-                            Button { /* viewModel.toggleSave(item.id) */ } label: {
-                                Image(systemName: item.isSaved ? "bookmark.fill" : "bookmark")
-                                    .foregroundColor(item.isSaved ? Color(hex: "9B79C1") : .white)
+                            Button { 
+                                isSaved.toggle()
+                                // TODO: Call viewModel method here later
+                            } label: {
+                                Image(systemName: isSaved ? "bookmark.fill" : "bookmark")
+                                    .font(.system(size: 32))
+                                    .foregroundColor(isSaved ? Color(hex: "9B79C1") : .white)
+                                    .frame(width: 44, height: 44)
+                                    .contentShape(Rectangle())
+                                    .scaleEffect(isSaved ? 1.1 : 1.0) // Scale animation on state change
+                                    .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isSaved) // Animate the scale
                             }
-
-                            // Remove Mute, Episodes, Share buttons
                         }
-                        .font(.system(size: 24)) // Keep font size for remaining icons
-                        .foregroundColor(.white)
                         .padding(.trailing, 16)
+                        
+                        Spacer()
                     }
-                    .padding(.bottom, safeArea.bottom + 15) // Use safe area passed from FeedView
                 }
-                .allowsHitTesting(true) // Ensure overlay buttons are tappable
+                .allowsHitTesting(true)
             }
-            .preference(key: OffsetKey.self, value: rect) // Track position
+            .preference(key: OffsetKey.self, value: rect)
             .onPreferenceChange(OffsetKey.self) { value in
-                // Determine if centered and update isPlaying state
                 let isCentered = -value.minY < (value.height * 0.5) && value.minY < (value.height * 0.5)
-                
-                // Only update if the state changes to avoid unnecessary redraws/player commands
-                if isPlaying != isCentered {
-                     print("[CELL] Item \(item.id) centered: \(isCentered)")
-                     isPlaying = isCentered
-                }
+                if isPlaying != isCentered { isPlaying = isCentered }
             }
             .onAppear {
-                print("[CELL] FeedPlayerCell appeared for item: \(item.id)")
-                // Create player only if it doesn't exist
-                if player == nil {
-                     print("[CELL] Creating player for item: \(item.id)")
-                    player = MuxVideoPlayer.createPlayer(playbackId: item.playbackId)
-                    player?.isMuted = isMuted // Apply initial mute state
-                    // Player will be started by the isPlaying state change if needed
-                }
+                print("[CELL] Appear: \(item.id)")
+                if player == nil { player = MuxVideoPlayer.createPlayer(playbackId: item.playbackId) }
+                // Re-sync local state in case the item changed (e.g., refresh)
+                isLiked = item.isLiked
+                isSaved = item.isSaved
             }
             .onDisappear {
-                 print("[CELL] FeedPlayerCell disappeared for item: \(item.id)")
-                // Pause and release player when view is fully gone
+                print("[CELL] Disappear: \(item.id)")
                 player?.pause()
                 player = nil
-                isPlaying = false // Reset playing state
+                isPlaying = false
             }
-            .id(item.id) // Ensure ZStack identifies with item
+            .id(item.id)
         }
     }
 
-    // MARK: - Local Control Functions
-
-    /// Toggles play/pause state locally for this cell's player
     private func togglePlayPause() {
         guard let player = player else { return }
-        if player.rate == 0 {
-            print("[CELL] Tapped to play item: \(item.id)")
-            player.play()
-            isPlaying = true // Keep isPlaying state consistent
-        } else {
-             print("[CELL] Tapped to pause item: \(item.id)")
-            player.pause()
-            isPlaying = false // Keep isPlaying state consistent
-        }
+        if player.rate == 0 { player.play(); isPlaying = true }
+        else { player.pause(); isPlaying = false }
     }
 }
 
