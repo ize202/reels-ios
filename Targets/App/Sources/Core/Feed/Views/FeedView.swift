@@ -12,11 +12,19 @@ struct FeedView: View {
     init(db: DB, seriesId: UUID, startingEpisode: Int = 1) {
         print("Initializing FeedView with seriesId: \(seriesId), startingEpisode: \(startingEpisode)")
         _viewModel = StateObject(wrappedValue: FeedViewModel(db: db, seriesId: seriesId, startingEpisode: startingEpisode))
+        
+        // Make Navigation Bar transparent
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithTransparentBackground()
+        appearance.backgroundColor = .clear // Ensure no color tint
+        UINavigationBar.appearance().standardAppearance = appearance
+        UINavigationBar.appearance().scrollEdgeAppearance = appearance // For large titles
+        UINavigationBar.appearance().compactAppearance = appearance // For inline titles
     }
     
     var body: some View {
         GeometryReader { geometry in
-            ZStack {
+            ZStack { // Remove alignment
                 Color.black.edgesIgnoringSafeArea(.all)
                 
                 if viewModel.isLoading {
@@ -61,13 +69,13 @@ struct FeedView: View {
                 }
             }
         }
-        .toolbar(.hidden, for: .tabBar)
+        .toolbar(.hidden, for: .tabBar) // Keep tab bar hidden
         .edgesIgnoringSafeArea(.all)
         .preferredColorScheme(.dark)
-        .navigationBarBackButtonHidden(true)
-        .navigationBarItems(leading:
+        .navigationBarBackButtonHidden(true) // Hide default back button
+        .navigationBarItems(leading: // Add custom button back here
             Button(action: {
-                presentationMode.wrappedValue.dismiss()
+                presentationMode.wrappedValue.dismiss() // This should work now
             }) {
                 Image(systemName: "xmark")
                     .foregroundColor(.white)
@@ -78,6 +86,21 @@ struct FeedView: View {
         .onAppear {
             print("FeedView appeared with \(viewModel.feedItems.count) items")
             scrollIndex = viewModel.currentIndex
+            
+            // Ensure navbar appearance is set (might be needed if navigating back and forth)
+            let appearance = UINavigationBarAppearance()
+            appearance.configureWithTransparentBackground()
+            UINavigationBar.appearance().standardAppearance = appearance
+            UINavigationBar.appearance().scrollEdgeAppearance = appearance
+            UINavigationBar.appearance().compactAppearance = appearance
+        }
+        .onDisappear {
+            // Optional: Restore default navbar appearance if needed elsewhere
+            // let appearance = UINavigationBarAppearance()
+            // appearance.configureWithDefaultBackground()
+            // UINavigationBar.appearance().standardAppearance = appearance
+            // UINavigationBar.appearance().scrollEdgeAppearance = appearance
+            // UINavigationBar.appearance().compactAppearance = appearance
         }
     }
     
