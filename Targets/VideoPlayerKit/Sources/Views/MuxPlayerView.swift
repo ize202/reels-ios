@@ -89,7 +89,7 @@ public struct MuxPlayerView: View {
                         onEditingChanged: sliderEditingChanged
                     )
                     .tint(Color(hex: "9B79C1")) // Use primary color for the slider track
-                    .padding(.horizontal)
+                    .padding(.horizontal, 25) // Increased horizontal padding for slider
                     
                     // Time Labels
                     HStack {
@@ -99,9 +99,9 @@ public struct MuxPlayerView: View {
                     }
                     .font(.caption)
                     .foregroundColor(.white.opacity(0.8))
-                    .padding(.horizontal)
+                    .padding(.horizontal, 25) // Increased horizontal padding for labels
                     // Apply bottom padding here to include labels
-                    .padding(.bottom, safeArea.bottom > 0 ? safeArea.bottom : 10) // Ensure minimum padding even without safe area
+                    .padding(.bottom, safeArea.bottom > 0 ? safeArea.bottom + 15 : 25) // Increased bottom padding (adjust 15/25 as needed)
                 }
             }
             .allowsHitTesting(true) // Ensure slider container is interactive
