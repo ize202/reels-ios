@@ -21,6 +21,9 @@ public struct MuxPlayerView: View {
     // Safe area for positioning
     private let safeArea: EdgeInsets
 
+    // === Binding for Scrubber Visibility ===
+    @Binding var showScrubber: Bool
+
     // === Scrubbing State ===
     @State private var currentTime: Double = 0.0
     @State private var duration: Double = 0.0
@@ -36,14 +39,16 @@ public struct MuxPlayerView: View {
         player: Binding<AVPlayer?>,
         metadata: [String: Any] = [:],
         onTap: @escaping () -> Void,
-        safeArea: EdgeInsets // Add safeArea parameter
+        safeArea: EdgeInsets,
+        showScrubber: Binding<Bool> // Add showScrubber binding
     ) {
         print("[VIDEO] Initializing player wrapper for: \(playbackId)")
         self.playbackId = playbackId
         self.isMuted = isMuted
         self._player = player
         self.onTap = onTap
-        self.safeArea = safeArea // Store safeArea
+        self.safeArea = safeArea
+        self._showScrubber = showScrubber // Store binding
     }
     
     public var body: some View {
@@ -80,31 +85,34 @@ public struct MuxPlayerView: View {
                 .allowsHitTesting(false)
 
             // --- Scrubber ---
-            VStack {
-                Spacer() // Pushes slider to the bottom
-                if duration > 0 { // Only show slider if duration is known
-                    Slider(
-                        value: $currentTime,
-                        in: 0...duration,
-                        onEditingChanged: sliderEditingChanged
-                    )
-                    .tint(Color(hex: "9B79C1")) // Use primary color for the slider track
-                    .padding(.horizontal, 25) // Increased horizontal padding for slider
-                    
-                    // Time Labels
-                    HStack {
-                        Text(formatTime(currentTime))
-                        Spacer()
-                        Text(formatTime(duration))
+            // Use the binding to control visibility
+            if showScrubber {
+                VStack {
+                    Spacer() // Pushes slider to the bottom
+                    if duration > 0 { // Only show slider if duration is known
+                        Slider(
+                            value: $currentTime,
+                            in: 0...duration,
+                            onEditingChanged: sliderEditingChanged
+                        )
+                        .tint(Color(hex: "9B79C1")) // Use primary color for the slider track
+                        .padding(.horizontal, 25) // Increased horizontal padding for slider
+                        
+                        // Time Labels
+                        HStack {
+                            Text(formatTime(currentTime))
+                            Spacer()
+                            Text(formatTime(duration))
+                        }
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.8))
+                        .padding(.horizontal, 25) // Increased horizontal padding for labels
+                        // Apply bottom padding here to include labels
+                        .padding(.bottom, safeArea.bottom > 0 ? safeArea.bottom + 15 : 25) // Increased bottom padding (adjust 15/25 as needed)
                     }
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.8))
-                    .padding(.horizontal, 25) // Increased horizontal padding for labels
-                    // Apply bottom padding here to include labels
-                    .padding(.bottom, safeArea.bottom > 0 ? safeArea.bottom + 15 : 25) // Increased bottom padding (adjust 15/25 as needed)
                 }
+                .allowsHitTesting(true) // Ensure slider container is interactive
             }
-            .allowsHitTesting(true) // Ensure slider container is interactive
         }
         .onAppear {
              print("[VIDEO] MuxPlayerView onAppear for \(playbackId)")
