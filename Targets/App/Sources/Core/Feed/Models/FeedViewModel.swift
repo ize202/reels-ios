@@ -56,54 +56,52 @@ class FeedViewModel: ObservableObject {
                 return !episode.playbackUrl.isEmpty && episode.playbackUrl != "placeholder"
             }
             
-            if validEpisodes.isEmpty {
-                // For testing purposes only, use a test playback ID
-                let testPlaybackId = "DS00Spx1CV902MCtPj5WknGlR102V5HFkDe"
+            // Check if there are any valid episodes after filtering
+            guard !validEpisodes.isEmpty else {
+                // If no valid episodes, set an appropriate message and stop loading
+                print("No valid episodes found for series: \(series.title) after filtering.")
+                self.errorMessage = "No playable episodes available for this series."
+                self.isLoading = false
+                return
+            }
+            
+            // Use actual playback URLs from the valid episodes
+            self.feedItems = validEpisodes.map { episode in
+                // Log the playback URL for debugging
+                print("Episode \(episode.episodeNumber) playbackUrl: \(episode.playbackUrl)")
                 
-                self.feedItems = sortedEpisodes.map { episode in
-                    return FeedItem(
-                        id: episode.id.uuidString,
-                        title: "\(series.title) - Episode \(episode.episodeNumber)",
-                        description: series.description ?? "No description available",
-                        thumbnailURL: series.coverUrl != nil ? URL(string: series.coverUrl!) : nil,
-                        playbackId: testPlaybackId,
-                        seriesId: series.id.uuidString,
-                        episodeNumber: episode.episodeNumber,
-                        totalEpisodes: episodes.count,
-                        isLiked: false,
-                        isSaved: false,
-                        viewCount: 0
-                    )
-                }
-            } else {
-                // Use actual playback URLs
-                self.feedItems = validEpisodes.map { episode in
-                    // Log the playback URL for debugging
-                    print("Episode \(episode.episodeNumber) playbackUrl: \(episode.playbackUrl)")
-                    
-                    return FeedItem(
-                        id: episode.id.uuidString,
-                        title: "\(series.title) - Episode \(episode.episodeNumber)",
-                        description: series.description ?? "No description available",
-                        thumbnailURL: series.coverUrl != nil ? URL(string: series.coverUrl!) : nil,
-                        playbackId: episode.playbackUrl,
-                        seriesId: series.id.uuidString,
-                        episodeNumber: episode.episodeNumber,
-                        totalEpisodes: episodes.count,
-                        isLiked: false,  // We'd need to fetch this from user data
-                        isSaved: false,  // We'd need to fetch this from user data
-                        viewCount: 0     // We'd need real view counts from analytics
-                    )
-                }
+                return FeedItem(
+                    id: episode.id.uuidString,
+                    title: "\(series.title) - Episode \(episode.episodeNumber)",
+                    description: series.description ?? "No description available",
+                    thumbnailURL: series.coverUrl != nil ? URL(string: series.coverUrl!) : nil,
+                    playbackId: episode.playbackUrl, // Use the actual playbackUrl
+                    seriesId: series.id.uuidString,
+                    episodeNumber: episode.episodeNumber,
+                    totalEpisodes: episodes.count, // Use total count from original episodes list for accuracy
+                    isLiked: false,  // We'd need to fetch this from user data
+                    isSaved: false,  // We'd need to fetch this from user data
+                    viewCount: 0     // We'd need real view counts from analytics
+                )
             }
             
             print("Processed \(self.feedItems.count) feed items, first item playbackId: \(self.feedItems.first?.playbackId ?? "none")")
             
-            // Set the starting episode index
-            if startingEpisode > 1 && startingEpisode <= feedItems.count {
-                // Convert to 0-based index
-                currentIndex = startingEpisode - 1
-                print("Setting current index to \(currentIndex) (startingEpisode: \(startingEpisode))")
+            // Set the starting episode index based on the *filtered* feedItems count
+            // Find the index in feedItems corresponding to the startingEpisode number
+            if let targetIndex = self.feedItems.firstIndex(where: { $0.episodeNumber == startingEpisode }) {
+                currentIndex = targetIndex
+                print("Setting current index to \(currentIndex) for startingEpisode: \(startingEpisode)")
+            } else if startingEpisode > 1 && !self.feedItems.isEmpty {
+                // Fallback: if specific episode number not found (maybe it was filtered out),
+                // try to respect the intent if startingEpisode > 1, but clamp to valid range.
+                // This case might indicate data inconsistency.
+                print("Warning: startingEpisode \(startingEpisode) not found in valid episodes. Clamping index.")
+                currentIndex = min(startingEpisode - 1, self.feedItems.count - 1)
+            } else {
+                // Default to 0 if startingEpisode is 1 or feedItems is empty
+                currentIndex = 0
+                 print("Setting current index to 0 (startingEpisode: \(startingEpisode))")
             }
             
             isLoading = false

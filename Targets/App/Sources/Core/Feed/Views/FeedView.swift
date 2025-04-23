@@ -46,17 +46,27 @@ struct FeedView: View {
                         .cornerRadius(8)
                     }
                 } else if !viewModel.feedItems.isEmpty {
-                    feedScrollView(size: geometry.size, safeArea: geometry.safeAreaInsets)
-                        .gesture(
-                            DragGesture(minimumDistance: 20)
-                                .onEnded { gesture in
-                                    // If swipe direction is mostly downward, dismiss
-                                    if gesture.translation.height > 100 && 
-                                       abs(gesture.translation.height) > abs(gesture.translation.width) {
-                                        presentationMode.wrappedValue.dismiss()
+                    ScrollViewReader { proxy in
+                        feedScrollView(size: geometry.size, safeArea: geometry.safeAreaInsets)
+                            .gesture(
+                                DragGesture(minimumDistance: 20)
+                                    .onEnded { gesture in
+                                        // If swipe direction is mostly downward, dismiss
+                                        if gesture.translation.height > 100 && 
+                                           abs(gesture.translation.height) > abs(gesture.translation.width) {
+                                            presentationMode.wrappedValue.dismiss()
+                                        }
                                     }
+                            )
+                            .onAppear {
+                                print("FeedView ScrollViewReader onAppear. Items: \(viewModel.feedItems.count), Index: \(viewModel.currentIndex)")
+                                if !viewModel.feedItems.isEmpty && viewModel.currentIndex > 0 && viewModel.currentIndex < viewModel.feedItems.count {
+                                    let targetId = viewModel.feedItems[viewModel.currentIndex].id
+                                    print("Attempting to scroll to ID: \(targetId) at index: \(viewModel.currentIndex)")
+                                    proxy.scrollTo(targetId, anchor: .center)
                                 }
-                        )
+                            }
+                    }
                 } else {
                     Text("No episodes available")
                         .foregroundColor(.white)
@@ -79,8 +89,7 @@ struct FeedView: View {
             }
         )
         .onAppear {
-            print("FeedView appeared with \(viewModel.feedItems.count) items")
-            scrollIndex = viewModel.currentIndex
+            print("FeedView ZStack onAppear with \(viewModel.feedItems.count) items, initial index: \(viewModel.currentIndex)")
             
             // Ensure navbar appearance is set (might be needed if navigating back and forth)
             let appearance = UINavigationBarAppearance()
