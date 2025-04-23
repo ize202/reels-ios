@@ -61,6 +61,7 @@ struct FeedView: View {
                 }
             }
         }
+        .toolbar(.hidden, for: .tabBar)
         .edgesIgnoringSafeArea(.all)
         .preferredColorScheme(.dark)
         .navigationBarBackButtonHidden(true)
@@ -245,6 +246,8 @@ struct FeedReelView: View {
                 }
                 .padding(.bottom, safeArea.bottom + 15)
             }
+            // Remove conflicting tap gestures handled by MuxPlayerView now
+            /*
             .onTapGesture(count: 2) { position in
                 // Double tap to like
                 isLiked = true
@@ -259,6 +262,7 @@ struct FeedReelView: View {
                  // Example: Toggle mute on single tap (or implement play/pause control later)
                  // isMuted.toggle() 
             }
+            */
         }
         // Ensure the FeedReelView itself doesn't absorb gestures meant for the ScrollView
         .contentShape(Rectangle()) 
