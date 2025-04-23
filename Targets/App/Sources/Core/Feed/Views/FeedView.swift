@@ -6,6 +6,8 @@ import SupabaseKit
 struct FeedView: View {
     @StateObject var viewModel: FeedViewModel
     @Environment(\.presentationMode) var presentationMode
+    @State private var likedItems: [LikeAnimation] = []
+    @State private var scrollIndex: Int = 0
     
     init(db: DB, seriesId: UUID, startingEpisode: Int = 1) {
         print("Initializing FeedView with seriesId: \(seriesId), startingEpisode: \(startingEpisode)")
@@ -36,38 +38,26 @@ struct FeedView: View {
                         .cornerRadius(8)
                     }
                 } else if !viewModel.feedItems.isEmpty {
-                    TabView(selection: $viewModel.currentIndex) {
-                        ForEach(Array(viewModel.feedItems.indices), id: \.self) { index in
-                            FeedItemView(item: viewModel.feedItems[index], isActive: viewModel.currentIndex == index)
-                                .frame(width: geometry.size.width, height: geometry.size.height)
-                                .rotationEffect(.degrees(0)) // Ensures video is in correct orientation
-                                .tag(index)
-                                .onAppear {
-                                    print("Feed item \(index) appeared - playbackId: \(viewModel.feedItems[index].playbackId)")
+                    feedScrollView(size: geometry.size, safeArea: geometry.safeAreaInsets)
+                        .gesture(
+                            DragGesture(minimumDistance: 20)
+                                .onEnded { gesture in
+                                    // If swipe direction is mostly downward, dismiss
+                                    if gesture.translation.height > 100 && 
+                                       abs(gesture.translation.height) > abs(gesture.translation.width) {
+                                        presentationMode.wrappedValue.dismiss()
+                                    }
                                 }
-                        }
-                    }
-                    .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-                    .frame(width: geometry.size.width, height: geometry.size.height)
-                    .onChange(of: viewModel.currentIndex) { newIndex in
-                        print("Current index changed to \(newIndex)")
-                    }
-                    
-                    // Add a gesture to swipe down to dismiss
-                    .gesture(
-                        DragGesture(minimumDistance: 20)
-                            .onEnded { gesture in
-                                // If swipe direction is mostly downward, dismiss
-                                if gesture.translation.height > 100 && 
-                                   abs(gesture.translation.height) > abs(gesture.translation.width) {
-                                    presentationMode.wrappedValue.dismiss()
-                                }
-                            }
-                    )
+                        )
                 } else {
                     Text("No episodes available")
                         .foregroundColor(.white)
                         .padding()
+                }
+                
+                // Show like animations
+                ForEach(likedItems) { like in
+                    LikeAnimationView(like: like)
                 }
             }
         }
@@ -86,68 +76,97 @@ struct FeedView: View {
         )
         .onAppear {
             print("FeedView appeared with \(viewModel.feedItems.count) items")
-            if !viewModel.feedItems.isEmpty {
-                print("First item playbackId: \(viewModel.feedItems[0].playbackId)")
+            scrollIndex = viewModel.currentIndex
+        }
+    }
+    
+    @ViewBuilder
+    private func feedScrollView(size: CGSize, safeArea: EdgeInsets) -> some View {
+        // We use UIScrollView-based tricks for performance
+        // This approach gives us better control and snapping behavior
+        ScrollView(.vertical, showsIndicators: false) {
+            LazyVStack(spacing: 0) {
+                ForEach(viewModel.feedItems.indices, id: \.self) { index in
+                    FeedReelView(
+                        item: viewModel.feedItems[index],
+                        size: size,
+                        safeArea: safeArea,
+                        isLiked: Binding(
+                            get: { viewModel.feedItems[index].isLiked },
+                            set: { viewModel.feedItems[index].isLiked = $0 }
+                        ),
+                        isSaved: Binding(
+                            get: { viewModel.feedItems[index].isSaved },
+                            set: { viewModel.feedItems[index].isSaved = $0 }
+                        ),
+                        isCurrentlyActive: viewModel.currentIndex == index,
+                        addLikeAnimation: { position in
+                            addLikeAnimation(at: position)
+                        }
+                    )
+                    .frame(width: size.width, height: size.height)
+                    .id(index)
+                    .onAppear {
+                        // When this item appears, update the current index
+                        viewModel.currentIndex = index
+                    }
+                }
             }
+        }
+        .scrollTargetLayout()
+        .scrollTargetBehavior(.viewAligned)
+    }
+    
+    private func addLikeAnimation(at position: CGPoint) {
+        let id = UUID()
+        likedItems.append(.init(id: id, position: position, isAnimated: false))
+        
+        // Animate the like
+        withAnimation(.snappy(duration: 1.2), completionCriteria: .logicallyComplete) {
+            if let index = likedItems.firstIndex(where: { $0.id == id }) {
+                likedItems[index].isAnimated = true
+            }
+        } completion: {
+            // Remove the animation once it's finished
+            likedItems.removeAll(where: { $0.id == id })
         }
     }
 }
 
-struct FeedItemView: View {
-    @State private var isLiked: Bool
-    @State private var isSaved: Bool
-    @State private var isPlaying: Bool = false
+struct FeedReelView: View {
     let item: FeedItem
-    let isActive: Bool
-    
-    init(item: FeedItem, isActive: Bool = false) {
-        self.item = item
-        self.isActive = isActive
-        _isLiked = State(initialValue: item.isLiked)
-        _isSaved = State(initialValue: item.isSaved)
-        print("Initializing FeedItemView with playbackId: \(item.playbackId), isActive: \(isActive)")
-    }
+    let size: CGSize
+    let safeArea: EdgeInsets
+    @Binding var isLiked: Bool
+    @Binding var isSaved: Bool
+    let isCurrentlyActive: Bool
+    @State private var isMuted: Bool = false
+    @State private var isVisible: Bool = false
+    let addLikeAnimation: (CGPoint) -> Void
     
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
-            // Mux Video Player
+        GeometryReader { geo in
+            let rect = geo.frame(in: .scrollView(axis: .vertical))
+            
             MuxPlayerView(
                 playbackId: item.playbackId,
-                autoPlay: isActive,
-                isMuted: false,
-                metadata: [
-                    "title": item.title,
-                    "video_id": item.id,
-                    "series_id": item.seriesId,
-                    "episode_number": String(item.episodeNumber)
-                ]
+                autoPlay: isCurrentlyActive,
+                isMuted: isMuted
             )
-            .onAppear {
-                print("Video player appeared with playbackId: \(item.playbackId), isActive: \(isActive)")
-                isPlaying = isActive
-            }
-            .onChange(of: isActive) { active in
-                print("isActive changed to \(active) for playbackId: \(item.playbackId)")
-                isPlaying = active
-            }
-            
-            // Video Info Overlay
-            VStack(alignment: .leading) {
-                Spacer()
+            .id("\(item.id)_\(isCurrentlyActive)") // Force recreation when active state changes
+            .preference(key: OffsetKey.self, value: rect)
+            .onPreferenceChange(OffsetKey.self) { rect in
+                // Check visibility based on position in scrollview
+                let threshold = size.height * 0.5
+                let newIsVisible = -rect.minY < threshold && rect.minY < threshold
                 
-                // Play button overlay (only shown when paused)
-                if !isPlaying && isActive {
-                    Button(action: {
-                        isPlaying = true
-                        print("Play button tapped for \(item.playbackId)")
-                    }) {
-                        Image(systemName: "play.circle.fill")
-                            .font(.system(size: 80))
-                            .foregroundColor(.white.opacity(0.7))
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                if newIsVisible != isVisible {
+                    isVisible = newIsVisible
+                    print("Video \(item.episodeNumber) visibility changed to: \(isVisible)")
                 }
-                
+            }
+            .overlay(alignment: .bottom) {
+                // Video Info Overlay
                 HStack(alignment: .bottom) {
                     // Video Details
                     VStack(alignment: .leading, spacing: 8) {
@@ -170,29 +189,102 @@ struct FeedItemView: View {
                     Spacer()
                     
                     // Action Buttons
-                    FeedActionButtons(
-                        item: item,
-                        isLiked: $isLiked,
-                        isSaved: $isSaved,
-                        onLike: {
-                            isLiked.toggle()
-                            // Implement like functionality
-                        },
-                        onSave: {
-                            isSaved.toggle()
-                            // Implement save functionality
-                        },
-                        onEpisodes: {
-                            // Show episodes modal
-                        },
-                        onShare: {
-                            // Implement share functionality
+                    VStack(spacing: 24) {
+                        Button(action: {
+                            isMuted.toggle()
+                            print("Audio toggled to \(isMuted ? "muted" : "unmuted")")
+                        }) {
+                            Image(systemName: isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                                .font(.system(size: 24))
+                                .foregroundColor(.white)
                         }
-                    )
+                        
+                        // Like Button
+                        Button(action: {
+                            isLiked.toggle()
+                            // Add haptic feedback
+                            let generator = UIImpactFeedbackGenerator(style: .medium)
+                            generator.impactOccurred()
+                        }) {
+                            Image(systemName: isLiked ? "heart.fill" : "heart")
+                                .font(.system(size: 24))
+                                .foregroundColor(isLiked ? .red : .white)
+                        }
+                        .symbolEffect(.bounce, value: isLiked)
+                        
+                        // Save Button
+                        Button(action: {
+                            isSaved.toggle()
+                            // Add haptic feedback
+                            let generator = UIImpactFeedbackGenerator(style: .light)
+                            generator.impactOccurred()
+                        }) {
+                            Image(systemName: isSaved ? "bookmark.fill" : "bookmark")
+                                .font(.system(size: 24))
+                                .foregroundColor(isSaved ? Color(hex: "9B79C1") : .white)
+                        }
+                        .symbolEffect(.bounce, value: isSaved)
+                        
+                        // Episodes Button
+                        Button(action: {
+                            // Show episodes modal
+                        }) {
+                            Image(systemName: "list.bullet")
+                                .font(.system(size: 24))
+                                .foregroundColor(.white)
+                        }
+                        
+                        // Share Button
+                        Button(action: {
+                            // Implement share functionality
+                        }) {
+                            Image(systemName: "paperplane")
+                                .font(.system(size: 24))
+                                .foregroundColor(.white)
+                        }
+                    }
+                    .padding(.trailing, 16)
                 }
+                .padding(.bottom, safeArea.bottom + 15)
             }
-            .padding(.bottom, 48)
+            .onTapGesture(count: 2) { position in
+                // Double tap to like
+                isLiked = true
+                addLikeAnimation(position)
+                
+                // Add haptic feedback
+                let generator = UIImpactFeedbackGenerator(style: .rigid)
+                generator.impactOccurred()
+            }
         }
+    }
+}
+
+// MARK: - Animation Models and Views
+struct LikeAnimation: Identifiable {
+    let id: UUID
+    let position: CGPoint
+    var isAnimated: Bool
+}
+
+struct LikeAnimationView: View {
+    let like: LikeAnimation
+    
+    var body: some View {
+        Image(systemName: "heart.fill")
+            .font(.system(size: like.isAnimated ? 70 : 100))
+            .foregroundColor(.red)
+            .position(like.position)
+            .opacity(like.isAnimated ? 0 : 1)
+            .scaleEffect(like.isAnimated ? 0.4 : 1)
+    }
+}
+
+// MARK: - Preference Key for Scroll Position
+struct OffsetKey: PreferenceKey {
+    static var defaultValue: CGRect = .zero
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
+        value = nextValue()
     }
 }
 

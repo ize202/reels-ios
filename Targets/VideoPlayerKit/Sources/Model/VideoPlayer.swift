@@ -5,7 +5,7 @@ import SharedKit
 import os
 
 /// Wrapper around the Mux Player SDK for video playback
-public enum VideoPlayer {
+public enum MuxVideoPlayer {
     private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "VideoPlayer")
     
     /// Initialize Mux Player with configuration
@@ -19,97 +19,50 @@ public enum VideoPlayer {
         logger.info("[VIDEO] Initialized Mux Player SDK with env key: \(envKey)")
     }
     
-    /// Create a new AVPlayerViewController for a given playback ID
-    /// - Parameters:
-    ///   - playbackId: The Mux playback ID
-    ///   - metadata: Additional metadata for analytics
-    /// - Returns: A configured AVPlayerViewController
-    static public func createPlayerViewController(
-        playbackId: String,
-        metadata: [String: Any] = [:]
-    ) -> AVPlayerViewController {
-        // Create player view controller with playback ID
-        let playerViewController = AVPlayerViewController()
-        
-        // Configure the player with the playback ID
-        let player = AVPlayer()
-        playerViewController.player = player
-        
-        // Extract the playback ID if it's a URL
-        let cleanPlaybackId = extractPlaybackId(from: playbackId)
+    /// Create a player with a Mux playback ID or URL
+    /// - Parameter playbackId: The Mux playback ID or URL
+    /// - Returns: Configured AVPlayer
+    static public func createPlayer(playbackId: String) -> AVPlayer {
+        // Extract clean ID from either direct ID or URL
+        let cleanId = extractPlaybackId(from: playbackId)
         
         // Create URL for the Mux stream
-        if let url = URL(string: "https://stream.mux.com/\(cleanPlaybackId).m3u8") {
-            let playerItem = AVPlayerItem(url: url)
-            player.replaceCurrentItem(with: playerItem)
-        }
+        let url = URL(string: "https://stream.mux.com/\(cleanId).m3u8")!
+        logger.info("[VIDEO] Creating player with URL: \(url)")
         
-        logger.info("[VIDEO] Created player view controller for playback ID: \(cleanPlaybackId)")
-        return playerViewController
-    }
-    
-    /// Create a new AVPlayerLayer for a given playback ID
-    /// - Parameters:
-    ///   - playbackId: The Mux playback ID
-    ///   - metadata: Additional metadata for analytics
-    /// - Returns: A configured AVPlayerLayer
-    static public func createPlayerLayer(
-        playbackId: String,
-        metadata: [String: Any] = [:]
-    ) -> AVPlayerLayer {
-        // Create a basic AVPlayerLayer
-        let player = AVPlayer()
-        let playerLayer = AVPlayerLayer(player: player)
+        // Create asset and item with appropriate options for better streaming
+        let asset = AVURLAsset(url: url)
+        let playerItem = AVPlayerItem(asset: asset)
         
-        // Extract the playback ID if it's a URL
-        let cleanPlaybackId = extractPlaybackId(from: playbackId)
+        // Create player with the item
+        let player = AVPlayer(playerItem: playerItem)
+        player.volume = 1.0
         
-        // Create URL for the Mux stream
-        if let url = URL(string: "https://stream.mux.com/\(cleanPlaybackId).m3u8") {
-            logger.info("[VIDEO] Creating player with URL: \(url.absoluteString)")
-            let playerItem = AVPlayerItem(url: url)
-            player.replaceCurrentItem(with: playerItem)
-        } else {
-            logger.error("[VIDEO] Failed to create URL with playback ID: \(playbackId)")
-        }
+        // Configure automatic playback rate adjustment (if needed)
+        player.automaticallyWaitsToMinimizeStalling = true
         
-        logger.info("[VIDEO] Created player layer for playback ID: \(cleanPlaybackId)")
-        return playerLayer
+        return player
     }
     
     /// Extract a clean playback ID from a URL or raw ID
     private static func extractPlaybackId(from input: String) -> String {
-        // Check if input is already a URL
-        if input.contains("https://") || input.contains("http://") {
-            // Try to extract ID from URL
-            if let url = URL(string: input) {
-                // If it's a Mux URL, extract just the ID part
-                if let host = url.host, host.contains("mux.com") {
-                    let pathComponents = url.pathComponents
-                    if pathComponents.count > 1 {
-                        // Remove .m3u8 extension if present
-                        return pathComponents[1].replacingOccurrences(of: ".m3u8", with: "")
-                    }
-                }
-                
-                // If it's not a recognized Mux URL format, try a different approach
-                let urlString = url.absoluteString
-                if let range = urlString.range(of: "mux.com/") {
-                    let idStart = range.upperBound
-                    let remainingString = urlString[idStart...]
-                    if let endRange = remainingString.range(of: ".m3u8") {
-                        return String(remainingString[..<endRange.lowerBound])
-                    } else {
-                        return String(remainingString)
-                    }
+        // If input contains a URL, extract ID from it
+        if input.contains("mux.com") {
+            // Try pattern: mux.com/PLAYBACK_ID.m3u8
+            if let range = input.range(of: "mux.com/") {
+                let idStart = range.upperBound
+                let remainingString = input[idStart...]
+                if let endRange = remainingString.range(of: ".m3u8") {
+                    let id = String(remainingString[..<endRange.lowerBound])
+                    logger.info("[VIDEO] Extracted ID \(id) from URL")
+                    return id
                 }
             }
             
-            // If we couldn't extract from URL, log and return the original
             logger.warning("[VIDEO] Could not extract clean playback ID from URL: \(input)")
             return input
         } else {
-            // Not a URL, return as is
+            // Already a clean ID
             return input
         }
     }

@@ -21,6 +21,7 @@ import SupabaseKit
 import SwiftUI
 import UIKit
 import VideoPlayerKit
+import AVFoundation
 
 @main
 struct MainApp: App {
@@ -126,7 +127,16 @@ class AppDelegate: NSObject, UIApplicationDelegate, OSNotificationLifecycleListe
 		Analytics.initMixpanel()
         Crashlytics.shared.configure()
 		InAppPurchases.initRevenueCat()
-        VideoPlayer.initMuxPlayer()
+        MuxVideoPlayer.initMuxPlayer()
+        
+        // Configure Audio Session
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
+            try AVAudioSession.sharedInstance().setActive(true)
+            print("[AUDIO] Successfully configured audio session for video playback")
+        } catch {
+            print("[AUDIO] Failed to set up audio session: \(error)")
+        }
 
 		// If OneSignal initialized successfully, we set up the push notification observers and clear all notifications when the app is opened
 		PushNotifications.initOneSignal(launchOptions)
