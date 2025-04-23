@@ -27,6 +27,8 @@ public struct MuxPlayerView: UIViewRepresentable {
         self.autoPlay = autoPlay
         self.isMuted = isMuted
         self.metadata = metadata
+        
+        print("[VIDEO] Initializing MuxPlayerView with playbackId: \(playbackId)")
     }
     
     public func makeUIView(context: Context) -> UIView {
@@ -48,14 +50,9 @@ public struct MuxPlayerView: UIViewRepresentable {
         if let player = playerLayer.player {
             player.isMuted = isMuted
             
-            // Create URL for the Mux stream
-            if let url = URL(string: "https://stream.mux.com/\(playbackId).m3u8") {
-                let playerItem = AVPlayerItem(url: url)
-                player.replaceCurrentItem(with: playerItem)
-                
-                if autoPlay {
-                    player.play()
-                }
+            if autoPlay {
+                print("[VIDEO] Auto-playing video with playbackId: \(playbackId)")
+                player.play()
             }
         }
         
@@ -63,8 +60,8 @@ public struct MuxPlayerView: UIViewRepresentable {
         Analytics.capture(
             .info,
             id: "video_view_created",
-            longDescription: "[VIDEO] Created video view",
-            source: .general,
+            longDescription: "[VIDEO] Created video view for playback ID: \(playbackId)",
+            source: .general
         )
         
         return containerView
@@ -74,6 +71,23 @@ public struct MuxPlayerView: UIViewRepresentable {
         // Ensure player layer fills the container
         if let playerLayer = uiView.layer.sublayers?.first as? AVPlayerLayer {
             playerLayer.frame = uiView.bounds
+            
+            // Ensure video is playing if autoPlay is true
+            if autoPlay, let player = playerLayer.player, player.timeControlStatus != .playing {
+                print("[VIDEO] Ensuring video is playing in updateUIView")
+                player.play()
+            }
+        }
+    }
+    
+    // This is needed to handle orientation changes and layout updates
+    public static func dismantleUIView(_ uiView: UIView, coordinator: ()) {
+        // Stop any playback when the view is removed
+        if let playerLayer = uiView.layer.sublayers?.first as? AVPlayerLayer,
+           let player = playerLayer.player {
+            player.pause()
+            player.replaceCurrentItem(with: nil)
+            print("[VIDEO] Dismantling player view and stopping playback")
         }
     }
 }

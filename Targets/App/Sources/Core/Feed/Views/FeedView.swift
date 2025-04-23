@@ -1,42 +1,111 @@
 import SwiftUI
 import SharedKit
 import VideoPlayerKit
+import SupabaseKit
 
 struct FeedView: View {
-    @State private var currentIndex: Int = 0
-    @State private var feedItems: [FeedItem]
+    @StateObject var viewModel: FeedViewModel
+    @Environment(\.presentationMode) var presentationMode
     
-    init(feedItems: [FeedItem] = FeedItem.mockItems) {
-        _feedItems = State(initialValue: feedItems)
+    init(db: DB, seriesId: UUID, startingEpisode: Int = 1) {
+        print("Initializing FeedView with seriesId: \(seriesId), startingEpisode: \(startingEpisode)")
+        _viewModel = StateObject(wrappedValue: FeedViewModel(db: db, seriesId: seriesId, startingEpisode: startingEpisode))
     }
     
     var body: some View {
         GeometryReader { geometry in
-            TabView(selection: $currentIndex) {
-                ForEach(Array(feedItems.enumerated()), id: \.element.id) { index, item in
-                    FeedItemView(item: item)
-                        .frame(width: geometry.size.width, height: geometry.size.height)
-                        .rotationEffect(.degrees(0)) // Ensures video is in correct orientation
-                        .tag(index)
+            ZStack {
+                Color.black.edgesIgnoringSafeArea(.all)
+                
+                if viewModel.isLoading {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: Color.white))
+                        .scaleEffect(1.5)
+                } else if let errorMessage = viewModel.errorMessage {
+                    VStack {
+                        Text(errorMessage)
+                            .foregroundColor(.white)
+                            .padding()
+                        
+                        Button("Go Back") {
+                            presentationMode.wrappedValue.dismiss()
+                        }
+                        .foregroundColor(.white)
+                        .padding()
+                        .background(Color(hex: "9B79C1"))
+                        .cornerRadius(8)
+                    }
+                } else if !viewModel.feedItems.isEmpty {
+                    TabView(selection: $viewModel.currentIndex) {
+                        ForEach(Array(viewModel.feedItems.indices), id: \.self) { index in
+                            FeedItemView(item: viewModel.feedItems[index], isActive: viewModel.currentIndex == index)
+                                .frame(width: geometry.size.width, height: geometry.size.height)
+                                .rotationEffect(.degrees(0)) // Ensures video is in correct orientation
+                                .tag(index)
+                                .onAppear {
+                                    print("Feed item \(index) appeared - playbackId: \(viewModel.feedItems[index].playbackId)")
+                                }
+                        }
+                    }
+                    .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                    .onChange(of: viewModel.currentIndex) { newIndex in
+                        print("Current index changed to \(newIndex)")
+                    }
+                    
+                    // Add a gesture to swipe down to dismiss
+                    .gesture(
+                        DragGesture(minimumDistance: 20)
+                            .onEnded { gesture in
+                                // If swipe direction is mostly downward, dismiss
+                                if gesture.translation.height > 100 && 
+                                   abs(gesture.translation.height) > abs(gesture.translation.width) {
+                                    presentationMode.wrappedValue.dismiss()
+                                }
+                            }
+                    )
+                } else {
+                    Text("No episodes available")
+                        .foregroundColor(.white)
+                        .padding()
                 }
             }
-            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-            .frame(width: geometry.size.width, height: geometry.size.height)
-            .background(Color.black)
         }
         .edgesIgnoringSafeArea(.all)
+        .preferredColorScheme(.dark)
+        .navigationBarBackButtonHidden(true)
+        .navigationBarItems(leading:
+            Button(action: {
+                presentationMode.wrappedValue.dismiss()
+            }) {
+                Image(systemName: "xmark")
+                    .foregroundColor(.white)
+                    .padding(8)
+                    .background(Circle().fill(Color.black.opacity(0.5)))
+            }
+        )
+        .onAppear {
+            print("FeedView appeared with \(viewModel.feedItems.count) items")
+            if !viewModel.feedItems.isEmpty {
+                print("First item playbackId: \(viewModel.feedItems[0].playbackId)")
+            }
+        }
     }
 }
 
 struct FeedItemView: View {
     @State private var isLiked: Bool
     @State private var isSaved: Bool
+    @State private var isPlaying: Bool = false
     let item: FeedItem
+    let isActive: Bool
     
-    init(item: FeedItem) {
+    init(item: FeedItem, isActive: Bool = false) {
         self.item = item
+        self.isActive = isActive
         _isLiked = State(initialValue: item.isLiked)
         _isSaved = State(initialValue: item.isSaved)
+        print("Initializing FeedItemView with playbackId: \(item.playbackId), isActive: \(isActive)")
     }
     
     var body: some View {
@@ -44,19 +113,40 @@ struct FeedItemView: View {
             // Mux Video Player
             MuxPlayerView(
                 playbackId: item.playbackId,
-                autoPlay: true,
+                autoPlay: isActive,
                 isMuted: false,
                 metadata: [
                     "title": item.title,
                     "video_id": item.id,
                     "series_id": item.seriesId,
-                    "episode_number": item.episodeNumber
+                    "episode_number": String(item.episodeNumber)
                 ]
             )
+            .onAppear {
+                print("Video player appeared with playbackId: \(item.playbackId), isActive: \(isActive)")
+                isPlaying = isActive
+            }
+            .onChange(of: isActive) { active in
+                print("isActive changed to \(active) for playbackId: \(item.playbackId)")
+                isPlaying = active
+            }
             
             // Video Info Overlay
             VStack(alignment: .leading) {
                 Spacer()
+                
+                // Play button overlay (only shown when paused)
+                if !isPlaying && isActive {
+                    Button(action: {
+                        isPlaying = true
+                        print("Play button tapped for \(item.playbackId)")
+                    }) {
+                        Image(systemName: "play.circle.fill")
+                            .font(.system(size: 80))
+                            .foregroundColor(.white.opacity(0.7))
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
                 
                 HStack(alignment: .bottom) {
                     // Video Details
@@ -109,17 +199,13 @@ struct FeedItemView: View {
 // MARK: - Preview Provider
 struct FeedView_Previews: PreviewProvider {
     static var previews: some View {
-        Group {
-            // Full screen preview
-            FeedView()
-                .previewDisplayName("Feed View - Full Screen")
-                .previewDevice("iPhone 14 Pro")
-            
-            // Single item preview
-            FeedItemView(item: FeedItem.mockItems[0])
-                .previewDisplayName("Single Item")
-                .frame(width: 390, height: 844) // iPhone 14 Pro dimensions
-                .background(Color.black)
-        }
+        // Use mock DB for preview
+        let mockDB = DB()
+        // Use a mock UUID for preview
+        let mockSeriesId = UUID()
+        
+        FeedView(db: mockDB, seriesId: mockSeriesId)
+            .previewDisplayName("Feed View - Full Screen")
+            .previewDevice("iPhone 14 Pro")
     }
 } 

@@ -5,10 +5,12 @@
 
 import SwiftUI
 import SharedKit
+import SupabaseKit
 
 struct LibraryView: View {
     // Use the ViewModel
     @StateObject private var viewModel = LibraryViewModel()
+    @EnvironmentObject var db: DB
 
     // Grid columns for My Collection
     let columns: [GridItem] = [
@@ -18,62 +20,69 @@ struct LibraryView: View {
     ]
 
     var body: some View {
-        // Removed NavigationView
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                // Screen Title
-                Text("Library")
-                    .font(.title)
-                    .fontWeight(.bold)
-                    .foregroundColor(.primary)
-                    .padding(.horizontal)
-                    .padding(.top, 10)
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Screen Title
+                    Text("Library")
+                        .font(.title)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+                        .padding(.horizontal)
+                        .padding(.top, 10)
 
-                // Continue Watching section
-                if !viewModel.recentlyWatched.isEmpty {
-                    LibrarySectionHeader(title: "Recently Watched")
-                        .padding(.top, -8)
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 15) {
-                            ForEach(viewModel.recentlyWatched) { series in
-                                RecentlyWatchedCard(series: series)
+                    // Continue Watching section
+                    if !viewModel.recentlyWatched.isEmpty {
+                        LibrarySectionHeader(title: "Recently Watched")
+                            .padding(.top, -8)
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 15) {
+                                ForEach(viewModel.recentlyWatched) { series in
+                                    NavigationLink(destination: FeedView(db: db, seriesId: UUID(uuidString: series.seriesId) ?? UUID(), startingEpisode: series.lastWatchedEpisode)) {
+                                        RecentlyWatchedCard(series: series)
+                                    }
+                                }
+                            }
+                            .padding(.horizontal)
+                        }
+                    }
+                    
+                    // My Collection section
+                    if !viewModel.savedCollection.isEmpty {
+                        LibrarySectionHeader(title: "Saved Series")
+                            .padding(.top, -8)
+                        LazyVGrid(columns: columns, spacing: 15) {
+                            ForEach(viewModel.savedCollection) { series in
+                                NavigationLink(destination: FeedView(db: db, seriesId: UUID(uuidString: series.seriesId) ?? UUID())) {
+                                    MyCollectionCard(series: series)
+                                }
                             }
                         }
                         .padding(.horizontal)
                     }
-                }
-                
-                // My Collection section
-                if !viewModel.savedCollection.isEmpty {
-                    LibrarySectionHeader(title: "Saved Series")
-                        .padding(.top, -8)
-                    LazyVGrid(columns: columns, spacing: 15) {
-                        ForEach(viewModel.savedCollection) { series in
-                            MyCollectionCard(series: series)
-                        }
+                    
+                    // Handle empty state
+                    if viewModel.recentlyWatched.isEmpty && viewModel.savedCollection.isEmpty && !viewModel.isLoading {
+                        Text("Your library is empty.")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.top, 50)
                     }
-                    .padding(.horizontal)
                 }
-                
-                // Handle empty state
-                if viewModel.recentlyWatched.isEmpty && viewModel.savedCollection.isEmpty && !viewModel.isLoading {
-                    Text("Your library is empty.")
-                        .font(.headline)
-                        .foregroundColor(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.top, 50)
+                .padding(.vertical, 10)
+            }
+            .background(Color.black) // Apply black background
+            .preferredColorScheme(.dark) // Force dark mode
+            .overlay {
+                if viewModel.isLoading {
+                    ProgressView()
                 }
+                // Optional: Add error message display if needed
             }
-            .padding(.vertical, 10)
         }
-        .background(Color.black) // Apply black background
-        .preferredColorScheme(.dark) // Force dark mode
-        .overlay {
-            if viewModel.isLoading {
-                ProgressView()
-            }
-            // Optional: Add error message display if needed
-        }
+        .navigationViewStyle(StackNavigationViewStyle())
+        .accentColor(Color(hex: "9B79C1"))
     }
 }
 
@@ -121,8 +130,8 @@ struct RecentlyWatchedCard: View {
                 .foregroundColor(.secondary)
         }
         .frame(width: 160) // Constrain card width
-        // Remove fixed width for the VStack, let content define it within limits
-        // .frame(width: 160)
+        .contentShape(Rectangle()) // Make the entire card tappable
+        .buttonStyle(PlainButtonStyle()) // Remove default button styling from NavigationLink
     }
 }
 
@@ -153,6 +162,8 @@ struct MyCollectionCard: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
+        .contentShape(Rectangle()) // Make the entire card tappable
+        .buttonStyle(PlainButtonStyle()) // Remove default button styling from NavigationLink
     }
 }
 

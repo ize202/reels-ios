@@ -34,43 +34,49 @@ struct HomeView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                // App Title
-                Text("Reels")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .foregroundColor(.primary)
-                    .padding(.horizontal)
-                    .padding(.top)
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // App Title
+                    Text("Reels")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+                        .padding(.horizontal)
+                        .padding(.top)
 
-                // All Series Grid
-                if !viewModel.allSeries.isEmpty {
-                    LazyVGrid(columns: columns, spacing: 20) {
-                        ForEach(viewModel.allSeries) { series in
-                            SeriesCard(series: series)
+                    // All Series Grid
+                    if !viewModel.allSeries.isEmpty {
+                        LazyVGrid(columns: columns, spacing: 20) {
+                            ForEach(viewModel.allSeries) { series in
+                                NavigationLink(destination: FeedView(db: db, seriesId: series.id)) {
+                                    SeriesCard(series: series)
+                                }
+                            }
                         }
+                        .padding(.horizontal)
                     }
-                    .padding(.horizontal)
+                }
+                .padding(.top)
+            }
+            .background(Color.black)
+            .preferredColorScheme(.dark)
+            .refreshable {
+                await viewModel.fetchData()
+            }
+            .overlay {
+                if viewModel.isLoading {
+                    ProgressView()
+                } else if let errorMessage = viewModel.errorMessage {
+                    Text(errorMessage)
+                        .foregroundColor(.red)
+                        .padding()
                 }
             }
-            .padding(.top)
+            .onAppear(perform: setupViewModel)
         }
-        .background(Color.black)
-        .preferredColorScheme(.dark)
-        .refreshable {
-            await viewModel.fetchData()
-        }
-        .overlay {
-            if viewModel.isLoading {
-                ProgressView()
-            } else if let errorMessage = viewModel.errorMessage {
-                Text(errorMessage)
-                    .foregroundColor(.red)
-                    .padding()
-            }
-        }
-        .onAppear(perform: setupViewModel)
+        .navigationViewStyle(StackNavigationViewStyle())
+        .accentColor(Color(hex: "9B79C1"))
     }
 }
 
@@ -130,6 +136,12 @@ struct SeriesCard: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
+        .contentShape(Rectangle())
+        .buttonStyle(PlainButtonStyle())
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color.clear, lineWidth: 0)
+        )
     }
 }
 
