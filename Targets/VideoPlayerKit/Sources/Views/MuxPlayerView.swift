@@ -4,127 +4,100 @@ import MuxPlayerSwift
 import SharedKit
 import AnalyticsKit
 
-/// A SwiftUI view for Mux video playback using a custom player controller
+/// A SwiftUI view for Mux video playback using a custom player controller.
+/// Playback (play/pause) is controlled externally based on scroll visibility.
 public struct MuxPlayerView: View {
-    // Use optional player for CustomVideoPlayer representable
-    @State private var player: AVPlayer?
-    // Track playback state
-    @State private var isPlaying: Bool = false
-    // Show/hide the pause icon briefly on tap
-    @State private var showPauseIcon: Bool = false
+    // Expose the player instance for external control
+    @Binding var player: AVPlayer?
+    // Store the player instance created locally - REMOVED
+    // REMOVED: @State private var internalPlayerInstance: AVPlayer?
 
     private let playbackId: String
-    private let autoPlay: Bool
+    // REMOVE: private let autoPlay: Bool
     private let isMuted: Bool
+    // Callback for tap gestures
+    private let onTap: () -> Void
     
-    /// Initialize a new MuxPlayerView
-    /// - Parameters:
-    ///   - playbackId: The Mux playback ID or URL
-    ///   - autoPlay: Whether to start playing automatically
-    ///   - isMuted: Whether to start muted
-    ///   - metadata: Additional metadata for analytics (not used in simplified version)
     public init(
         playbackId: String,
-        autoPlay: Bool = true,
+        // autoPlay: Bool = false, // REMOVED
         isMuted: Bool = false,
-        metadata: [String: Any] = [:]
+        player: Binding<AVPlayer?>,
+        metadata: [String: Any] = [:],
+        onTap: @escaping () -> Void // Add callback
     ) {
         print("[VIDEO] Initializing player wrapper for: \(playbackId)")
         self.playbackId = playbackId
-        // Initialize player within the init or onAppear
-        self._player = State(initialValue: nil)
-        self.autoPlay = autoPlay
         self.isMuted = isMuted
-        // isPlaying state should align with autoPlay initially
-        self._isPlaying = State(initialValue: autoPlay)
+        self._player = player // Connect binding
+        self.onTap = onTap
     }
     
     public var body: some View {
         ZStack {
-            // Custom Player View
-            if let player = player {
+            // Custom Player View - Use binding directly
+            if let player = player { // Use the binding directly
                 CustomVideoPlayer(player: .constant(player))
+                    .allowsHitTesting(false) // Make player view non-interactive for tap gesture
             } else {
                 // Placeholder or loading view while player initializes
                 Color.black
                     .overlay(ProgressView().tint(.white))
             }
 
-            // Play/Pause Overlay Icon
+            // Transparent overlay for tap gesture
+            Color.clear
+                .contentShape(Rectangle()) // Ensure the whole area is tappable
+                .onTapGesture {
+                    print("[VIDEO] Tap detected on MuxPlayerView for \(playbackId)")
+                    // Call the external toggle function
+                    onTap()
+                }
+
+            // Play/Pause Overlay Icon (controlled by external state via player rate)
             Image(systemName: "pause.fill")
                 .font(.system(size: 45))
                 .foregroundColor(.white.opacity(0.8))
                 .padding(20)
                 .background(.black.opacity(0.3))
                 .clipShape(Circle())
-                .opacity(showPauseIcon ? 1 : 0) // Show only when tapped
-                .allowsHitTesting(false) // Don't interfere with tap gesture below
-        }
-        .contentShape(Rectangle()) // Ensure the whole area is tappable
-        .onTapGesture {
-            togglePlayPause()
+                // Show icon only if player is paused (rate is 0) - Use binding
+                .opacity(player?.rate == 0 ? 1 : 0)
+                .allowsHitTesting(false) 
         }
         .onAppear {
-            // Initialize player only if it hasn't been created yet
-            if player == nil {
-                print("[VIDEO] Creating player onAppear for: \(playbackId)")
-                player = MuxVideoPlayer.createPlayer(playbackId: playbackId)
-            }
+             print("[VIDEO] MuxPlayerView onAppear for \(playbackId)")
+            // REMOVED: Player creation is now handled by the parent view (FeedPlayerCell)
+            // REMOVED: if player == nil {
+            // REMOVED:     print("[VIDEO] Creating player onAppear for: \(playbackId)")
+            // REMOVED:     let newPlayer = MuxVideoPlayer.createPlayer(playbackId: playbackId)
+            // REMOVED:     DispatchQueue.main.async { // Ensure update happens after view cycle
+            // REMOVED:         self.player = newPlayer
+            // REMOVED:      }
+            // REMOVED: }
             
-            guard let player = player else { return }
-            
-            // Configure player
-            player.isMuted = isMuted
-            
-            // Reset player state if needed (e.g., re-appearing)
-            // Consider if seeking to zero is always desired on appear
-            // player.seek(to: .zero)
-            
-            // Handle autoplay
-            if autoPlay && !isPlaying {
-                player.play()
-                isPlaying = true
-                print("[VIDEO] Auto-playing video")
-            } else if !autoPlay && isPlaying {
-                 // Ensure consistency if autoplay is off but state is playing
-                 player.pause()
-                 isPlaying = false
-            }
+             // Configure player - Apply to binding if player exists
+             player?.isMuted = isMuted
+             
+             // Playback is now fully controlled externally
         }
         .onDisappear {
-            // Pause when view disappears
-            print("[VIDEO] Pausing video onDisappear")
-            player?.pause()
-            isPlaying = false
-            // Optionally reset player to nil to free resources if view is destroyed
-            // player = nil
+             print("[VIDEO] MuxPlayerView onDisappear for \(playbackId)")
+            // External view (FeedView) is responsible for pausing and managing player lifecycle
+            // We might not want to pause here directly, as it might be just temporarily offscreen
+            // internalPlayerInstance?.pause()
+            // Setting player binding to nil might be desired if the view is truly gone
+            // player = nil 
+            // internalPlayerInstance = nil
         }
         .onChange(of: isMuted) { newValue in
              print("[VIDEO] Setting muted state: \(newValue)")
-            player?.isMuted = newValue
+             player?.isMuted = newValue
         }
         // Use playbackId to recreate the view AND player state when it changes
+        // This helps if the same view instance is reused for different videos
         .id(playbackId)
     }
 
-    private func togglePlayPause() {
-        guard let player = player else { return }
-        
-        isPlaying.toggle()
-        
-        if isPlaying {
-            print("[VIDEO] Playing via tap")
-            player.play()
-            // Hide pause icon immediately after resuming play
-            showPauseIcon = false
-        } else {
-            print("[VIDEO] Pausing via tap")
-            player.pause()
-            // Show pause icon briefly
-            showPauseIcon = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                showPauseIcon = false
-            }
-        }
-    }
+   // REMOVE private func togglePlayPause()
 }
