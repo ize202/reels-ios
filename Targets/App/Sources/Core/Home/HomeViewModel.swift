@@ -31,11 +31,11 @@ class HomeViewModel: ObservableObject {
         do {
             let series = try await db.fetchAllSeries()
             
-            // First 3 series will be featured
-            featuredSeries = Array(series.prefix(3))
+            // Put all series in the grid
+            allSeries = series
             
-            // Rest will be shown in the grid
-            allSeries = Array(series.dropFirst(3))
+            // Keep featuredSeries empty since we're not using it anymore
+            featuredSeries = []
             
             isLoading = false
         } catch {

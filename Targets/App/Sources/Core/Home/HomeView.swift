@@ -35,7 +35,7 @@ struct HomeView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 30) {
+            VStack(alignment: .leading, spacing: 20) {
                 // App Title
                 Text("Reels")
                     .font(.largeTitle)
@@ -44,28 +44,8 @@ struct HomeView: View {
                     .padding(.horizontal)
                     .padding(.top)
 
-                // Featured Carousel Section
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 15) {
-                        ForEach(viewModel.featuredSeries) { series in 
-                            FeaturedSeriesCard(series: series)
-                                .containerRelativeFrame(.horizontal, count: 1, spacing: 16)
-                        }
-                    }
-                    .scrollTargetLayout()
-                }
-                .scrollTargetBehavior(.viewAligned)
-                .safeAreaPadding(.horizontal)
-                .padding(.bottom, 10)
-
                 // All Series Grid
                 if !viewModel.allSeries.isEmpty {
-                    Text("All Series")
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.primary)
-                        .padding(.horizontal)
-                    
                     LazyVGrid(columns: columns, spacing: 20) {
                         ForEach(viewModel.allSeries) { series in
                             SeriesCard(series: series)
@@ -153,6 +133,7 @@ struct SeriesCard: View {
     }
 }
 
+// Kept for reference but no longer used
 struct FeaturedSeriesCard: View {
     let series: Series
     let gradient = Gradient(colors: [Color.black.opacity(0.0), Color.black.opacity(0.8)])
