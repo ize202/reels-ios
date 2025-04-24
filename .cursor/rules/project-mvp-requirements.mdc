@@ -68,19 +68,13 @@ Build a vertically optimized short drama streaming app for iOS. The app will del
 
 ### 7. **Monetization**
 
-- In-App Currency ("Coins")
-  - Users earn coins via IAP or rewarded ads
-  - Use coins to unlock next episode
-- Rewarded Video Ads
-  - Watch ad to earn coin(s)
 - IAP Options
-  - Coin packs: $1.99 / $4.99 / $9.99
-  - VIP Subscriptions (Optional MVP): Weekly or Monthly unlimited access
+  - VIP Subscriptions: weekly, monthly and annualy
+  - episodes will be gated with a 'vip' tag in superbase and if a user is not Subscribed they will be a blocked screen with a subscribe button to bring up the paywall
 
 ### 8. **Profile**
 
-- View coin balance
-- Purchase history
+- VIP block for users to Subscribe if not subbed already
 - Settings: Notifications, App Support, Restore Purchases
 - Optional Sign In (Apple or Email) to upgrade from anonymous account
 
@@ -133,8 +127,6 @@ Build a vertically optimized short drama streaming app for iOS. The app will del
 
 - Episode started / completed
 - Ad watched
-- Coin balance changes (earned/spent)
-- Purchases made (coin packs or subscriptions)
+- Purchases made (subscriptions)
 - Series completion % per user
-- Source of unlock (coin vs ad vs VIP)
 
