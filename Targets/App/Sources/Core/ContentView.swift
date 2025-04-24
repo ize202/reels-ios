@@ -30,8 +30,8 @@ struct ContentView: View {
 				.tabItem { Label("Library", systemImage: "books.vertical") }
 			
 			// Rewards Tab
-			RewardsView()
-				.tabItem { Label("Rewards", systemImage: "gift") }
+			// RewardsView()
+			// 	.tabItem { Label("Rewards", systemImage: "gift") }
 			
 			// Profile Tab
 			ProfileView()
