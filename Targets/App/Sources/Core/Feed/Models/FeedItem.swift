@@ -1,5 +1,6 @@
 import Foundation
 import SharedKit
+import SupabaseKit
 
 struct FeedItem: Identifiable {
     let id: String
@@ -9,6 +10,7 @@ struct FeedItem: Identifiable {
     let playbackId: String  // Mux playback ID
     let seriesId: String
     let episodeNumber: Int
+    let unlockType: Episode.UnlockType
     let totalEpisodes: Int
     var viewCount: Int
     

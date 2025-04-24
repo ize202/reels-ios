@@ -112,6 +112,7 @@ class FeedViewModel: ObservableObject {
                     playbackId: episode.playbackUrl, // Use the actual playbackUrl
                     seriesId: series.id.uuidString,
                     episodeNumber: episode.episodeNumber,
+                    unlockType: episode.unlockType,
                     totalEpisodes: episodes.count, // Use total count from original episodes list for accuracy
                     viewCount: 0     // TODO: Fetch view counts
                 )
