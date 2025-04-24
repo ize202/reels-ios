@@ -79,9 +79,7 @@ class FeedViewModel: ObservableObject {
                     seriesId: series.id.uuidString,
                     episodeNumber: episode.episodeNumber,
                     totalEpisodes: episodes.count, // Use total count from original episodes list for accuracy
-                    isLiked: false,  // We'd need to fetch this from user data
-                    isSaved: false,  // We'd need to fetch this from user data
-                    viewCount: 0     // We'd need real view counts from analytics
+                    viewCount: 0     // TODO: Fetch view counts
                 )
             }
             

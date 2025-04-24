@@ -13,22 +13,17 @@ struct FeedPlayerCell: View {
     @State private var player: AVPlayer?
     @State private var isPlaying: Bool = false
 
-    // === Interaction State (Local for feedback) ===
-    @State private var isLiked: Bool
-    @State private var isSaved: Bool
-
     // === Overlay Controls State ===
     @State private var showOverlayControls: Bool = true
     @State private var overlayAutoHideTimer: Timer? = nil
 
-    // Initializer to set local state from the item
+    // Initializer: Remove isLiked/isSaved initialization
     init(item: FeedItem, size: CGSize, safeArea: EdgeInsets) {
         self.item = item
         self.size = size
         self.safeArea = safeArea
-        // Initialize local state based on the passed item
-        _isLiked = State(initialValue: item.isLiked)
-        _isSaved = State(initialValue: item.isSaved)
+        // Removed: _isLiked = State(initialValue: item.isLiked)
+        // Removed: _isSaved = State(initialValue: item.isSaved)
     }
 
     var body: some View {
@@ -57,53 +52,6 @@ struct FeedPlayerCell: View {
                         showOverlayControls = true // Show controls when paused
                     }
                 }
-
-                // --- Side Action Buttons (Aligned Right) ---
-                if showOverlayControls {
-                    HStack {
-                        Spacer() // Pushes the VStack to the right
-
-                        VStack {
-                            Spacer()
-                                .frame(height: geo.size.height * 0.45)
-                            
-                            VStack(spacing: 16) {
-                                // Like Button
-                                Button { 
-                                    isLiked.toggle()
-                                    // TODO: Call viewModel method here later
-                                } label: {
-                                    Image(systemName: isLiked ? "heart.fill" : "heart")
-                                        .font(.system(size: 32))
-                                        .foregroundColor(isLiked ? .red : .white)
-                                        .frame(width: 44, height: 44)
-                                        .contentShape(Rectangle())
-                                        .scaleEffect(isLiked ? 1.1 : 1.0) // Scale animation on state change
-                                        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isLiked) // Animate the scale
-                                }
-
-                                // Save Button
-                                Button { 
-                                    isSaved.toggle()
-                                    // TODO: Call viewModel method here later
-                                } label: {
-                                    Image(systemName: isSaved ? "bookmark.fill" : "bookmark")
-                                        .font(.system(size: 32))
-                                        .foregroundColor(isSaved ? Color(hex: "9B79C1") : .white)
-                                        .frame(width: 44, height: 44)
-                                        .contentShape(Rectangle())
-                                        .scaleEffect(isSaved ? 1.1 : 1.0) // Scale animation on state change
-                                        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isSaved) // Animate the scale
-                                }
-                            }
-                            .padding(.trailing, 16)
-                            
-                            Spacer()
-                        }
-                    }
-                    .transition(.opacity.animation(.easeInOut(duration: 0.3))) // Fade transition
-                    .allowsHitTesting(true)
-                }
             }
             .preference(key: OffsetKey.self, value: rect)
             .onPreferenceChange(OffsetKey.self) { value in
@@ -113,9 +61,9 @@ struct FeedPlayerCell: View {
             .onAppear {
                 print("[CELL] Appear: \(item.id)")
                 if player == nil { player = MuxVideoPlayer.createPlayer(playbackId: item.playbackId) }
-                // Re-sync local state in case the item changed (e.g., refresh)
-                isLiked = item.isLiked
-                isSaved = item.isSaved
+                // Removed state sync
+                // isLiked = item.isLiked
+                // isSaved = item.isSaved
             }
             .onDisappear {
                 print("[CELL] Disappear: \(item.id)")

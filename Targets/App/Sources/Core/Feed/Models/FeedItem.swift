@@ -10,8 +10,6 @@ struct FeedItem: Identifiable {
     let seriesId: String
     let episodeNumber: Int
     let totalEpisodes: Int
-    var isLiked: Bool
-    var isSaved: Bool
     var viewCount: Int
     
     // Computed property to format view count
