@@ -99,7 +99,7 @@ public struct Constants {
 	public struct InAppPurchases {
 		/// Premium Access Entitlement Identifier RevenueCat dashboard
 		/// It should exactly match the one defined in your RevenueCat project dashboard settings
-		public static let premiumEntitlementIdentifier = "Premium Access"
+		public static let premiumEntitlementIdentifier = "VIP"
 	}
 
 	/// App constants defined by you / app itself
