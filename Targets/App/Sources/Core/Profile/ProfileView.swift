@@ -89,7 +89,7 @@ struct ProfileView: View {
     
     private var pendingVerificationView: some View {
         VStack(spacing: 15) {
-            Image(systemName: "envelope.badge.clock")
+            Image(systemName: "person.badge.clock")
                 .font(.system(size: 40))
                 .foregroundColor(Color(hex: "9B79C1"))
             
@@ -97,7 +97,7 @@ struct ProfileView: View {
                 .font(.title2)
                 .fontWeight(.semibold)
             
-            Text("We've sent a verification link to the email address you provided. Please click the link to secure your account.")
+            Text("We've sent a verification link to the email address you provided. Restart app to update profile.")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
