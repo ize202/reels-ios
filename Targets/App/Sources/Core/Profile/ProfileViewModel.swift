@@ -7,12 +7,18 @@ class ProfileViewModel: ObservableObject {
 
     // MARK: - Methods
     func handleSignInTap() {
-        showSignInSheet = true
+        // Dispatch to the main queue asynchronously to avoid modifying state during view update
+        DispatchQueue.main.async {
+            self.showSignInSheet = true
+        }
     }
     
     // Called when the sign-in sheet is dismissed without success or completed
     func handleSignInCancel() {
-        showSignInSheet = false
+        // Also dispatch dismissal to avoid potential issues
+        DispatchQueue.main.async {
+            self.showSignInSheet = false
+        }
     }
 
     // Removed: handleSignOut, handleSignInSuccess, handleDeleteAccount, handleRefillTap, fetchUserData

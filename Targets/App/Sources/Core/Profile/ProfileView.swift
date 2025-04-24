@@ -13,6 +13,7 @@ struct ProfileView: View {
     @Environment(\.colorScheme) var colorScheme
     @EnvironmentObject var iap: InAppPurchases
     @EnvironmentObject var db: DB
+    @State private var shouldNavigateToAccountSettings = false // State for navigation
 
     var body: some View {
         NavigationView {
@@ -28,6 +29,13 @@ struct ProfileView: View {
                     footerContent(geometry: geometry)
                 }
                 .frame(width: geometry.size.width, height: geometry.size.height)
+                // Add invisible NavigationLink controlled by state
+                .background(
+                    NavigationLink(destination: SupabaseAccountSettingsView(popBackToRoot: {}), isActive: $shouldNavigateToAccountSettings) {
+                        EmptyView()
+                    }
+                    .opacity(0) // Make it invisible
+                )
             }
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.large)
@@ -50,30 +58,57 @@ struct ProfileView: View {
     private var scrollableContent: some View {
         ScrollView {
             VStack(spacing: 20) {
-                // === Conditional Profile Header ===
-                if db.currentUser == nil { // Not signed in
+                // === Profile Header (Always Shown) ===
+                // Check if currentUser exists before accessing properties
+                if let currentUser = db.currentUser {
                     Button(action: { 
-                        viewModel.handleSignInTap()
+                        if currentUser.isAnonymous {
+                            // Anonymous user: show sign in sheet
+                            viewModel.handleSignInTap()
+                        } else {
+                            // Non-anonymous user: trigger navigation
+                            shouldNavigateToAccountSettings = true
+                        }
                     }) {
-                        HStack(spacing: 16) {
-                            Image(systemName: "person.crop.circle.badge.plus")
-                                .font(.system(size: 50))
-                                .foregroundColor(.secondary)
-                                .frame(width: 60, height: 60)
-                                .background(Color(UIColor.tertiarySystemFill))
-                                .clipShape(Circle())
-
+                        HStack {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("Sign In / Sign Up")
-                                    .font(.headline)
-                                Text("Unlock full features & sync progress")
-                                    .font(.footnote)
-                                    .foregroundColor(.secondary)
+                                // === Name Display ===
+                                if currentUser.isAnonymous {
+                                    Text("Guest")
+                                        .font(.headline)
+                                        .fontWeight(.semibold)
+                                } else {
+                                    // Attempt to get full name, fallback to email
+                                    Text(currentUser.userMetadata["full_name"] as? String ?? currentUser.email ?? "Account")
+                                        .font(.headline)
+                                        .fontWeight(.semibold)
+                                        .lineLimit(1)
+                                    
+                                    // === Email Display (Only for non-anonymous) ===
+                                    if let email = currentUser.email, !email.isEmpty {
+                                        Text(email)
+                                            .font(.subheadline)
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                                
+                                // === Helper Text ===
+                                if currentUser.isAnonymous {
+                                    Text("Sign in to save progress")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                } else {
+                                    Text("Manage account & settings")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
                             }
+                            
                             Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                            
+                            Image(systemName: "arrow.right.circle.fill")
+                                .font(.system(size: 24))
+                                .foregroundColor(Color(hex: "9B79C1"))
                         }
                         .padding()
                         .background(Color(UIColor.secondarySystemGroupedBackground))
@@ -81,36 +116,11 @@ struct ProfileView: View {
                     }
                     .buttonStyle(PlainButtonStyle())
                     .padding(.horizontal)
-                    
-                } else { // Signed In
-                    NavigationLink(destination: SupabaseAccountSettingsView(popBackToRoot: {})) { 
-                        HStack(spacing: 16) {
-                            // You might want a real profile image here later
-                            Image(systemName: "person.crop.circle.fill")
-                                .font(.system(size: 50))
-                                .foregroundColor(.secondary)
-                                .frame(width: 60, height: 60)
-                                .background(Color(UIColor.tertiarySystemFill))
-                                .clipShape(Circle())
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(db.currentUser?.email ?? "Account")
-                                    .font(.headline)
-                                Text("Manage account & settings")
-                                    .font(.footnote)
-                                    .foregroundColor(.secondary)
-                            }
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
+                } else {
+                    // Optional: Show a loading state or placeholder if currentUser is briefly nil during initialization
+                    // For now, we'll just show nothing if currentUser is nil, which shouldn't happen based on your description
+                     ProgressView()
                         .padding()
-                        .background(Color(UIColor.secondarySystemGroupedBackground))
-                        .cornerRadius(12)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    .padding(.horizontal)
                 }
                 
                 // === Conditional VIP Banner ===
@@ -218,7 +228,6 @@ struct ProfileView: View {
                             Divider()
                         }
                         
-                        Divider()
                         Button(action: { print("Rate Us Tapped") }) {
                             SettingsRow(icon: "star", title: "Rate Us")
                         }
@@ -240,7 +249,6 @@ struct ProfileView: View {
                              Link(destination: tosURL) {
                                  SettingsRow(icon: "doc.text", title: "Terms of Service")
                              }
-                             Divider()
                         }
                     }
                 }

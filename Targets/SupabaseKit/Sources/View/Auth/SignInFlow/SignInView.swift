@@ -28,9 +28,6 @@ public struct SignInView: View {
 		self._db = ObservedObject(wrappedValue: db)
 		self.navTitle = navTitle
 		self.onSignedIn = onSignedIn
-		if let _ = db.currentUser {
-			onSignedIn()
-		}
 	}
 
 	public var body: some View {
@@ -38,8 +35,8 @@ public struct SignInView: View {
 			SignInHeroSection()
 				.padding(.top, 10)
 
-			// If user is already signed in, show a small sign out button
-			if db.currentUser != nil {
+			// If user is already signed in (and not anonymous), show a small sign out button
+			if let currentUser = db.currentUser, !currentUser.isAnonymous {
 				HStack(spacing: 0) {
 					Text("You're already signed in.")
 						.foregroundStyle(.secondary)
@@ -61,8 +58,8 @@ public struct SignInView: View {
 			SignUpButtons()
 		}
 		.padding()
-		.onChange(of: db.authState) {
-			if let _ = db.currentUser {
+		.onChange(of: db.authState) { newState in
+			if newState == .signedIn {
 				onSignedIn()
 			}
 		}
