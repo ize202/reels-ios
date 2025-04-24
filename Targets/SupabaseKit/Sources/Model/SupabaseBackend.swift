@@ -143,6 +143,12 @@ public struct UserLibraryDetail: Codable, Identifiable, Equatable {
 @MainActor
 public class DB: ObservableObject {
 
+	/// Define a custom error for validation within this scope
+	public struct ValidationError: LocalizedError {
+		public let message: String
+		public var errorDescription: String? { message }
+	}
+
 	/// Variable reference to access Supabase.
 	///
 	/// Don't access it directly, to fetch data, but rather do so via
@@ -466,6 +472,39 @@ extension DB {
                  // Use existing error type from AuthKitError.swift
                  throw AuthKitError.catchAllError 
             }
+        }
+    }
+    
+    /// Updates the current user's display name (full_name in user_metadata).
+    @MainActor
+    public func updateDisplayName(newName: String) async throws {
+        Analytics.capture(.info, id: "update_display_name_called", source: .db)
+        
+        let trimmedName = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else {
+            // Use .info for analytics when validation fails
+            Analytics.capture(.info, id: "update_display_name_empty", source: .db)
+            // Throw the custom validation error
+            throw ValidationError(message: "Display name cannot be empty.")
+        }
+        
+        // UserAttributes data expects a dictionary with AnyJSON values
+        let attributes = UserAttributes(data: ["full_name": AnyJSON.string(trimmedName)])
+        
+        do {
+            try await self.updateUser(attributes: attributes)
+            Analytics.capture(.success, id: "update_display_name", source: .db)
+            // Refresh session to ensure local currentUser data is updated immediately
+            await self.refreshSession()
+        } catch {
+            Analytics.capture(
+                .error,
+                id: "update_display_name",
+                longDescription: "Error updating display name: \(error.localizedDescription)",
+                source: .db
+            )
+            // Rethrow the error caught by updateUser or the validation error
+            throw error
         }
     }
 }

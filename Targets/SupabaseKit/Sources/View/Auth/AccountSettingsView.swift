@@ -11,6 +11,8 @@ import SwiftUI
 
 private enum ActiveSlideOverCard: Identifiable {
 	case reauthAccountDeletion
+	// case updateName // Removed as we use a standard sheet now
+	// case changeEmail // Removed
 	var id: Self {
 		return self
 	}
@@ -21,6 +23,11 @@ public struct SupabaseAccountSettingsView: View {
 	@EnvironmentObject var db: DB
 	@State private var showSignoutDialog = false
 	@State private var showAccountDeleteDialog = false
+	
+	// State for Update Display Name sheet
+	@State private var showUpdateNameSheet = false
+	@State private var newDisplayName: String = ""
+	// Removed email state
 
 	@State private var shownSlideOverCard: ActiveSlideOverCard? = nil
 
@@ -32,20 +39,44 @@ public struct SupabaseAccountSettingsView: View {
 
 	public var body: some View {
 		List {
-			VStack(alignment: .center, spacing: 0) {
-
-				ProfileImage(url: nil, width: 100)
-					.padding(.bottom, 10)
-
-				Text(db.currentUser?.email ?? "USER EMAIL")
-					.font(.title)
+			VStack(alignment: .center, spacing: 4) { // Reduced spacing
+				
+				// Display Name (Full Name or Email)
+				let fullName = db.currentUser?.userMetadata["full_name"] as? String
+				let email = db.currentUser?.email
+				let primaryText = fullName ?? email ?? "Account"
+				
+				Text(primaryText)
+					.font(.title2) // Slightly smaller title
 					.fontWeight(.semibold)
 					.lineLimit(1)
+				
+				// Display Email if different from Primary Text
+				if let displayedName = fullName, // Check if full name was displayed
+				   let validEmail = email, !validEmail.isEmpty, // Check if email exists
+				   displayedName != validEmail { // Check if email is different
+					Text(validEmail)
+						.font(.subheadline)
+						.foregroundColor(.secondary)
+				}
 			}
 			.frame(maxWidth: .infinity)
 			.listRowBackground(Color(UIColor.systemGroupedBackground))
+			.padding(.vertical, 10) // Add some padding
 
-			Section {
+			// Section for Account Updates
+			Section("Account Management") {
+				Button("Update Display Name") {
+					Analytics.captureTap(
+						"update_display_name_btn", fromView: "AccountSettingsView", relevancy: .medium)
+					// Set the initial value for the text field
+					newDisplayName = db.currentUser?.userMetadata["full_name"] as? String ?? ""
+					showUpdateNameSheet = true
+				}
+				// Removed Change Email Button
+			}
+
+			Section("Danger Zone") { // Group destructive actions
 
 				Button("Delete Account", role: .destructive) {
 					Analytics.captureTap(
@@ -127,6 +158,63 @@ public struct SupabaseAccountSettingsView: View {
 			])
 			.presentationCornerRadius(35)
 		}
+		// Add sheet for updating display name
+		.sheet(isPresented: $showUpdateNameSheet) {
+			UpdateNameSheetView(newDisplayName: $newDisplayName) {
+				// Save Action
+				Task {
+					await updateDisplayName()
+				}
+			}
+		}
+	}
+	
+	// Helper function to update display name (calls the backend function)
+	private func updateDisplayName() async {
+		await tryFunctionOtherwiseShowInAppNotification(
+			fallbackNotificationContent: InAppNotificationContent(title: "Error Updating Name", message: "Please try again."),
+			function: {
+				try await db.updateDisplayName(newName: newDisplayName)
+				showInAppNotification(.success, content: .init(title: "Display Name Updated", message: ""))
+				showUpdateNameSheet = false
+			}
+		)
+	}
+}
+
+// MARK: - Update Name Sheet View
+struct UpdateNameSheetView: View {
+	@Binding var newDisplayName: String
+	var onSave: () -> Void
+	@Environment(\.dismiss) var dismiss
+
+	var body: some View {
+		NavigationView { // Embed in NavigationView for title and buttons
+			VStack(spacing: 20) {
+				TextField("New Display Name", text: $newDisplayName)
+					.textFieldStyle(.roundedBorder)
+					.autocorrectionDisabled()
+					.textInputAutocapitalization(.words)
+				
+				Button("Save Display Name") {
+					onSave()
+				}
+				.buttonStyle(.borderedProminent)
+				.disabled(newDisplayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+				Spacer()
+			}
+			.padding()
+			.navigationTitle("Update Display Name")
+			.navigationBarTitleDisplayMode(.inline)
+			.toolbar {
+				ToolbarItem(placement: .navigationBarLeading) {
+					Button("Cancel") { dismiss() }
+				}
+			}
+		}
+		 .presentationDetents([.medium]) // Adjust height as needed
+		 .presentationCornerRadius(20)
 	}
 }
 
