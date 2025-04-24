@@ -50,6 +50,16 @@ class ProfileViewModel: ObservableObject {
         print("Refill/Top Up Tapped")
     }
     
+    func handleDeleteAccount() {
+        // TODO: Implement account deletion logic
+        // This should probably show a confirmation alert first.
+        // If confirmed, call Supabase auth to delete the user.
+        // Handle potential errors and update the UI (e.g., sign out).
+        print("Delete Account Tapped - Placeholder")
+        // Example: Show an alert (implementation needed)
+        // showDeleteConfirmationAlert = true 
+    }
+    
     func fetchUserData() {
         // TODO: Implement logic to fetch user data from Supabase/backend
         // This should update isSignedIn, userName, userEmail, coinBalance, userUID

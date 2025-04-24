@@ -180,8 +180,42 @@ struct ProfileView: View {
                                         SettingsRow(icon: "envelope", title: "Contact Us")
                                     }
                                     Divider()
-                                    NavigationLink(destination: Text("Settings")) {
-                                        SettingsRow(icon: "gearshape", title: "Settings")
+                                    
+                                    // === Link Rows ===
+                                    // Use your actual URLs here
+                                    if let privacyURL = URL(string: "https://www.yourapp.com/privacy") {
+                                         Link(destination: privacyURL) {
+                                             SettingsRow(icon: "shield.lefthalf.filled", title: "Privacy Policy")
+                                         }
+                                         Divider()
+                                    }
+                                    if let tosURL = URL(string: "https://www.yourapp.com/terms") {
+                                         Link(destination: tosURL) {
+                                             SettingsRow(icon: "doc.text", title: "Terms of Service")
+                                         }
+                                         Divider()
+                                    }
+                                    
+                                    // === Conditional Delete Account ===
+                                    if viewModel.isSignedIn {
+                                        Button(role: .destructive) { 
+                                            viewModel.handleDeleteAccount()
+                                        } label: {
+                                            HStack {
+                                                Image(systemName: "trash")
+                                                    .font(.system(size: 18))
+                                                    .frame(width: 24, height: 24)
+                                                    .foregroundColor(.red) // Destructive color
+                                                
+                                                Text("Delete Account")
+                                                    .font(.body)
+                                                    .foregroundColor(.red) // Destructive color
+                                                
+                                                Spacer()
+                                            }
+                                            .padding()
+                                        }
+                                        Divider()
                                     }
                                 }
                             }
