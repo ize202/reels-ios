@@ -12,11 +12,11 @@ struct LibraryView: View {
     @StateObject private var viewModel: LibraryViewModel
     @EnvironmentObject var db: DB
 
-    // Grid columns for My Collection
+    // Grid columns for My Collection - Changed to 2 columns
     let columns: [GridItem] = [
         GridItem(.flexible(), spacing: 15),
-        GridItem(.flexible(), spacing: 15),
         GridItem(.flexible(), spacing: 15)
+        // GridItem(.flexible(), spacing: 15) // Remove third column
     ]
 
     // Initialize viewModel in init
@@ -36,39 +36,24 @@ struct LibraryView: View {
                         .padding(.horizontal)
                         .padding(.top, 10)
 
-                    // Continue Watching section
+                    // Recently Watched Grid (replaces horizontal scroll)
                     if !viewModel.recentlyWatched.isEmpty {
                         LibrarySectionHeader(title: "Recently Watched")
                             .padding(.top, -8)
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 15) {
-                                ForEach(viewModel.recentlyWatched) { series in
-                                    NavigationLink(destination: FeedView(db: db, seriesId: UUID(uuidString: series.seriesId) ?? UUID(), startingEpisode: series.lastWatchedEpisode)) {
-                                        RecentlyWatchedCard(series: series)
-                                    }
-                                }
-                            }
-                            .padding(.horizontal)
-                        }
-                    }
-                    
-                    // My Collection section
-                    if !viewModel.savedCollection.isEmpty {
-                        LibrarySectionHeader(title: "Saved Series")
-                            .padding(.top, -8)
-                        LazyVGrid(columns: columns, spacing: 15) {
-                            ForEach(viewModel.savedCollection) { series in
-                                NavigationLink(destination: FeedView(db: db, seriesId: UUID(uuidString: series.seriesId) ?? UUID())) {
-                                    MyCollectionCard(series: series)
+                        // Use LazyVGrid instead of ScrollView + HStack
+                        LazyVGrid(columns: columns, spacing: 20) { // Use updated columns
+                            ForEach(viewModel.recentlyWatched) { series in
+                                NavigationLink(destination: FeedView(db: db, seriesId: UUID(uuidString: series.seriesId) ?? UUID(), startingEpisode: series.lastWatchedEpisode)) {
+                                    LibrarySeriesCard(series: series) // Use the new card
                                 }
                             }
                         }
                         .padding(.horizontal)
                     }
                     
-                    // Handle empty state
-                    if viewModel.recentlyWatched.isEmpty && viewModel.savedCollection.isEmpty && !viewModel.isLoading {
-                        Text("Your library is empty.")
+                    // Handle empty state (only checks recently watched now)
+                    if viewModel.recentlyWatched.isEmpty && !viewModel.isLoading {
+                        Text("You haven't watched anything recently.") // Updated empty state message
                             .font(.headline)
                             .foregroundColor(.secondary)
                             .frame(maxWidth: .infinity, alignment: .center)
@@ -114,88 +99,49 @@ struct LibrarySectionHeader: View {
     }
 }
 
-// --- Card Views for Library ---
-
-// Card for "Recently Watched" section
-struct RecentlyWatchedCard: View {
+// Card for "Recently Watched" section - adapted from HomeView's SeriesCard
+struct LibrarySeriesCard: View {
     let series: WatchedSeries
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            // Thumbnail - Replace placeholder with AsyncImage later if needed
-            RoundedRectangle(cornerRadius: 8)
-                .fill(series.coverUrl == nil ? Color.systemSecondaryBackground : Color.clear) // Show bg if no image
-                .aspectRatio(2/3, contentMode: .fit) // Use portrait aspect ratio
-                .overlay(
-                    Group { // Use Group to conditionally show image or placeholder
-                        if let url = series.coverUrl {
-                             // TODO: Replace with AsyncImage(url: url) ... for actual image loading
-                            Image(systemName: "photo") // Placeholder for now
-                                .resizable()
-                                .scaledToFill()
-                        } else {
-                            Image(systemName: "play.rectangle.fill")
-                                .font(.largeTitle)
-                                .foregroundColor(.gray)
-                        }
-                    }
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 8)) // Clip the overlay image
-            
-            Text(series.title)
-                .font(.subheadline) // Slightly smaller than headline
-                .fontWeight(.medium)
-                .foregroundColor(.primary)
-                .lineLimit(1)
-            
-            Text(series.progressString)
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
-        .frame(width: 160) // Constrain card width
-        .contentShape(Rectangle()) // Make the entire card tappable
-        .buttonStyle(PlainButtonStyle()) // Remove default button styling from NavigationLink
-    }
-}
+    let gradient = Gradient(colors: [Color.systemSecondaryBackground, Color.systemTertiaryBackground])
 
-// Card for "My Collection" section (similar to HomeView SeriesCard)
-struct MyCollectionCard: View {
-    let series: SavedSeries
-    
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
-            // Thumbnail - Replace placeholder with AsyncImage later
-            RoundedRectangle(cornerRadius: 10)
-                 .fill(series.coverUrl == nil ? Color.systemSecondaryBackground : Color.clear) // Show bg if no image
-                .aspectRatio(2/3, contentMode: .fit) // Portrait aspect ratio
-                .overlay(
-                     Group { // Use Group to conditionally show image or placeholder
-                        if let url = series.coverUrl {
-                             // TODO: Replace with AsyncImage(url: url) ... for actual image loading
-                            Image(systemName: "photo") // Placeholder for now
-                                .resizable()
-                                .scaledToFill()
-                        } else {
-                            Image(systemName: "photo.fill.on.rectangle.fill")
-                                .font(.largeTitle)
-                                .foregroundColor(.gray)
-                        }
-                    }
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 10)) // Clip the overlay image
+            // AsyncImage for cover art
+            AsyncImage(url: series.coverUrl) { image in
+                image
+                    .resizable()
+                    .aspectRatio(2/3, contentMode: .fill) // Maintain aspect ratio
+            } placeholder: {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(LinearGradient(gradient: gradient, startPoint: .top, endPoint: .bottom))
+                    .aspectRatio(2/3, contentMode: .fit)
+                    .overlay(
+                        Image(systemName: "play.rectangle.fill") // Icon for recently watched
+                            .font(.system(size: 40))
+                            .foregroundColor(.white.opacity(0.7))
+                    )
+            }
+            .frame(height: 200) // Adjust height as needed
+            .clipShape(RoundedRectangle(cornerRadius: 10))
             
+            // Series Title
             Text(series.title)
                 .font(.headline)
                 .fontWeight(.medium)
                 .foregroundColor(.primary)
                 .lineLimit(1)
-                .padding(.top, 2)
+                .padding(.top, 4)
             
-            Text(series.episodesString)
+            // Progress Text (e.g., "EP. 3")
+            Text(series.progressString)
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
-        .contentShape(Rectangle()) // Make the entire card tappable
-        .buttonStyle(PlainButtonStyle()) // Remove default button styling from NavigationLink
+        .contentShape(Rectangle())
+        .buttonStyle(PlainButtonStyle())
     }
+}
+
+#Preview {
+    LibraryView(db: DB())
 }

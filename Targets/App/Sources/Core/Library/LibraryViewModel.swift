@@ -42,7 +42,6 @@ struct SavedSeries: Identifiable {
 class LibraryViewModel: ObservableObject {
     
     @Published var recentlyWatched: [WatchedSeries] = []
-    @Published var savedCollection: [SavedSeries] = []
     @Published var isLoading: Bool = false
     @Published var errorMessage: String? = nil
     
@@ -71,7 +70,6 @@ class LibraryViewModel: ObservableObject {
                 
                 // Process fetched details
                 var watched: [WatchedSeries] = []
-                var saved: [SavedSeries] = []
                 
                 for detail in libraryDetails {
                     // Add to recently watched if there's a last watched episode
@@ -84,22 +82,11 @@ class LibraryViewModel: ObservableObject {
                             coverUrl: URL(string: detail.coverUrl ?? "") // Handle nil cover URL
                         ))
                     }
-                    
-                    // Add to saved collection if marked as saved
-                    if detail.isSaved {
-                        saved.append(SavedSeries(
-                            seriesId: detail.seriesId.uuidString,
-                            title: detail.title,
-                            totalEpisodes: detail.totalEpisodes,
-                            coverUrl: URL(string: detail.coverUrl ?? "") // Handle nil cover URL
-                        ))
-                    }
                 }
                 
                 // Sort recently watched (optional, maybe by last access time if available)
                 // self.recentlyWatched = watched.sorted { ... }
                 self.recentlyWatched = watched
-                self.savedCollection = saved
                 
                 self.isLoading = false
                 
