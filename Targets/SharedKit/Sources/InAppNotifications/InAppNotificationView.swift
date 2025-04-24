@@ -62,7 +62,7 @@ public struct InAppNotificationData {
 
 public struct InAppNotificationContent: Equatable {
 	let title: LocalizedStringKey
-	let message: LocalizedStringKey
+	public let message: LocalizedStringKey
 
 	public init(title: LocalizedStringKey, message: LocalizedStringKey) {
 		self.title = title

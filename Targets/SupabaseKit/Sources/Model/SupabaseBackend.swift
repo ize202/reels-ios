@@ -439,4 +439,33 @@ extension DB {
 			throw AuthKitError.anonymousSignInError
 		}
 	}
+    
+    /// Updates the current user's attributes (email, password, data).
+    /// This is used to convert an anonymous user to a permanent user by setting an email,
+    /// or to update details for an existing permanent user.
+    @MainActor
+    public func updateUser(attributes: UserAttributes) async throws {
+        Analytics.capture(.info, id: "update_user_called", source: .db)
+        do {
+            try await _db.auth.update(user: attributes)
+            // The auth state listener should automatically update self.currentUser
+            Analytics.capture(.success, id: "update_user", source: .db)
+        } catch {
+            Analytics.capture(
+                .error,
+                id: "update_user",
+                longDescription: "Error updating user: \(error.localizedDescription)",
+                source: .db
+            )
+            // Handle specific Supabase errors if needed, otherwise rethrow generic error
+            if let authError = error as? AuthError {
+                 print("Supabase Auth Error updating user: \(authError)")
+                 // Use existing error type from AuthKitError.swift
+                 throw AuthKitError.catchAllError 
+            } else {
+                 // Use existing error type from AuthKitError.swift
+                 throw AuthKitError.catchAllError 
+            }
+        }
+    }
 }

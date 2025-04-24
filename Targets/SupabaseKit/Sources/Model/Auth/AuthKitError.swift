@@ -31,7 +31,8 @@ public enum AuthKitError: Error {
 	case catchAllError
 
 	// Note: AnalyticsID will only be used if AnalyticsKit is enabled
-	var values: (notifContent: InAppNotificationContent, analyticsID: String) {
+	// Make values public so it can be accessed from other modules
+	public var values: (notifContent: InAppNotificationContent, analyticsID: String) {
 		switch self {
 			case .defaultSignInWithAppleError:
 				return (

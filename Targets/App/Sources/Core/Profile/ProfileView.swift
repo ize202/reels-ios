@@ -9,46 +9,28 @@ import SupabaseKit
 import InAppPurchaseKit
 
 struct ProfileView: View {
-    @StateObject private var viewModel = ProfileViewModel()
     @Environment(\.colorScheme) var colorScheme
     @EnvironmentObject var iap: InAppPurchases
     @EnvironmentObject var db: DB
-    @State private var shouldNavigateToAccountSettings = false // State for navigation
+    @State private var showUpdateSheet = false // State for presenting the update sheet
 
     var body: some View {
         NavigationView {
             GeometryReader { geometry in
                 VStack(spacing: 0) {
-                    // Use computed property for scrollable content
                     scrollableContent
-                    
-                    // Footer is outside ScrollView - fixed at bottom
-                    Spacer(minLength: 0) // Push footer to the bottom
-                    
-                    // Use computed property for footer content
+                    Spacer(minLength: 0)
                     footerContent(geometry: geometry)
                 }
                 .frame(width: geometry.size.width, height: geometry.size.height)
-                // Add invisible NavigationLink controlled by state
-                .background(
-                    NavigationLink(destination: SupabaseAccountSettingsView(popBackToRoot: {}), isActive: $shouldNavigateToAccountSettings) {
-                        EmptyView()
-                    }
-                    .opacity(0) // Make it invisible
-                )
             }
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.large)
             .background(Color(UIColor.systemGroupedBackground).ignoresSafeArea())
-            .sheet(isPresented: $viewModel.showSignInSheet) {
-                // Use SupabaseKit's SignInView
-                SupabaseKit.SignInView(
-                    db: db, 
-                    onSignedIn: { 
-                         print("Sign in successful from SupabaseKit.SignInView")
-                         viewModel.handleSignInCancel() // Close sheet on success
-                    }
-                )
+            .sheet(isPresented: $showUpdateSheet) {
+                 // Present the UpdateAccountView, passing the DB environment object
+                 UpdateAccountView(db: db) 
+                      .environmentObject(db) // Pass db explicitly if needed by subviews
             }
         }
     }
@@ -59,16 +41,10 @@ struct ProfileView: View {
         ScrollView {
             VStack(spacing: 20) {
                 // === Profile Header (Always Shown) ===
-                // Check if currentUser exists before accessing properties
                 if let currentUser = db.currentUser {
                     Button(action: { 
-                        if currentUser.isAnonymous {
-                            // Anonymous user: show sign in sheet
-                            viewModel.handleSignInTap()
-                        } else {
-                            // Non-anonymous user: trigger navigation
-                            shouldNavigateToAccountSettings = true
-                        }
+                        // Action: Always show the update sheet now
+                        showUpdateSheet = true 
                     }) {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
@@ -78,13 +54,11 @@ struct ProfileView: View {
                                         .font(.headline)
                                         .fontWeight(.semibold)
                                 } else {
-                                    // Attempt to get full name, fallback to email
                                     Text(currentUser.userMetadata["full_name"] as? String ?? currentUser.email ?? "Account")
                                         .font(.headline)
                                         .fontWeight(.semibold)
                                         .lineLimit(1)
                                     
-                                    // === Email Display (Only for non-anonymous) ===
                                     if let email = currentUser.email, !email.isEmpty {
                                         Text(email)
                                             .font(.subheadline)
@@ -94,11 +68,13 @@ struct ProfileView: View {
                                 
                                 // === Helper Text ===
                                 if currentUser.isAnonymous {
-                                    Text("Sign in to save progress")
+                                    // Changed: Helper text for anonymous user
+                                    Text("Set Email to Secure Account") 
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 } else {
-                                    Text("Manage account & settings")
+                                    // Changed: Helper text for permanent user
+                                    Text("Edit Profile Information") 
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
@@ -106,7 +82,7 @@ struct ProfileView: View {
                             
                             Spacer()
                             
-                            Image(systemName: "arrow.right.circle.fill")
+                            Image(systemName: "pencil.circle.fill") // Changed icon to pencil
                                 .font(.system(size: 24))
                                 .foregroundColor(Color(hex: "9B79C1"))
                         }
@@ -117,8 +93,6 @@ struct ProfileView: View {
                     .buttonStyle(PlainButtonStyle())
                     .padding(.horizontal)
                 } else {
-                    // Optional: Show a loading state or placeholder if currentUser is briefly nil during initialization
-                    // For now, we'll just show nothing if currentUser is nil, which shouldn't happen based on your description
                      ProgressView()
                         .padding()
                 }
