@@ -24,12 +24,8 @@ struct ProfileView: View {
     var body: some View {
         NavigationView {
             GeometryReader { geometry in
-                VStack(spacing: 0) {
-                    scrollableContent
-                    Spacer(minLength: 0)
-                    footerContent(geometry: geometry)
-                }
-                .frame(width: geometry.size.width, height: geometry.size.height)
+                scrollableContent
+                    .frame(width: geometry.size.width, height: geometry.size.height)
             }
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.large)
@@ -79,9 +75,24 @@ struct ProfileView: View {
                 
                 // Settings List
                 settingsList
+                
+                // Footer
+                VStack(spacing: 4) {
+                    if let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String,
+                       let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String {
+                        Text("Version \(version) (\(build))")
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Text("© \(String(Calendar.current.component(.year, from: Date()))) Slips LLC")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.top, 30)
+                .padding(.bottom, 16)
             }
             .padding(.vertical)
-            .padding(.bottom, 50)
         }
     }
     
@@ -149,13 +160,21 @@ struct ProfileView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     if let user = db.currentUser {
-                        Text(user.userMetadata["full_name"] as? String ?? user.email ?? "Account")
+                        let fullName = user.userMetadata["full_name"] as? String
+                        let email = user.email
+                        
+                        // Primary display text
+                        let primaryText = fullName ?? email ?? "Account"
+                        Text(primaryText)
                             .font(.headline)
                             .fontWeight(.semibold)
                             .lineLimit(1)
                         
-                        if let email = user.email, !email.isEmpty {
-                            Text(email)
+                        // Secondary display text (email, only if different from primary and primary wasn't already email)
+                        if let displayedName = fullName, // Check if full name was displayed
+                           let validEmail = email, !validEmail.isEmpty, // Check if email exists
+                           displayedName != validEmail { // Check if email is different from full name
+                            Text(validEmail)
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                         }
@@ -306,23 +325,6 @@ struct ProfileView: View {
         .background(Color(UIColor.secondarySystemGroupedBackground))
         .cornerRadius(12)
         .padding(.horizontal)
-    }
-    
-    private func footerContent(geometry: GeometryProxy) -> some View {
-        VStack(spacing: 4) {
-            if let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String,
-               let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String {
-                Text("Version \(version) (\(build))")
-                    .font(.footnote)
-                    .foregroundColor(.secondary)
-            }
-            
-            Text("© \(Calendar.current.component(.year, from: Date())) Slips LLC")
-                .font(.footnote)
-                .foregroundColor(.secondary)
-        }
-        .frame(width: geometry.size.width)
-        .padding(.bottom, geometry.safeAreaInsets.bottom > 0 ? geometry.safeAreaInsets.bottom : 16)
     }
 }
 
