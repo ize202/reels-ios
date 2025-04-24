@@ -15,181 +15,187 @@ struct ProfileView: View {
 
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(spacing: 20) {
-                    // Profile Header - Simplified
-                    HStack(spacing: 16) {
-                        // Profile Image - Using system background
-                        Image(systemName: viewModel.isSignedIn ? "person.fill" : "person.crop.circle.fill")
-                            .font(.system(size: 50))
-                            .foregroundColor(.secondary)
-                            .frame(width: 60, height: 60)
-                            .background(Color(UIColor.tertiarySystemFill))
-                            .clipShape(Circle())
-
-                        // User Info - Cleaner typography
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(viewModel.userName ?? "Guest")
-                                .font(.headline)
-                            
-                            if let uid = viewModel.userUID {
-                                Text(uid)
-                                    .font(.footnote)
+            GeometryReader { geometry in
+                VStack(spacing: 0) {
+                    // Main scrollable content
+                    ScrollView {
+                        VStack(spacing: 20) {
+                            // Profile Header - Simplified
+                            HStack(spacing: 16) {
+                                // Profile Image - Using system background
+                                Image(systemName: viewModel.isSignedIn ? "person.fill" : "person.crop.circle.fill")
+                                    .font(.system(size: 50))
                                     .foregroundColor(.secondary)
-                            }
-                        }
+                                    .frame(width: 60, height: 60)
+                                    .background(Color(UIColor.tertiarySystemFill))
+                                    .clipShape(Circle())
 
-                        Spacer()
-
-                        // Sign In/Out - More subtle styling
-                        if viewModel.isSignedIn {
-                            Button("Sign Out") {
-                                viewModel.handleSignOut()
-                            }
-                            .font(.subheadline)
-                            .foregroundColor(.red)
-                        } else {
-                            Button {
-                                viewModel.handleSignInTap()
-                            } label: {
-                                Text("Sign in")
-                                    .font(.subheadline)
-                                    .foregroundColor(.accentColor)
-                            }
-                        }
-                    }
-                    .padding()
-                    .background(Color(UIColor.secondarySystemGroupedBackground))
-                    .cornerRadius(12)
-                    .padding(.horizontal)
-
-                    // === Conditional VIP Banner ===
-                    if iap.subscriptionState == .notSubscribed {
-                        Button(action: { 
-                            InAppPurchases.showPaywallSheet()
-                        }) {
-                            HStack(spacing: 12) {
-                                // Enhanced icon with glow effect
-                                Image(systemName: "crown.fill")
-                                    .font(.system(size: 22))
-                                    .foregroundColor(.yellow)
-                                    .shadow(color: .yellow.opacity(0.6), radius: 3)
-                                
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Unlock VIP Access")
+                                // User Info - Cleaner typography
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(viewModel.userName ?? "Guest")
                                         .font(.headline)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(.white)
                                     
-                                    Text("Watch all premium content without limits")
-                                        .font(.caption)
-                                        .foregroundColor(.white.opacity(0.9))
+                                    if let uid = viewModel.userUID {
+                                        Text(uid)
+                                            .font(.footnote)
+                                            .foregroundColor(.secondary)
+                                    }
                                 }
-                                
+
                                 Spacer()
-                                
-                                // Prominent call-to-action button
-                                Text("Subscribe")
+
+                                // Sign In/Out - More subtle styling
+                                if viewModel.isSignedIn {
+                                    Button("Sign Out") {
+                                        viewModel.handleSignOut()
+                                    }
                                     .font(.subheadline)
-                                    .fontWeight(.semibold)
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 8)
-                                    .background(Color.white)
-                                    .foregroundColor(Color(hex: "9B79C1")) // Using primary brand color
-                                    .cornerRadius(16)
-                            }
-                            .padding(.vertical, 16)
-                            .padding(.horizontal, 16)
-                            .frame(maxWidth: .infinity)
-                            .background(
-                                LinearGradient(
-                                    gradient: Gradient(colors: [
-                                        Color(hex: "9B79C1"),  // Primary purple
-                                        Color(hex: "503370")   // Secondary purple
-                                    ]),
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                            .cornerRadius(16)
-                            .shadow(color: Color.black.opacity(0.15), radius: 5, x: 0, y: 2)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        .padding(.horizontal)
-                    }
-
-                    /* === Wallet Section Commented Out ===
-                    VStack(spacing: 0) {
-                        HStack {
-                            Text("My Wallet")
-                                .font(.headline)
-                            Spacer()
-                        }
-                        .padding()
-                        
-                        Divider()
-                            .background(Color(UIColor.separator))
-
-                        HStack {
-                            // Coin balance
-                            Label(
-                                title: { Text("\(viewModel.coinBalance)").font(.title3).bold() },
-                                icon: { Image(systemName: "circle.fill").foregroundColor(.yellow) }
-                            )
-                            
-                            Spacer()
-                            
-                            // Top Up button
-                            Button(action: viewModel.handleRefillTap) {
-                                Text(viewModel.isSignedIn ? "Top Up" : "Get Coins")
-                                    .font(.subheadline)
-                                    .foregroundColor(.black)
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 8)
-                                    .background(Color(hex: "9B79C1"))
-                                    .cornerRadius(8)
-                            }
-                        }
-                        .padding()
-                    }
-                    .background(Color(UIColor.secondarySystemGroupedBackground))
-                    .cornerRadius(12)
-                    .padding(.horizontal)
-                    */
-
-                    // === Settings List ===
-                    VStack(spacing: 0) {
-                        Group {
-                            // === Conditional Membership Row ===
-                            if iap.subscriptionState == .subscribed {
-                                NavigationLink(destination: PremiumSettingsView(popBackToRoot: { /* Need pop logic if deep */ })) {
-                                    SettingsRow(icon: "crown", title: "Membership")
+                                    .foregroundColor(.red)
+                                } else {
+                                    Button {
+                                        viewModel.handleSignInTap()
+                                    } label: {
+                                        Text("Sign in")
+                                            .font(.subheadline)
+                                            .foregroundColor(.accentColor)
+                                    }
                                 }
-                                Divider()
                             }
+                            .padding()
+                            .background(Color(UIColor.secondarySystemGroupedBackground))
+                            .cornerRadius(12)
+                            .padding(.horizontal)
                             
-                            NavigationLink(destination: Text("Library")) {
-                                SettingsRow(icon: "rectangle.stack", title: "Library")
+                            // === Conditional VIP Banner ===
+                            if iap.subscriptionState == .notSubscribed {
+                                Button(action: { 
+                                    InAppPurchases.showPaywallSheet()
+                                }) {
+                                    HStack(spacing: 12) {
+                                        // Enhanced icon with glow effect
+                                        Image(systemName: "crown.fill")
+                                            .font(.system(size: 22))
+                                            .foregroundColor(.yellow)
+                                            .shadow(color: .yellow.opacity(0.6), radius: 3)
+                                        
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text("Unlock VIP Access")
+                                                .font(.headline)
+                                                .fontWeight(.bold)
+                                                .foregroundColor(.white)
+                                            
+                                            Text("Watch all premium content without limits")
+                                                .font(.caption)
+                                                .foregroundColor(.white.opacity(0.9))
+                                        }
+                                        
+                                        Spacer()
+                                        
+                                        // Prominent call-to-action button
+                                        Text("Subscribe")
+                                            .font(.subheadline)
+                                            .fontWeight(.semibold)
+                                            .padding(.horizontal, 14)
+                                            .padding(.vertical, 8)
+                                            .background(Color.white)
+                                            .foregroundColor(Color(hex: "9B79C1")) // Using primary brand color
+                                            .cornerRadius(16)
+                                    }
+                                    .padding(.vertical, 16)
+                                    .padding(.horizontal, 16)
+                                    .frame(maxWidth: .infinity)
+                                    .background(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [
+                                                Color(hex: "9B79C1"),  // Primary purple
+                                                Color(hex: "503370")   // Secondary purple
+                                            ]),
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .cornerRadius(16)
+                                    .shadow(color: Color.black.opacity(0.15), radius: 5, x: 0, y: 2)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                                .padding(.horizontal)
                             }
-                            Divider()
-                            Button(action: { print("Rate Us Tapped") }) {
-                                SettingsRow(icon: "star", title: "Rate Us")
-                            }
-                            Divider()
-                            NavigationLink(destination: Text("Contact Us")) {
-                                SettingsRow(icon: "envelope", title: "Contact Us")
-                            }
-                            Divider()
-                            NavigationLink(destination: Text("Settings")) {
-                                SettingsRow(icon: "gearshape", title: "Settings")
-                            }
-                        }
-                    }
-                    .background(Color(UIColor.secondarySystemGroupedBackground))
-                    .cornerRadius(12)
-                    .padding(.horizontal)
 
-                    // App version and copyright
+                            /* === Wallet Section Commented Out ===
+                            VStack(spacing: 0) {
+                                HStack {
+                                    Text("My Wallet")
+                                        .font(.headline)
+                                    Spacer()
+                                }
+                                .padding()
+                                
+                                Divider()
+                                    .background(Color(UIColor.separator))
+
+                                HStack {
+                                    // Coin balance
+                                    Label(
+                                        title: { Text("\(viewModel.coinBalance)").font(.title3).bold() },
+                                        icon: { Image(systemName: "circle.fill").foregroundColor(.yellow) }
+                                    )
+                                    
+                                    Spacer()
+                                    
+                                    // Top Up button
+                                    Button(action: viewModel.handleRefillTap) {
+                                        Text(viewModel.isSignedIn ? "Top Up" : "Get Coins")
+                                            .font(.subheadline)
+                                            .foregroundColor(.black)
+                                            .padding(.horizontal, 16)
+                                            .padding(.vertical, 8)
+                                            .background(Color(hex: "9B79C1"))
+                                            .cornerRadius(8)
+                                    }
+                                }
+                                .padding()
+                            }
+                            .background(Color(UIColor.secondarySystemGroupedBackground))
+                            .cornerRadius(12)
+                            .padding(.horizontal)
+                            */
+
+                            // === Settings List ===
+                            VStack(spacing: 0) {
+                                Group {
+                                    // === Conditional Membership Row ===
+                                    if iap.subscriptionState == .subscribed {
+                                        NavigationLink(destination: PremiumSettingsView(popBackToRoot: { /* Need pop logic if deep */ })) {
+                                            SettingsRow(icon: "crown", title: "Membership")
+                                        }
+                                        Divider()
+                                    }
+                                    
+                                    Divider()
+                                    Button(action: { print("Rate Us Tapped") }) {
+                                        SettingsRow(icon: "star", title: "Rate Us")
+                                    }
+                                    Divider()
+                                    NavigationLink(destination: Text("Contact Us")) {
+                                        SettingsRow(icon: "envelope", title: "Contact Us")
+                                    }
+                                    Divider()
+                                    NavigationLink(destination: Text("Settings")) {
+                                        SettingsRow(icon: "gearshape", title: "Settings")
+                                    }
+                                }
+                            }
+                            .background(Color(UIColor.secondarySystemGroupedBackground))
+                            .cornerRadius(12)
+                            .padding(.horizontal)
+                        }
+                        .padding(.vertical)
+                        .padding(.bottom, 50) // Add extra bottom padding to ensure content is above footer
+                    }
+                    
+                    // Footer is outside ScrollView - fixed at bottom
+                    Spacer(minLength: 0) // Push footer to the bottom
+                    
                     VStack(spacing: 4) {
                         if let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String,
                            let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String {
@@ -202,9 +208,10 @@ struct ProfileView: View {
                             .font(.footnote)
                             .foregroundColor(.secondary)
                     }
-                    .padding(.top, 8)
+                    .frame(width: geometry.size.width)
+                    .padding(.bottom, geometry.safeAreaInsets.bottom > 0 ? geometry.safeAreaInsets.bottom : 16)
                 }
-                .padding(.vertical)
+                .frame(width: geometry.size.width, height: geometry.size.height)
             }
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.large)
