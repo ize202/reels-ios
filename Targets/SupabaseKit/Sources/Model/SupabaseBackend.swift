@@ -12,6 +12,11 @@ import SharedKit
 import Supabase
 import SwiftUI
 
+// Add a Notification Name for library updates
+public extension Notification.Name {
+	static let didUpdateUserLibrary = Notification.Name("didUpdateUserLibrary")
+}
+
 /// Enum representing authentication states.
 public enum AuthState {
 	case signedOut
@@ -196,80 +201,6 @@ public class DB: ObservableObject {
 	}
 }
 
-//MARK: - DatabaseExampleView
-extension DB {
-
-	/// Fetches posts from the database asynchronously and sets them in the `posts` property.
-	@MainActor
-	public func fetchPosts() async {
-		Analytics.capture(.info, id: "fetch_posts_called", source: .db)
-		var newPostsData: [PostData] = []
-
-		do {
-			newPostsData = try await _db.from("posts").select().execute().value
-
-			Analytics.capture(
-				.success, id: "fetch_posts", longDescription: "Fetched \(newPostsData.count) posts from the db.",
-				source: .db)
-
-		} catch {
-			Analytics.capture(
-				.error, id: "fetch_posts", longDescription: "Error fetching posts: \(error)", source: .db)
-			return
-		}
-		newPostsData.sort(by: { $0.creationDate > $1.creationDate })
-		posts = newPostsData
-	}
-
-	/// Adds a post anonymously to the database.
-	public func addPost(title: String, content: String) async -> Bool {
-		Analytics.capture(.info, id: "add_post_called", source: .db)
-		do {
-
-			// If we just insert using the normal PostData, we will have to provide
-			// it with an ID and a creationDate. If we don't pass them, the DB will automatically
-			// assign the newly created post these values.
-			// (If you have set up your DB to automatically set default values)
-			struct PostDataWithoutIdAndDate: Encodable {
-				let title: String
-				let content: String
-			}
-
-			// Add a new post to the DB with provided values
-			// and return the result.
-			let createdPost: PostData =
-				try await _db
-				.from("posts")
-				.insert(PostDataWithoutIdAndDate(title: title, content: content))
-				.select()
-				.single()
-				.execute()
-				.value
-
-			Analytics.capture(
-				.success, id: "add_post", longDescription: "User created post with ID: \(createdPost.id)",
-				source: .db)
-			return true
-		} catch {
-			Analytics.capture(
-				.error, id: "add_post", longDescription: "Error during post creation: \(error)", source: .db)
-			return false
-		}
-	}
-
-	public func deletePost(id: Int) async {
-		Analytics.capture(.info, id: "delete_post_called", longDescription: "PostID: \(id)", source: .db)
-		do {
-			try await _db.from("posts").delete().eq("id", value: id).execute()
-			Analytics.capture(.success, id: "delete_post", longDescription: "PostID: \(id)", source: .db)
-		} catch {
-			Analytics.capture(
-				.error, id: "delete_post",
-				longDescription: "Error deleting post with ID: \(id): \(error.localizedDescription)", source: .db)
-		}
-	}
-}
-
 //MARK: - Series & Episodes
 extension DB {
 	/// Fetches all published series from the database
@@ -399,6 +330,11 @@ extension DB {
 				longDescription: "Successfully upserted watch history for User: \(userId), Series: \(seriesId)",
 				source: .db
 			)
+            
+            // Post notification on success
+            NotificationCenter.default.post(name: .didUpdateUserLibrary, object: nil)
+            print("[DB] Posted didUpdateUserLibrary notification.")
+            
 		} catch {
 			Analytics.capture(
 				.error,
@@ -412,19 +348,21 @@ extension DB {
 	}
 
 	/// Fetches the combined library details (watched and saved) for a user.
+	/// Can optionally filter by a specific series ID.
 	@MainActor
-	public func fetchUserLibraryDetails(userId: UUID) async throws -> [UserLibraryDetail] {
+	public func fetchUserLibraryDetails(userId: UUID, seriesId: UUID? = nil) async throws -> [UserLibraryDetail] {
 		Analytics.capture(
 			.info,
 			id: "fetch_user_library_details_called",
-			longDescription: "Fetching library for User: \(userId)",
+			longDescription: "Fetching library for User: \(userId)\(seriesId == nil ? "" : ", Series: \(seriesId!)")",
 			source: .db
 		)
 
 		struct Params: Encodable {
 			let p_user_id: UUID
+			let p_series_id: UUID?
 		}
-		let params = Params(p_user_id: userId)
+		let params = Params(p_user_id: userId, p_series_id: seriesId)
 
 		do {
 			let details: [UserLibraryDetail] = try await _db

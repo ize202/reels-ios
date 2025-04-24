@@ -9,8 +9,8 @@ struct FeedView: View {
     @Environment(\.presentationMode) var presentationMode
     @State private var currentVisibleItemID: String? // Track the ID of the centered item
     
-    init(db: DB, seriesId: UUID, startingEpisode: Int = 1) {
-        print("Initializing FeedView with seriesId: \(seriesId), startingEpisode: \(startingEpisode)")
+    init(db: DB, seriesId: UUID, startingEpisode: Int? = nil) {
+        print("[FeedView] Initializing with seriesId: \(seriesId), startingEpisode: \(startingEpisode ?? -1)") // Log nil case
         _viewModel = StateObject(wrappedValue: FeedViewModel(db: db, seriesId: seriesId, startingEpisode: startingEpisode))
         
         // Make Navigation Bar transparent
@@ -181,6 +181,11 @@ struct FeedView_Previews: PreviewProvider {
         
         FeedView(db: mockDB, seriesId: mockSeriesId)
             .previewDisplayName("Feed View - Full Screen")
+            .previewDevice("iPhone 14 Pro")
+        
+        // Add preview for starting at a specific episode
+        FeedView(db: mockDB, seriesId: mockSeriesId, startingEpisode: 5)
+            .previewDisplayName("Feed View - Start Ep 5")
             .previewDevice("iPhone 14 Pro")
     }
 } 

@@ -13,20 +13,54 @@ class FeedViewModel: ObservableObject {
     private var db: DB
     private var seriesId: UUID
     
-    init(db: DB, seriesId: UUID, startingEpisode: Int = 1) {
+    init(db: DB, seriesId: UUID, startingEpisode: Int? = nil) {
         self.db = db
         self.seriesId = seriesId
         
-        // Load the feed items immediately
+        // Load the feed items immediately, passing the optional starting episode
         Task {
-            await loadFeedItems(startingEpisode: startingEpisode)
+            await loadFeedItems(initialStartingEpisode: startingEpisode)
         }
     }
     
-    func loadFeedItems(startingEpisode: Int = 1) async {
+    func loadFeedItems(initialStartingEpisode: Int? = nil) async {
         isLoading = true
         errorMessage = nil
         
+        // Determine the effective starting episode
+        var effectiveStartingEpisode: Int = 1 // Default to 1
+        
+        if let providedStartingEpisode = initialStartingEpisode {
+            effectiveStartingEpisode = providedStartingEpisode
+            print("[FeedVM] Using provided starting episode: \(effectiveStartingEpisode)")
+        } else {
+            // No starting episode provided, fetch from library
+            if let userId = db.currentUser?.id {
+                 print("[FeedVM] No starting episode provided. Fetching last watched for series: \(seriesId), user: \(userId)")
+                do {
+                    let libraryDetails = try await db.fetchUserLibraryDetails(userId: userId, seriesId: seriesId)
+                    if let detail = libraryDetails.first, let lastWatched = detail.lastWatchedEpisodeNumber {
+                        // Use fetched episode number only if it's greater than 0
+                        if lastWatched > 0 {
+                            effectiveStartingEpisode = lastWatched
+                            print("[FeedVM] Fetched last watched episode: \(effectiveStartingEpisode)")
+                        } else {
+                            print("[FeedVM] Fetched last watched episode is 0 or null. Defaulting to 1.")
+                        }
+                    } else {
+                         print("[FeedVM] No library entry found for this series. Defaulting to episode 1.")
+                    }
+                } catch {
+                     print("[FeedVM] Error fetching last watched episode, defaulting to 1: \(error)")
+                     // Don't block loading, just default to 1
+                }
+            } else {
+                 print("[FeedVM] User not logged in, defaulting to episode 1.")
+                 // Default to 1 if user isn't logged in
+            }
+        }
+        
+        // --- Now proceed with fetching series/episodes --- 
         do {
             // Fetch the series to get series details
             print("Fetching series with ID: \(seriesId)")
@@ -86,20 +120,20 @@ class FeedViewModel: ObservableObject {
             print("Processed \(self.feedItems.count) feed items, first item playbackId: \(self.feedItems.first?.playbackId ?? "none")")
             
             // Set the starting episode index based on the *filtered* feedItems count
-            // Find the index in feedItems corresponding to the startingEpisode number
-            if let targetIndex = self.feedItems.firstIndex(where: { $0.episodeNumber == startingEpisode }) {
+            // Find the index in feedItems corresponding to the effectiveStartingEpisode number
+            if let targetIndex = self.feedItems.firstIndex(where: { $0.episodeNumber == effectiveStartingEpisode }) {
                 currentIndex = targetIndex
-                print("Setting current index to \(currentIndex) for startingEpisode: \(startingEpisode)")
-            } else if startingEpisode > 1 && !self.feedItems.isEmpty {
+                print("[FeedVM] Setting current index to \(currentIndex) for effectiveStartingEpisode: \(effectiveStartingEpisode)")
+            } else if effectiveStartingEpisode > 1 && !self.feedItems.isEmpty {
                 // Fallback: if specific episode number not found (maybe it was filtered out),
                 // try to respect the intent if startingEpisode > 1, but clamp to valid range.
                 // This case might indicate data inconsistency.
-                print("Warning: startingEpisode \(startingEpisode) not found in valid episodes. Clamping index.")
-                currentIndex = min(startingEpisode - 1, self.feedItems.count - 1)
+                print("Warning: effectiveStartingEpisode \(effectiveStartingEpisode) not found in valid episodes. Clamping index.")
+                currentIndex = min(effectiveStartingEpisode - 1, self.feedItems.count - 1)
             } else {
                 // Default to 0 if startingEpisode is 1 or feedItems is empty
                 currentIndex = 0
-                 print("Setting current index to 0 (startingEpisode: \(startingEpisode))")
+                 print("[FeedVM] Setting current index to 0 (effectiveStartingEpisode: \(effectiveStartingEpisode))")
             }
             
             isLoading = false
