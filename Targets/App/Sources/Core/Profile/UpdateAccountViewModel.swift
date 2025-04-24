@@ -11,7 +11,7 @@ class UpdateAccountViewModel: ObservableObject {
     @Published var errorMessage: String? = nil
     @Published var isAnonymous: Bool = true
     // Use AppStorage to track pending verification across sessions
-    @AppStorage("pendingVerificationUserID") private var pendingVerificationUserID: String = ""
+    @AppStorage("pendingVerificationUserID_v1") private var pendingVerificationUserID: String = ""
 
     private var db: DB
 
@@ -29,11 +29,27 @@ class UpdateAccountViewModel: ObservableObject {
 
         self.isAnonymous = user.isAnonymous
         self.userEmail = user.email ?? ""
+        
+        // Clear pending state if user is no longer anonymous
+        if !user.isAnonymous && pendingVerificationUserID == user.id.uuidString {
+            print("[UpdateAccountViewModel] User verified, clearing pending state")
+            pendingVerificationUserID = ""
+        }
     }
 
     func updateAccount() async -> Bool {
         guard let user = db.currentUser else {
             errorMessage = "Error: No user session found."
+            return false
+        }
+
+        // Ensure we only proceed if the user is currently anonymous
+        guard user.isAnonymous else {
+            errorMessage = "Account is already verified."
+            // Clear pending state just in case it was incorrectly set
+            if pendingVerificationUserID == user.id.uuidString {
+                pendingVerificationUserID = ""
+            }
             return false
         }
 
@@ -62,6 +78,10 @@ class UpdateAccountViewModel: ObservableObject {
         do {
             // Call the updateUser method in DB
             try await db.updateUser(attributes: attributes)
+            
+            // Store the user ID upon successful request
+            self.pendingVerificationUserID = user.id.uuidString
+            print("[UpdateAccountViewModel] Stored pending verification ID: \(user.id.uuidString)")
 
             isLoading = false
             return true
@@ -80,8 +100,7 @@ class UpdateAccountViewModel: ObservableObject {
 // Helper for basic email validation (consider moving to SharedKit)
 private extension String {
     func isValidEmail() -> Bool {
-        // More robust regex allowing for newer TLDs
-        let emailRegEx = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$";
+        let emailRegEx = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
         let emailPred = NSPredicate(format:"SELF MATCHES %@", emailRegEx)
         return emailPred.evaluate(with: self.trimmingCharacters(in: .whitespacesAndNewlines))
     }

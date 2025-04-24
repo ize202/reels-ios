@@ -76,6 +76,51 @@ extension DB {
 		userProperties["signin_method"] = "apple"
 		return userProperties
 	}
+
+	/// Deletes the current user's account and all associated data
+	@MainActor
+	public func deleteAccount() async throws {
+		Analytics.capture(.info, id: "delete_account_called", source: .auth)
+		
+		guard let user = currentUser else {
+			Analytics.capture(
+				.error,
+				id: "delete_account",
+				longDescription: "No user signed in",
+				source: .auth
+			)
+			throw AuthKitError.noUserSignedIn
+		}
+		
+		do {
+			// Call the Edge Function to delete the user
+			// The invoke function returns Void on success, throws on error
+			try await _db.functions.invoke(
+				"delete-account",
+				options: FunctionInvokeOptions(body: ["user_id": user.id.uuidString])
+			)
+			
+			// If invoke didn't throw, assume success
+			
+			// Sign out the user after successful deletion
+			try await signOut()
+			
+			Analytics.capture(
+				.success,
+				id: "delete_account",
+				longDescription: "Successfully deleted user: \(user.id)",
+				source: .auth
+			)
+		} catch {
+			Analytics.capture(
+				.error,
+				id: "delete_account",
+				longDescription: "Error deleting account: \(error)",
+				source: .auth
+			)
+			throw AuthKitError.catchAllError
+		}
+	}
 }
 
 //MARK: - Helper functions for Auth-based actions

@@ -103,14 +103,12 @@ public struct SupabaseAccountSettingsView: View {
 									Task {
 										await tryFunctionOtherwiseShowInAppNotification(
 											fallbackNotificationContent: .init(
-												title: "Authorization Error",
+												title: "Account Deletion Error",
 												message: "Try Again Later.")
 										) {
 											try await Task.sleep(for: .seconds(0.5))
 											print("Deleting Account...")
-											// Perform Account Deletion
-											// Because Supabase doesn't currently allow the users to delete their own account,
-											// you will have to handle account deletion manually on your backend
+											try await db.deleteAccount()
 											popBackToSettings()
 										}
 									}

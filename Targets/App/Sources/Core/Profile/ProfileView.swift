@@ -10,11 +10,16 @@ import InAppPurchaseKit
 
 struct ProfileView: View {
     @Environment(\.colorScheme) var colorScheme
-    @Environment(\.scenePhase) var scenePhase // Keep scene phase environment
+    @Environment(\.scenePhase) var scenePhase
     @EnvironmentObject var iap: InAppPurchases
     @EnvironmentObject var db: DB
-    @State private var showUpdateSheet = false // State for presenting the update sheet
-    @State private var navigateToSettings = false // State for navigating to settings
+    @StateObject private var viewModel: ProfileViewModel
+    
+    init() {
+        // Initialize ViewModel with @StateObject
+        // Note: We can't access EnvironmentObject during init, so we pass them in onAppear
+        _viewModel = StateObject(wrappedValue: ProfileViewModel(db: DB(), iap: InAppPurchases()))
+    }
 
     var body: some View {
         NavigationView {
@@ -29,22 +34,22 @@ struct ProfileView: View {
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.large)
             .background(Color(UIColor.systemGroupedBackground).ignoresSafeArea())
-            .sheet(isPresented: $showUpdateSheet) {
-                 // Present the UpdateAccountView, passing the DB environment object
-                 UpdateAccountView(db: db) 
-                      .environmentObject(db) // Pass db explicitly if needed by subviews
+            .sheet(isPresented: $viewModel.showUpdateSheet) {
+                UpdateAccountView(db: db)
+                    .environmentObject(db)
             }
             .onChange(of: scenePhase) { _, newPhase in
-                 if newPhase == .active {
-                      print("[ProfileView] App became active, attempting to refresh session.")
-                      Task {
-                           // No longer need do-catch here as the function handles it
-                           // Call the public refresh method on the DB instance
-                           await db.refreshSession()
-                           print("[ProfileView] Session refresh requested via db.refreshSession().")
-                           // The authStateListener in DB should hopefully update currentUser now
-                      }
-                 }
+                if newPhase == .active {
+                    print("[ProfileView] App became active, attempting to refresh session.")
+                    Task {
+                        await viewModel.refreshSession()
+                    }
+                }
+            }
+            .onAppear {
+                // Update ViewModel with current environment objects
+                viewModel.db = db
+                viewModel.iap = iap
             }
         }
     }
@@ -54,232 +59,265 @@ struct ProfileView: View {
     private var scrollableContent: some View {
         ScrollView {
             VStack(spacing: 20) {
-                // === Profile Header (Always Shown) ===
-                if let currentUser = db.currentUser {
-                    Button(action: { 
-                        // Action: Conditionally show sheet or navigate
-                        if currentUser.isAnonymous {
-                             showUpdateSheet = true 
-                        } else {
-                             navigateToSettings = true
-                        }
-                    }) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                // === Simplified Name Display Logic ===
-                                if currentUser.isAnonymous {
-                                    Text("Guest")
-                                        .font(.headline)
-                                        .fontWeight(.semibold)
-                                } else {
-                                    // Permanent user, show name/email
-                                    Text(currentUser.userMetadata["full_name"] as? String ?? currentUser.email ?? "Account")
-                                        .font(.headline)
-                                        .fontWeight(.semibold)
-                                        .lineLimit(1)
-                                }
-
-                                // === Simplified Email Display ===
-                                if !currentUser.isAnonymous, let email = currentUser.email, !email.isEmpty {
-                                    Text(email)
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                }
-                                
-                                // === Simplified Helper Text Logic ===
-                                if currentUser.isAnonymous {
-                                    Text("Set Email to Secure Account") 
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                } else {
-                                    Text("Edit Profile Information") 
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                            
-                            Spacer()
-                            
-                            // Conditional Icon & Action
-                            if currentUser.isAnonymous {
-                                Image(systemName: "pencil.circle.fill") 
-                                    .font(.system(size: 24))
-                                    .foregroundColor(Color(hex: "9B79C1"))
-                            } else {
-                                Button { // Button specifically for refresh icon
-                                     print("[ProfileView] Manual refresh tapped")
-                                     Task { await db.refreshSession() }
-                                } label: {
-                                     Image(systemName: "arrow.clockwise.circle.fill") 
-                                         .font(.system(size: 24))
-                                         .foregroundColor(Color(hex: "9B79C1"))
-                                }
-                            }
-                        }
-                        .padding()
-                        .background(Color(UIColor.secondarySystemGroupedBackground))
-                        .cornerRadius(12)
+                // Profile Header Section
+                Group {
+                    if viewModel.isSignedOut {
+                        signedOutView
+                    } else if viewModel.isUserPendingVerification {
+                        pendingVerificationView
+                    } else if viewModel.isAnonymousGuest {
+                        guestProfileHeader
+                    } else if viewModel.isPermanentUser {
+                        permanentUserProfileHeader
                     }
-                    .buttonStyle(PlainButtonStyle())
-                    .padding(.horizontal)
-                    // Hidden NavigationLink for confirmed users
-                    .background(
-                        NavigationLink(destination: SupabaseAccountSettingsView(popBackToRoot: {}), 
-                                       isActive: $navigateToSettings) { EmptyView() }
-                    )
-                } else {
-                     ProgressView()
-                        .padding()
                 }
                 
-                // === Conditional VIP Banner ===
+                // VIP Banner (if not subscribed)
                 if iap.subscriptionState == .notSubscribed {
-                    Button(action: { 
-                        InAppPurchases.showPaywallSheet()
-                    }) {
-                        HStack(spacing: 12) {
-                            // Enhanced icon with glow effect
-                            Image(systemName: "crown.fill")
-                                .font(.system(size: 22))
-                                .foregroundColor(.yellow)
-                                .shadow(color: .yellow.opacity(0.6), radius: 3)
-                            
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Unlock VIP Access")
-                                    .font(.headline)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.white)
-                                
-                                Text("Watch all premium content without limits")
-                                    .font(.caption)
-                                    .foregroundColor(.white.opacity(0.9))
-                            }
-                            
-                            Spacer()
-                            
-                            // Prominent call-to-action button
-                            Text("Subscribe")
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 8)
-                                .background(Color.white)
-                                .foregroundColor(Color(hex: "9B79C1")) // Using primary brand color
-                                .cornerRadius(16)
-                        }
-                        .padding(.vertical, 16)
-                        .padding(.horizontal, 16)
-                        .frame(maxWidth: .infinity)
-                        .background(
-                            LinearGradient(
-                                gradient: Gradient(colors: [
-                                    Color(hex: "9B79C1"),  // Primary purple
-                                    Color(hex: "503370")   // Secondary purple
-                                ]),
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .cornerRadius(16)
-                        .shadow(color: Color.black.opacity(0.15), radius: 5, x: 0, y: 2)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    .padding(.horizontal)
+                    vipBanner
                 }
-
-                /* === Wallet Section Commented Out ===
-                VStack(spacing: 0) {
-                    HStack {
-                        Text("My Wallet")
-                            .font(.headline)
-                        Spacer()
-                    }
-                    .padding()
-                    
-                    Divider()
-                        .background(Color(UIColor.separator))
-
-                    HStack {
-                        // Coin balance
-                        Label(
-                            title: { Text("\(viewModel.coinBalance)").font(.title3).bold() },
-                            icon: { Image(systemName: "circle.fill").foregroundColor(.yellow) }
-                        )
-                        
-                        Spacer()
-                        
-                        // Top Up button
-                        Button(action: viewModel.handleRefillTap) {
-                            Text(viewModel.isSignedIn ? "Top Up" : "Get Coins")
-                                .font(.subheadline)
-                                .foregroundColor(.black)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 8)
-                                .background(Color(hex: "9B79C1"))
-                                .cornerRadius(8)
-                        }
-                    }
-                    .padding()
-                }
-                .background(Color(UIColor.secondarySystemGroupedBackground))
-                .cornerRadius(12)
-                .padding(.horizontal)
-                */
-
-                // === Settings List ===
-                VStack(spacing: 0) {
-                    Group {
-                        // === Conditional Membership Row ===
-                        if iap.subscriptionState == .subscribed {
-                            NavigationLink(destination: PremiumSettingsView(popBackToRoot: { /* Need pop logic if deep */ })) {
-                                SettingsRow(icon: "crown", title: "Membership")
-                            }
-                            Divider()
-                        }
-                        
-                        Button(action: { print("Rate Us Tapped") }) {
-                            SettingsRow(icon: "star", title: "Rate Us")
-                        }
-                        Divider()
-                        NavigationLink(destination: Text("Contact Us")) {
-                            SettingsRow(icon: "envelope", title: "Contact Us")
-                        }
-                        Divider()
-                        
-                        // === Link Rows ===
-                        // Use your actual URLs here
-                        if let privacyURL = URL(string: "https://www.yourapp.com/privacy") {
-                             Link(destination: privacyURL) {
-                                 SettingsRow(icon: "shield.lefthalf.filled", title: "Privacy Policy")
-                             }
-                             Divider()
-                        }
-                        if let tosURL = URL(string: "https://www.yourapp.com/terms") {
-                             Link(destination: tosURL) {
-                                 SettingsRow(icon: "doc.text", title: "Terms of Service")
-                             }
-                        }
-                    }
-                }
-                .background(Color(UIColor.secondarySystemGroupedBackground))
-                .cornerRadius(12)
-                .padding(.horizontal)
+                
+                // Settings List
+                settingsList
             }
             .padding(.vertical)
-            .padding(.bottom, 50) // Add extra bottom padding to ensure content is above footer
+            .padding(.bottom, 50)
         }
+    }
+    
+    // MARK: - Profile Header Views
+    
+    private var pendingVerificationView: some View {
+        VStack(spacing: 15) {
+            Image(systemName: "envelope.badge.clock")
+                .font(.system(size: 40))
+                .foregroundColor(Color(hex: "9B79C1"))
+            
+            Text("Check Your Email")
+                .font(.title2)
+                .fontWeight(.semibold)
+            
+            Text("We've sent a verification link to the email address you provided. Please click the link to secure your account.")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+            
+            Button {
+                Task { await viewModel.refreshSession() }
+            } label: {
+                Label("Refresh Status", systemImage: "arrow.clockwise")
+            }
+            .buttonStyle(.bordered)
+            .tint(Color(hex: "9B79C1"))
+        }
+        .padding()
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .cornerRadius(12)
+        .padding(.horizontal)
+    }
+    
+    private var guestProfileHeader: some View {
+        Button(action: { viewModel.showUpdateSheet = true }) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Guest")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                    
+                    Text("Set Email to Secure Account")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                Image(systemName: "pencil.circle.fill")
+                    .font(.system(size: 24))
+                    .foregroundColor(Color(hex: "9B79C1"))
+            }
+            .padding()
+            .background(Color(UIColor.secondarySystemGroupedBackground))
+            .cornerRadius(12)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .padding(.horizontal)
+    }
+    
+    private var permanentUserProfileHeader: some View {
+        Button(action: { viewModel.navigateToSettings = true }) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    if let user = db.currentUser {
+                        Text(user.userMetadata["full_name"] as? String ?? user.email ?? "Account")
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                            .lineLimit(1)
+                        
+                        if let email = user.email, !email.isEmpty {
+                            Text(email)
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
+                    Text("Edit Profile Information")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                Button {
+                    Task { await viewModel.refreshSession() }
+                } label: {
+                    Image(systemName: "arrow.clockwise.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(Color(hex: "9B79C1"))
+                }
+            }
+            .padding()
+            .background(Color(UIColor.secondarySystemGroupedBackground))
+            .cornerRadius(12)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .padding(.horizontal)
+        .background(
+            NavigationLink(destination: SupabaseAccountSettingsView(popBackToRoot: {}),
+                         isActive: $viewModel.navigateToSettings) { EmptyView() }
+        )
+    }
+    
+    private var signedOutView: some View {
+        VStack(spacing: 15) {
+            Image(systemName: "person.crop.circle.badge.xmark")
+                .font(.system(size: 50))
+                .foregroundColor(.secondary)
+            
+            Text("Signed Out")
+                .font(.title2)
+                .fontWeight(.semibold)
+            
+            Text("Sign in to manage your account and sync your library.")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+            
+            Button("Sign In / Sign Up") {
+                viewModel.showSignIn()
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(Color(hex: "9B79C1"))
+        }
+        .padding(.vertical, 40)
+        .padding(.horizontal)
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .cornerRadius(12)
+        .padding(.horizontal)
+    }
+    
+    // MARK: - Other Views
+    
+    private var vipBanner: some View {
+        Button(action: { viewModel.showPaywall() }) {
+            HStack(spacing: 12) {
+                Image(systemName: "crown.fill")
+                    .font(.system(size: 22))
+                    .foregroundColor(.yellow)
+                    .shadow(color: .yellow.opacity(0.6), radius: 3)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Unlock VIP Access")
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                    
+                    Text("Watch all premium content without limits")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.9))
+                }
+                
+                Spacer()
+                
+                Text("Subscribe")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(Color.white)
+                    .foregroundColor(Color(hex: "9B79C1"))
+                    .cornerRadius(16)
+            }
+            .padding(.vertical, 16)
+            .padding(.horizontal, 16)
+            .frame(maxWidth: .infinity)
+            .background(
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        Color(hex: "9B79C1"),
+                        Color(hex: "503370")
+                    ]),
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .cornerRadius(16)
+            .shadow(color: Color.black.opacity(0.15), radius: 5, x: 0, y: 2)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .padding(.horizontal)
+    }
+    
+    private var settingsList: some View {
+        VStack(spacing: 0) {
+            Group {
+                if iap.subscriptionState == .subscribed {
+                    NavigationLink(destination: PremiumSettingsView(popBackToRoot: {})) {
+                        SettingsRow(icon: "crown", title: "Membership")
+                    }
+                    Divider()
+                }
+                
+                Button(action: { print("Rate Us Tapped") }) {
+                    SettingsRow(icon: "star", title: "Rate Us")
+                }
+                Divider()
+                
+                NavigationLink(destination: Text("Contact Us")) {
+                    SettingsRow(icon: "envelope", title: "Contact Us")
+                }
+                Divider()
+                
+                if let privacyURL = URL(string: "https://www.slips.app/privacy-policy") {
+                    Link(destination: privacyURL) {
+                        SettingsRow(icon: "shield.lefthalf.filled", title: "Privacy Policy")
+                    }
+                    Divider()
+                }
+                
+                if let tosURL = URL(string: "https://www.slips.app/terms-of-service") {
+                    Link(destination: tosURL) {
+                        SettingsRow(icon: "doc.text", title: "Terms of Service")
+                    }
+                }
+            }
+        }
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .cornerRadius(12)
+        .padding(.horizontal)
     }
     
     private func footerContent(geometry: GeometryProxy) -> some View {
         VStack(spacing: 4) {
             if let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String,
                let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String {
-                Text("Version \(version)")
+                Text("Version \(version) (\(build))")
                     .font(.footnote)
                     .foregroundColor(.secondary)
             }
             
-            Text("© 2025 Slips LLC")
+            Text("© \(Calendar.current.component(.year, from: Date())) Slips LLC")
                 .font(.footnote)
                 .foregroundColor(.secondary)
         }
@@ -313,24 +351,15 @@ struct SettingsRow: View {
     }
 }
 
-// MARK: - Preview
+// MARK: - Preview Provider
 struct ProfileView_Previews: PreviewProvider {
     static var previews: some View {
-        // Need to inject InAppPurchases & DB for preview
         let iapManager = InAppPurchases()
         let dbManager = DB()
-        // Example: Preview non-subscribed state
-        // iapManager.subscriptionState = .notSubscribed 
-        // Example: Preview subscribed state
-        // iapManager.subscriptionState = .subscribed 
-        
-        // Example: Preview signed-out state (default)
-        // Example: Preview signed-in state (requires mocking user)
-        // Task { try? await dbManager._db.auth.signInAnonymously() } 
         
         ProfileView()
             .environmentObject(iapManager)
-            .environmentObject(dbManager) // Inject DB
+            .environmentObject(dbManager)
             .preferredColorScheme(.dark)
     }
 } 
