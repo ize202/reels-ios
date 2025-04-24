@@ -6,10 +6,12 @@
 import SwiftUI
 import SharedKit
 import SupabaseKit
+import InAppPurchaseKit
 
 struct ProfileView: View {
     @StateObject private var viewModel = ProfileViewModel()
     @Environment(\.colorScheme) var colorScheme
+    @EnvironmentObject var iap: InAppPurchases
 
     var body: some View {
         NavigationView {
@@ -61,28 +63,62 @@ struct ProfileView: View {
                     .cornerRadius(12)
                     .padding(.horizontal)
 
-                    // VIP Banner - More subtle design
-                    Button(action: {
-                        print("VIP Banner Tapped")
-                    }) {
-                        HStack {
-                            Image(systemName: "crown.fill")
-                                .foregroundColor(.primary)
-                            Text("Become VIP to enjoy all series unlocked")
-                                .font(.subheadline)
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                    // === Conditional VIP Banner ===
+                    if iap.subscriptionState == .notSubscribed {
+                        Button(action: { 
+                            InAppPurchases.showPaywallSheet()
+                        }) {
+                            HStack(spacing: 12) {
+                                // Enhanced icon with glow effect
+                                Image(systemName: "crown.fill")
+                                    .font(.system(size: 22))
+                                    .foregroundColor(.yellow)
+                                    .shadow(color: .yellow.opacity(0.6), radius: 3)
+                                
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Unlock VIP Access")
+                                        .font(.headline)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.white)
+                                    
+                                    Text("Watch all premium content without limits")
+                                        .font(.caption)
+                                        .foregroundColor(.white.opacity(0.9))
+                                }
+                                
+                                Spacer()
+                                
+                                // Prominent call-to-action button
+                                Text("Subscribe")
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 8)
+                                    .background(Color.white)
+                                    .foregroundColor(Color(hex: "9B79C1")) // Using primary brand color
+                                    .cornerRadius(16)
+                            }
+                            .padding(.vertical, 16)
+                            .padding(.horizontal, 16)
+                            .frame(maxWidth: .infinity)
+                            .background(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color(hex: "9B79C1"),  // Primary purple
+                                        Color(hex: "503370")   // Secondary purple
+                                    ]),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .cornerRadius(16)
+                            .shadow(color: Color.black.opacity(0.15), radius: 5, x: 0, y: 2)
                         }
-                        .padding()
-                        .background(Color(UIColor.secondarySystemGroupedBackground))
-                        .cornerRadius(12)
+                        .buttonStyle(PlainButtonStyle())
+                        .padding(.horizontal)
                     }
-                    .buttonStyle(PlainButtonStyle())
-                    .padding(.horizontal)
 
-                    // Wallet Card - Simplified
+                    /* === Wallet Section Commented Out ===
                     VStack(spacing: 0) {
                         HStack {
                             Text("My Wallet")
@@ -119,14 +155,19 @@ struct ProfileView: View {
                     .background(Color(UIColor.secondarySystemGroupedBackground))
                     .cornerRadius(12)
                     .padding(.horizontal)
+                    */
 
-                    // Settings List - Using system grouping
+                    // === Settings List ===
                     VStack(spacing: 0) {
                         Group {
-                            NavigationLink(destination: Text("Membership")) {
-                                SettingsRow(icon: "crown", title: "Membership")
+                            // === Conditional Membership Row ===
+                            if iap.subscriptionState == .subscribed {
+                                NavigationLink(destination: PremiumSettingsView(popBackToRoot: { /* Need pop logic if deep */ })) {
+                                    SettingsRow(icon: "crown", title: "Membership")
+                                }
+                                Divider()
                             }
-                            Divider()
+                            
                             NavigationLink(destination: Text("Library")) {
                                 SettingsRow(icon: "rectangle.stack", title: "Library")
                             }
@@ -271,7 +312,15 @@ struct SignInView: View {
 // MARK: - Preview
 struct ProfileView_Previews: PreviewProvider {
     static var previews: some View {
+        // Need to inject InAppPurchases for preview
+        let iapManager = InAppPurchases()
+        // Example: Preview non-subscribed state
+        // iapManager.subscriptionState = .notSubscribed 
+        // Example: Preview subscribed state
+        // iapManager.subscriptionState = .subscribed 
+        
         ProfileView()
+            .environmentObject(iapManager)
             .preferredColorScheme(.dark)
     }
 } 
