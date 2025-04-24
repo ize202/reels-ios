@@ -106,23 +106,26 @@ struct LibrarySeriesCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
-            // AsyncImage for cover art
-            AsyncImage(url: series.coverUrl) { image in
-                image
-                    .resizable()
-                    .aspectRatio(2/3, contentMode: .fill) // Maintain aspect ratio
-            } placeholder: {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(LinearGradient(gradient: gradient, startPoint: .top, endPoint: .bottom))
-                    .aspectRatio(2/3, contentMode: .fit)
-                    .overlay(
-                        Image(systemName: "play.rectangle.fill") // Icon for recently watched
-                            .font(.system(size: 40))
-                            .foregroundColor(.white.opacity(0.7))
-                    )
+            // Group the conditional content to apply modifiers commonly
+            Group {
+                if let coverImage = series.coverImage {
+                    Image(uiImage: coverImage)
+                        .resizable()
+                        .aspectRatio(2/3, contentMode: .fill)
+                } else {
+                    // Placeholder if image not loaded yet
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(LinearGradient(gradient: gradient, startPoint: .top, endPoint: .bottom))
+                        .aspectRatio(2/3, contentMode: .fit)
+                        .overlay(
+                            Image(systemName: "play.rectangle.fill") // Icon for recently watched
+                                .font(.system(size: 40))
+                                .foregroundColor(.white.opacity(0.7))
+                        )
+                }
             }
-            .frame(height: 200) // Adjust height as needed
-            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .frame(height: 200) // Apply frame to the Group
+            .clipShape(RoundedRectangle(cornerRadius: 10)) // Apply clipShape to the Group
             
             // Series Title
             Text(series.title)

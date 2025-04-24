@@ -18,6 +18,7 @@ struct WatchedSeries: Identifiable {
     let lastWatchedEpisode: Int
     let totalEpisodes: Int
     let coverUrl: URL? // <-- Changed from thumbnailURL
+    var coverImage: UIImage? = nil // <-- Add property for loaded image
     
     var progressString: String {
         "EP.\(lastWatchedEpisode)"
@@ -114,6 +115,10 @@ class LibraryViewModel: ObservableObject {
                 self.recentlyWatched = watched
                 
                 self.isLoading = false
+                print("[LibraryVM] Assigned basic recentlyWatched data (\(watched.count) items). Starting image fetch.")
+                
+                // --- Now fetch images asynchronously ---
+                await fetchCoverImages(for: watched)
                 
             } catch {
                 self.errorMessage = "Failed to load library: \(error.localizedDescription)"
@@ -121,5 +126,45 @@ class LibraryViewModel: ObservableObject {
                 print("[LibraryViewModel] Error fetching library data: \(error)")
             }
         }
+    }
+    
+    // Helper function to fetch images
+    private func fetchCoverImages(for seriesList: [WatchedSeries]) async {
+        // Create tasks for each series with a valid URL
+        await withTaskGroup(of: (String, UIImage?).self) { group in
+            for series in seriesList where series.coverUrl != nil {
+                group.addTask {
+                    // Attempt to download the image
+                    var image: UIImage? = nil
+                    if let url = series.coverUrl {
+                        do {
+                            let (data, _) = try await URLSession.shared.data(from: url)
+                            image = UIImage(data: data)
+                            // print("[LibraryVM] Image downloaded successfully for Series ID: \(series.seriesId)")
+                        } catch {
+                            print("[LibraryVM] Error downloading image for Series ID: \(series.seriesId) from \(url): \(error.localizedDescription)")
+                        }
+                    }
+                    // Return tuple of (seriesId, optional UIImage)
+                    return (series.seriesId, image)
+                }
+            }
+            
+            // Process results as they complete
+            for await (seriesId, image) in group {
+                if let image = image {
+                    // Find the index of the series in our main array and update its image
+                    if let index = self.recentlyWatched.firstIndex(where: { $0.seriesId == seriesId }) {
+                        // Update the image on the main thread
+                        // Although @MainActor handles the class, explicit is safer for array updates triggered by background tasks
+                        DispatchQueue.main.async {
+                            self.recentlyWatched[index].coverImage = image
+                            // print("[LibraryVM] Updated coverImage for Series ID: \(seriesId)")
+                        }
+                    }
+                }
+            }
+        }
+        print("[LibraryVM] Image fetching complete.")
     }
 } 
