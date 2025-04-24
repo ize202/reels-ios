@@ -469,3 +469,26 @@ extension DB {
         }
     }
 }
+
+// MARK: - Session Refresh
+extension DB {
+	/// Attempts to refresh the current user session.
+	/// This is useful when the app becomes active to ensure the user state is up-to-date.
+	@MainActor
+	public func refreshSession() async {
+		Analytics.capture(.info, id: "refresh_session_called", source: .db)
+		do {
+			_ = try await _db.auth.refreshSession()
+			Analytics.capture(.success, id: "refresh_session", source: .db)
+		} catch {
+			Analytics.capture(
+				.error,
+				id: "refresh_session",
+				longDescription: "Error refreshing session: \(error.localizedDescription)",
+				source: .db
+			)
+			print("[DB] Error refreshing session: \(error.localizedDescription)")
+			// Handle or surface the error if needed, though the auth listener might handle state changes anyway
+		}
+	}
+}

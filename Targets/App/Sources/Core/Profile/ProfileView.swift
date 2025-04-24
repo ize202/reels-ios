@@ -10,9 +10,11 @@ import InAppPurchaseKit
 
 struct ProfileView: View {
     @Environment(\.colorScheme) var colorScheme
+    @Environment(\.scenePhase) var scenePhase // Keep scene phase environment
     @EnvironmentObject var iap: InAppPurchases
     @EnvironmentObject var db: DB
     @State private var showUpdateSheet = false // State for presenting the update sheet
+    @State private var navigateToSettings = false // State for navigating to settings
 
     var body: some View {
         NavigationView {
@@ -32,6 +34,18 @@ struct ProfileView: View {
                  UpdateAccountView(db: db) 
                       .environmentObject(db) // Pass db explicitly if needed by subviews
             }
+            .onChange(of: scenePhase) { _, newPhase in
+                 if newPhase == .active {
+                      print("[ProfileView] App became active, attempting to refresh session.")
+                      Task {
+                           // No longer need do-catch here as the function handles it
+                           // Call the public refresh method on the DB instance
+                           await db.refreshSession()
+                           print("[ProfileView] Session refresh requested via db.refreshSession().")
+                           // The authStateListener in DB should hopefully update currentUser now
+                      }
+                 }
+            }
         }
     }
     
@@ -43,37 +57,41 @@ struct ProfileView: View {
                 // === Profile Header (Always Shown) ===
                 if let currentUser = db.currentUser {
                     Button(action: { 
-                        // Action: Always show the update sheet now
-                        showUpdateSheet = true 
+                        // Action: Conditionally show sheet or navigate
+                        if currentUser.isAnonymous {
+                             showUpdateSheet = true 
+                        } else {
+                             navigateToSettings = true
+                        }
                     }) {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
-                                // === Name Display ===
+                                // === Simplified Name Display Logic ===
                                 if currentUser.isAnonymous {
                                     Text("Guest")
                                         .font(.headline)
                                         .fontWeight(.semibold)
                                 } else {
+                                    // Permanent user, show name/email
                                     Text(currentUser.userMetadata["full_name"] as? String ?? currentUser.email ?? "Account")
                                         .font(.headline)
                                         .fontWeight(.semibold)
                                         .lineLimit(1)
-                                    
-                                    if let email = currentUser.email, !email.isEmpty {
-                                        Text(email)
-                                            .font(.subheadline)
-                                            .foregroundColor(.secondary)
-                                    }
+                                }
+
+                                // === Simplified Email Display ===
+                                if !currentUser.isAnonymous, let email = currentUser.email, !email.isEmpty {
+                                    Text(email)
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
                                 }
                                 
-                                // === Helper Text ===
+                                // === Simplified Helper Text Logic ===
                                 if currentUser.isAnonymous {
-                                    // Changed: Helper text for anonymous user
                                     Text("Set Email to Secure Account") 
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 } else {
-                                    // Changed: Helper text for permanent user
                                     Text("Edit Profile Information") 
                                         .font(.caption)
                                         .foregroundColor(.secondary)
@@ -82,9 +100,21 @@ struct ProfileView: View {
                             
                             Spacer()
                             
-                            Image(systemName: "pencil.circle.fill") // Changed icon to pencil
-                                .font(.system(size: 24))
-                                .foregroundColor(Color(hex: "9B79C1"))
+                            // Conditional Icon & Action
+                            if currentUser.isAnonymous {
+                                Image(systemName: "pencil.circle.fill") 
+                                    .font(.system(size: 24))
+                                    .foregroundColor(Color(hex: "9B79C1"))
+                            } else {
+                                Button { // Button specifically for refresh icon
+                                     print("[ProfileView] Manual refresh tapped")
+                                     Task { await db.refreshSession() }
+                                } label: {
+                                     Image(systemName: "arrow.clockwise.circle.fill") 
+                                         .font(.system(size: 24))
+                                         .foregroundColor(Color(hex: "9B79C1"))
+                                }
+                            }
                         }
                         .padding()
                         .background(Color(UIColor.secondarySystemGroupedBackground))
@@ -92,6 +122,11 @@ struct ProfileView: View {
                     }
                     .buttonStyle(PlainButtonStyle())
                     .padding(.horizontal)
+                    // Hidden NavigationLink for confirmed users
+                    .background(
+                        NavigationLink(destination: SupabaseAccountSettingsView(popBackToRoot: {}), 
+                                       isActive: $navigateToSettings) { EmptyView() }
+                    )
                 } else {
                      ProgressView()
                         .padding()

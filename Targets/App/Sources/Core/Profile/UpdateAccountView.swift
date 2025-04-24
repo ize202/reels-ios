@@ -46,6 +46,12 @@ struct UpdateAccountView: View {
                     Button("Save") {
                         Task {
                             if await viewModel.updateAccount() {
+                                // Show success notification using the global function
+                                showInAppNotification(
+                                     .info, // Use the predefined .info style
+                                     content: .init(title: "Verification Sent", 
+                                                    message: "Check your email to complete setup.")
+                                )
                                 dismiss() // Dismiss the sheet on success
                             }
                         }
@@ -88,6 +94,7 @@ struct UpdateAccountView: View {
 struct UpdateAccountView_Previews: PreviewProvider {
     static var previews: some View {
         let mockDB = DB() // Use your actual DB initializer
+        // Removed: Mock notification manager
         // Mock different states for preview
         // Task { try? await mockDB._db.auth.signInAnonymously() } // Preview Anonymous
         // Task { try? await mockDB._db.auth.signInWithPassword(...) } // Preview Signed In
@@ -95,6 +102,7 @@ struct UpdateAccountView_Previews: PreviewProvider {
         // Need to wrap in something that provides the environment object
         UpdateAccountView(db: mockDB)
             .environmentObject(mockDB)
+            // Removed: Environment object for notification manager
     }
 }
 

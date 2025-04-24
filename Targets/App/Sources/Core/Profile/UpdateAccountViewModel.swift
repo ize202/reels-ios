@@ -10,6 +10,8 @@ class UpdateAccountViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var errorMessage: String? = nil
     @Published var isAnonymous: Bool = true
+    // Use AppStorage to track pending verification across sessions
+    @AppStorage("pendingVerificationUserID") private var pendingVerificationUserID: String = ""
 
     private var db: DB
 
@@ -60,6 +62,7 @@ class UpdateAccountViewModel: ObservableObject {
         do {
             // Call the updateUser method in DB
             try await db.updateUser(attributes: attributes)
+
             isLoading = false
             return true
         } catch let error as AuthKitError {
