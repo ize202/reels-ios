@@ -75,6 +75,21 @@ public struct Episode: Codable, Identifiable, Equatable {
 	}
 }
 
+/// Represents an entry in the user_library table
+struct UserLibraryEntry: Codable {
+	let userId: UUID
+	let seriesId: UUID
+	let lastEpisodeId: UUID
+	let isSaved: Bool
+
+	enum CodingKeys: String, CodingKey {
+		case userId = "user_id"
+		case seriesId = "series_id"
+		case lastEpisodeId = "last_episode_id"
+		case isSaved = "is_saved"
+	}
+}
+
 @MainActor
 public class DB: ObservableObject {
 
@@ -273,6 +288,81 @@ extension DB {
 				source: .db
 			)
 			throw error
+		}
+	}
+}
+
+//MARK: - User Library & Watch History
+extension DB {
+	/// Updates the user's watch history for a given series.
+	/// Performs an upsert operation: inserts if no record exists, updates last_episode_id if it does.
+	/// Sets is_saved to false when inserting a new record.
+	@MainActor
+	public func updateWatchHistory(userId: UUID, seriesId: UUID, lastEpisodeId: UUID) async {
+		Analytics.capture(
+			.info,
+			id: "update_watch_history_called",
+			longDescription: "User: \(userId), Series: \(seriesId), Episode: \(lastEpisodeId)",
+			source: .db
+		)
+
+		let entry = UserLibraryEntry(
+			userId: userId,
+			seriesId: seriesId,
+			lastEpisodeId: lastEpisodeId,
+			isSaved: false // Default to false when tracking history, saving is explicit
+		)
+
+		do {
+			// Perform an upsert. If conflict on (user_id, series_id), only update last_episode_id.
+			// Note: Supabase client upsert defaults to ignoring duplicates if no onConflict is specified,
+			// but we want to update the episode ID. Using `rpc` might be needed for precise control,
+			// or rely on the Swift client's upsert behavior (needs verification if it supports targeted update on conflict).
+			// Let's try the standard upsert first. Assuming the Swift client handles `onConflict` implicitly or we adjust later.
+			// A simpler approach for now might be to just upsert the whole entry. If is_saved was true, this would reset it.
+			// Let's use a more explicit RPC call for clarity and correctness.
+
+			// Define the parameters for the RPC call
+			struct UpsertParams: Encodable {
+				let usr_id: UUID
+				let ser_id: UUID
+				let ep_id: UUID
+			}
+			let params = UpsertParams(usr_id: userId, ser_id: seriesId, ep_id: lastEpisodeId)
+
+			// Create a function in Supabase SQL:
+			/*
+			 CREATE OR REPLACE FUNCTION upsert_watch_history(usr_id uuid, ser_id uuid, ep_id uuid)
+			 RETURNS void
+			 LANGUAGE plpgsql
+			 AS $$
+			 BEGIN
+				 INSERT INTO public.user_library (user_id, series_id, last_episode_id, is_saved)
+				 VALUES (usr_id, ser_id, ep_id, false)
+				 ON CONFLICT (user_id, series_id)
+				 DO UPDATE SET last_episode_id = EXCLUDED.last_episode_id;
+			 END;
+			 $$;
+			*/
+			// Assuming the above SQL function 'upsert_watch_history' exists in your Supabase project.
+			try await _db.rpc("upsert_watch_history", params: params).execute()
+
+
+			Analytics.capture(
+				.success,
+				id: "update_watch_history",
+				longDescription: "Successfully upserted watch history for User: \(userId), Series: \(seriesId)",
+				source: .db
+			)
+		} catch {
+			Analytics.capture(
+				.error,
+				id: "update_watch_history",
+				longDescription: "Error upserting watch history for User: \(userId), Series: \(seriesId): \(error)",
+				source: .db
+			)
+			// Handle or log the error appropriately
+			print("Error updating watch history: \(error)")
 		}
 	}
 }

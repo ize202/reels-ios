@@ -122,6 +122,9 @@ struct FeedView: View {
             UINavigationBar.appearance().standardAppearance = appearance
             UINavigationBar.appearance().scrollEdgeAppearance = appearance
             UINavigationBar.appearance().compactAppearance = appearance
+            
+            // Record watch history when the view disappears
+            viewModel.recordWatchHistory()
         }
     }
     

@@ -111,4 +111,30 @@ class FeedViewModel: ObservableObject {
             print("Error loading feed items: \(error)")
         }
     }
+    
+    /// Records the last viewed episode for the current series in the user library.
+    func recordWatchHistory() {
+        // Ensure we have a user and the index is valid
+        guard let userId = db.currentUser?.id, 
+              currentIndex >= 0 && currentIndex < feedItems.count else {
+            print("Watch History: Cannot record. User not logged in or index out of bounds (\(currentIndex)).")
+            return
+        }
+        
+        let currentItem = feedItems[currentIndex]
+        
+        // Ensure the seriesId and episodeId are valid UUIDs
+        guard let seriesUUID = UUID(uuidString: currentItem.seriesId),
+              let episodeUUID = UUID(uuidString: currentItem.id) else {
+            print("Watch History: Cannot record. Invalid Series ID (\(currentItem.seriesId)) or Episode ID (\(currentItem.id)).")
+            return
+        }
+        
+        print("Watch History: Recording User: \(userId), Series: \(seriesUUID), Last Episode: \(episodeUUID) (Index: \(currentIndex))")
+        
+        // Call the backend function asynchronously
+        Task {
+            await db.updateWatchHistory(userId: userId, seriesId: seriesUUID, lastEpisodeId: episodeUUID)
+        }
+    }
 } 
