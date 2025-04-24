@@ -5,6 +5,7 @@
 
 import Foundation
 import SwiftUI
+import SupabaseKit // <-- Import SupabaseKit
 
 // --- Data Models ---
 
@@ -15,7 +16,7 @@ struct WatchedSeries: Identifiable {
     let title: String
     let lastWatchedEpisode: Int
     let totalEpisodes: Int
-    let thumbnailURL: URL? // Placeholder
+    let coverUrl: URL? // <-- Changed from thumbnailURL
     
     var progressString: String {
         "EP.\(lastWatchedEpisode)"
@@ -28,7 +29,7 @@ struct SavedSeries: Identifiable {
     let seriesId: String // Link to the actual series data
     let title: String
     let totalEpisodes: Int
-    let thumbnailURL: URL? // Placeholder
+    let coverUrl: URL? // <-- Changed from thumbnailURL
     
     var episodesString: String {
         "All \(totalEpisodes) EP"
@@ -45,7 +46,10 @@ class LibraryViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var errorMessage: String? = nil
     
-    init() {
+    private var db: DB // <-- Add DB instance
+    
+    init(db: DB) { // <-- Inject DB
+        self.db = db
         fetchLibraryData()
     }
     
@@ -53,27 +57,57 @@ class LibraryViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        // Simulate fetching data
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
-            guard let self = self else { return }
-            
-            self.recentlyWatched = [
-                WatchedSeries(seriesId: "1", title: "Divorced Housewife Billionaire Heiress", lastWatchedEpisode: 3, totalEpisodes: 70, thumbnailURL: nil),
-                WatchedSeries(seriesId: "2", title: "True Love Waits", lastWatchedEpisode: 15, totalEpisodes: 70, thumbnailURL: nil),
-                WatchedSeries(seriesId: "3", title: "Captive Love from the Mob Boss", lastWatchedEpisode: 1, totalEpisodes: 65, thumbnailURL: nil),
-                WatchedSeries(seriesId: "4", title: "I Don't Know My Husband is a Billionaire", lastWatchedEpisode: 2, totalEpisodes: 80, thumbnailURL: nil)
-            ]
-            
-            self.savedCollection = [
-                SavedSeries(seriesId: "2", title: "True Love Waits", totalEpisodes: 70, thumbnailURL: nil),
-                SavedSeries(seriesId: "5", title: "Modern Journey of an Ancient Queen", totalEpisodes: 75, thumbnailURL: nil),
-                SavedSeries(seriesId: "6", title: "Bound To The Tyrant's Heart", totalEpisodes: 62, thumbnailURL: nil),
-                SavedSeries(seriesId: "7", title: "I Peaked After the Breakup", totalEpisodes: 65, thumbnailURL: nil),
-                SavedSeries(seriesId: "3", title: "Captive Love from the Mob Boss", totalEpisodes: 65, thumbnailURL: nil),
-                SavedSeries(seriesId: "8", title: "Love at Fifty", totalEpisodes: 62, thumbnailURL: nil)
-            ]
-            
-            self.isLoading = false
+        guard let userId = db.currentUser?.id else {
+            errorMessage = "User not logged in."
+            isLoading = false
+            print("[LibraryViewModel] Error: Cannot fetch library, user not logged in.")
+            // Consider how to handle this - maybe show a sign-in prompt?
+            return
+        }
+        
+        Task {
+            do {
+                let libraryDetails = try await db.fetchUserLibraryDetails(userId: userId)
+                
+                // Process fetched details
+                var watched: [WatchedSeries] = []
+                var saved: [SavedSeries] = []
+                
+                for detail in libraryDetails {
+                    // Add to recently watched if there's a last watched episode
+                    if let lastEpisode = detail.lastWatchedEpisodeNumber, lastEpisode > 0 {
+                        watched.append(WatchedSeries(
+                            seriesId: detail.seriesId.uuidString,
+                            title: detail.title,
+                            lastWatchedEpisode: lastEpisode,
+                            totalEpisodes: detail.totalEpisodes,
+                            coverUrl: URL(string: detail.coverUrl ?? "") // Handle nil cover URL
+                        ))
+                    }
+                    
+                    // Add to saved collection if marked as saved
+                    if detail.isSaved {
+                        saved.append(SavedSeries(
+                            seriesId: detail.seriesId.uuidString,
+                            title: detail.title,
+                            totalEpisodes: detail.totalEpisodes,
+                            coverUrl: URL(string: detail.coverUrl ?? "") // Handle nil cover URL
+                        ))
+                    }
+                }
+                
+                // Sort recently watched (optional, maybe by last access time if available)
+                // self.recentlyWatched = watched.sorted { ... }
+                self.recentlyWatched = watched
+                self.savedCollection = saved
+                
+                self.isLoading = false
+                
+            } catch {
+                self.errorMessage = "Failed to load library: \(error.localizedDescription)"
+                self.isLoading = false
+                print("[LibraryViewModel] Error fetching library data: \(error)")
+            }
         }
     }
 } 

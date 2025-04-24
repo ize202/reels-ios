@@ -8,7 +8,6 @@ import SharedKit
 import SupabaseKit
 
 struct HomeView: View {
-    @EnvironmentObject var db: DB
     @StateObject private var viewModel: HomeViewModel
     
     // Grid layout for series
@@ -17,22 +16,11 @@ struct HomeView: View {
         GridItem(.flexible())
     ]
     
-    init() {
-        // Initialize the ViewModel with the default DB instance
-        // The actual DB will be provided by the environment
-        _viewModel = StateObject(wrappedValue: HomeViewModel(db: DB()))
+    // Initialize with the DB instance passed from parent
+    init(db: DB) {
+        _viewModel = StateObject(wrappedValue: HomeViewModel(db: db))
     }
     
-    // Called when the view appears and DB is available from environment
-    private func setupViewModel() {
-        // Replace the default DB with the one from environment
-        viewModel.db = db
-        // Fetch initial data
-        Task {
-            await viewModel.fetchData()
-        }
-    }
-
     var body: some View {
         NavigationView {
             ScrollView {
@@ -49,7 +37,7 @@ struct HomeView: View {
                     if !viewModel.allSeries.isEmpty {
                         LazyVGrid(columns: columns, spacing: 20) {
                             ForEach(viewModel.allSeries) { series in
-                                NavigationLink(destination: FeedView(db: db, seriesId: series.id)) {
+                                NavigationLink(destination: FeedView(db: viewModel.db, seriesId: series.id)) {
                                     SeriesCard(series: series)
                                 }
                             }
@@ -73,7 +61,6 @@ struct HomeView: View {
                         .padding()
                 }
             }
-            .onAppear(perform: setupViewModel)
         }
         .navigationViewStyle(StackNavigationViewStyle())
         .accentColor(Color(hex: "9B79C1"))
@@ -202,6 +189,6 @@ struct FeaturedSeriesCard: View {
 }
 
 #Preview {
-    HomeView()
-        .environmentObject(DB())
+    // Pass a DB instance directly for preview
+    HomeView(db: DB())
 } 

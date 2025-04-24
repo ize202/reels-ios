@@ -15,7 +15,7 @@ class HomeViewModel: ObservableObject {
     @Published var errorMessage: String? = nil
     
     // Make db variable so it can be updated when the real one is available
-    var db: DB
+    let db: DB
     
     init(db: DB) {
         self.db = db

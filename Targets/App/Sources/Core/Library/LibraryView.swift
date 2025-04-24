@@ -9,7 +9,7 @@ import SupabaseKit
 
 struct LibraryView: View {
     // Use the ViewModel
-    @StateObject private var viewModel = LibraryViewModel()
+    @StateObject private var viewModel: LibraryViewModel
     @EnvironmentObject var db: DB
 
     // Grid columns for My Collection
@@ -18,6 +18,11 @@ struct LibraryView: View {
         GridItem(.flexible(), spacing: 15),
         GridItem(.flexible(), spacing: 15)
     ]
+
+    // Initialize viewModel in init
+    init(db: DB) {
+        _viewModel = StateObject(wrappedValue: LibraryViewModel(db: db))
+    }
 
     var body: some View {
         NavigationView {
@@ -79,6 +84,15 @@ struct LibraryView: View {
                     ProgressView()
                 }
                 // Optional: Add error message display if needed
+                if let errorMessage = viewModel.errorMessage {
+                    Text("Error: \(errorMessage)")
+                        .foregroundColor(.red)
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(Color.black.opacity(0.8))
+                        .cornerRadius(8)
+                        .padding(.horizontal)
+                }
             }
         }
         .navigationViewStyle(StackNavigationViewStyle())
@@ -108,16 +122,25 @@ struct RecentlyWatchedCard: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            // Placeholder Thumbnail - Apply same aspect ratio as MyCollectionCard
+            // Thumbnail - Replace placeholder with AsyncImage later if needed
             RoundedRectangle(cornerRadius: 8)
-                .fill(Color.systemSecondaryBackground) 
+                .fill(series.coverUrl == nil ? Color.systemSecondaryBackground : Color.clear) // Show bg if no image
                 .aspectRatio(2/3, contentMode: .fit) // Use portrait aspect ratio
-                // Let the ScrollView's context determine width, but set a height constraint for the row
                 .overlay(
-                    Image(systemName: "play.rectangle.fill") // Keep play icon maybe?
-                        .font(.largeTitle)
-                        .foregroundColor(.gray)
+                    Group { // Use Group to conditionally show image or placeholder
+                        if let url = series.coverUrl {
+                             // TODO: Replace with AsyncImage(url: url) ... for actual image loading
+                            Image(systemName: "photo") // Placeholder for now
+                                .resizable()
+                                .scaledToFill()
+                        } else {
+                            Image(systemName: "play.rectangle.fill")
+                                .font(.largeTitle)
+                                .foregroundColor(.gray)
+                        }
+                    }
                 )
+                .clipShape(RoundedRectangle(cornerRadius: 8)) // Clip the overlay image
             
             Text(series.title)
                 .font(.subheadline) // Slightly smaller than headline
@@ -141,15 +164,25 @@ struct MyCollectionCard: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
-            // Placeholder Thumbnail
+            // Thumbnail - Replace placeholder with AsyncImage later
             RoundedRectangle(cornerRadius: 10)
-                .fill(Color.systemSecondaryBackground) // Use shared color
+                 .fill(series.coverUrl == nil ? Color.systemSecondaryBackground : Color.clear) // Show bg if no image
                 .aspectRatio(2/3, contentMode: .fit) // Portrait aspect ratio
                 .overlay(
-                    Image(systemName: "photo.fill.on.rectangle.fill")
-                        .font(.largeTitle)
-                        .foregroundColor(.gray)
+                     Group { // Use Group to conditionally show image or placeholder
+                        if let url = series.coverUrl {
+                             // TODO: Replace with AsyncImage(url: url) ... for actual image loading
+                            Image(systemName: "photo") // Placeholder for now
+                                .resizable()
+                                .scaledToFill()
+                        } else {
+                            Image(systemName: "photo.fill.on.rectangle.fill")
+                                .font(.largeTitle)
+                                .foregroundColor(.gray)
+                        }
+                    }
                 )
+                .clipShape(RoundedRectangle(cornerRadius: 10)) // Clip the overlay image
             
             Text(series.title)
                 .font(.headline)
@@ -166,7 +199,3 @@ struct MyCollectionCard: View {
         .buttonStyle(PlainButtonStyle()) // Remove default button styling from NavigationLink
     }
 }
-
-#Preview {
-    LibraryView()
-} 

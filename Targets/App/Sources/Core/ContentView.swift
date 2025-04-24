@@ -12,6 +12,9 @@ import SwiftUI
 
 struct ContentView: View {
 
+	// Access the DB instance from the environment
+	@EnvironmentObject var db: DB
+
 	init() {
 
 	}
@@ -19,12 +22,12 @@ struct ContentView: View {
 	var body: some View {
 		TabView {
 			// Home Tab
-			HomeView()
+			HomeView(db: db)
 				.tabItem { Label("Home", systemImage: "house") }
 			
 			// Library Tab
-			LibraryView()
-				.tabItem { Label("Library", systemImage: "bookmark") }
+			LibraryView(db: db)
+				.tabItem { Label("Library", systemImage: "books.vertical") }
 			
 			// Rewards Tab
 			RewardsView()
@@ -46,4 +49,5 @@ struct ContentView: View {
 #Preview {
 	ContentView()
 		.environmentObject(InAppPurchases())
+		.environmentObject(DB())
 }

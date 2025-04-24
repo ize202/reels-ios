@@ -90,6 +90,51 @@ struct UserLibraryEntry: Codable {
 	}
 }
 
+/// Represents the combined details fetched for a user's library entry
+public struct UserLibraryDetail: Codable, Identifiable, Equatable {
+	public var id: UUID { seriesId } // Use seriesId as identifiable ID
+	public let userId: UUID
+	public let seriesId: UUID
+	public let lastEpisodeId: UUID?
+	public let isSaved: Bool
+	public let title: String
+	public let coverUrl: String?
+	public let lastWatchedEpisodeNumber: Int?
+	public let totalEpisodes: Int
+
+	// Map database column names to Swift properties
+	private enum CodingKeys: String, CodingKey {
+		case userId = "user_id"
+		case seriesId = "series_id"
+		case lastEpisodeId = "last_episode_id"
+		case isSaved = "is_saved"
+		case title
+		case coverUrl = "cover_url"
+		case lastWatchedEpisodeNumber = "last_watched_episode_number"
+		case totalEpisodes = "total_episodes"
+	}
+
+	// Custom decoder to handle potential Int64 from COUNT(*)
+	public init(from decoder: Decoder) throws {
+		let container = try decoder.container(keyedBy: CodingKeys.self)
+		userId = try container.decode(UUID.self, forKey: .userId)
+		seriesId = try container.decode(UUID.self, forKey: .seriesId)
+		lastEpisodeId = try container.decodeIfPresent(UUID.self, forKey: .lastEpisodeId)
+		isSaved = try container.decode(Bool.self, forKey: .isSaved)
+		title = try container.decode(String.self, forKey: .title)
+		coverUrl = try container.decodeIfPresent(String.self, forKey: .coverUrl)
+		lastWatchedEpisodeNumber = try container.decodeIfPresent(Int.self, forKey: .lastWatchedEpisodeNumber)
+
+		// Decode totalEpisodes safely, trying Int first, then Int64
+		if let intValue = try? container.decode(Int.self, forKey: .totalEpisodes) {
+			totalEpisodes = intValue
+		} else {
+			let int64Value = try container.decode(Int64.self, forKey: .totalEpisodes)
+			totalEpisodes = Int(int64Value) // Convert Int64 to Int
+		}
+	}
+}
+
 @MainActor
 public class DB: ObservableObject {
 
@@ -363,6 +408,46 @@ extension DB {
 			)
 			// Handle or log the error appropriately
 			print("Error updating watch history: \(error)")
+		}
+	}
+
+	/// Fetches the combined library details (watched and saved) for a user.
+	@MainActor
+	public func fetchUserLibraryDetails(userId: UUID) async throws -> [UserLibraryDetail] {
+		Analytics.capture(
+			.info,
+			id: "fetch_user_library_details_called",
+			longDescription: "Fetching library for User: \(userId)",
+			source: .db
+		)
+
+		struct Params: Encodable {
+			let p_user_id: UUID
+		}
+		let params = Params(p_user_id: userId)
+
+		do {
+			let details: [UserLibraryDetail] = try await _db
+				.rpc("get_user_library_details", params: params)
+				.execute()
+				.value
+
+			Analytics.capture(
+				.success,
+				id: "fetch_user_library_details",
+				longDescription: "Successfully fetched \(details.count) library entries for User: \(userId)",
+				source: .db
+			)
+			return details
+		} catch {
+			Analytics.capture(
+				.error,
+				id: "fetch_user_library_details",
+				longDescription: "Error fetching library details for User: \(userId): \(error)",
+				source: .db
+			)
+			print("Error fetching user library details: \(error)")
+			throw error // Rethrow the error to be handled by the caller
 		}
 	}
 }
