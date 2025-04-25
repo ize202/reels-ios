@@ -21,11 +21,10 @@ public struct SignInView: View {
 	let onSignedIn: () -> Void
 
 	public init(
-		db: DB,
 		navTitle: LocalizedStringKey = "",
 		onSignedIn: @escaping () -> Void = {}
 	) {
-		self._db = ObservedObject(wrappedValue: db)
+		self._db = ObservedObject(wrappedValue: DB.shared)
 		self.navTitle = navTitle
 		self.onSignedIn = onSignedIn
 	}
@@ -87,9 +86,11 @@ struct SignInHeroSection: View {
 	}
 }
 
-#Preview {
-	Color.gray
-		.sheet(isPresented: .constant(true)) {
-			SignInView(db: DB())
-		}
+#if DEBUG
+struct SignInView_Previews: PreviewProvider {
+    static var previews: some View {
+        SignInView()
+            .environmentObject(DB.preview())
+    }
 }
+#endif

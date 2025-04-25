@@ -62,7 +62,12 @@ public struct ReAuthSheetView: View {
 		.padding(.bottom, 10)
 	}
 }
-#Preview {
-	ReAuthSheetView(onComplete: { _ in })
-		.environmentObject(DB())
+
+#if DEBUG
+struct ReAuthSheet_Previews: PreviewProvider {
+	static var previews: some View {
+		ReAuthSheetView(onComplete: { _ in })
+			.environmentObject(DB.preview())
+	}
 }
+#endif

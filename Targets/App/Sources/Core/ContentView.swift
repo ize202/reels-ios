@@ -46,8 +46,3 @@ struct ContentView: View {
 	}
 }
 
-#Preview {
-	ContentView()
-		.environmentObject(InAppPurchases())
-		.environmentObject(DB())
-}

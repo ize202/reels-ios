@@ -19,7 +19,7 @@ struct ProfileView: View {
     init() {
         // Initialize ViewModel with @StateObject
         // Note: We can't access EnvironmentObject during init, so we pass them in onAppear
-        _viewModel = StateObject(wrappedValue: ProfileViewModel(db: DB(), iap: InAppPurchases()))
+        _viewModel = StateObject(wrappedValue: ProfileViewModel(db: DB.shared, iap: InAppPurchases()))
     }
 
     var body: some View {
@@ -365,14 +365,12 @@ struct SettingsRow: View {
 }
 
 // MARK: - Preview Provider
+#if DEBUG
 struct ProfileView_Previews: PreviewProvider {
     static var previews: some View {
-        let iapManager = InAppPurchases()
-        let dbManager = DB()
-        
         ProfileView()
-            .environmentObject(iapManager)
-            .environmentObject(dbManager)
-            .preferredColorScheme(.dark)
+            .environmentObject(DB.preview())
+            .environmentObject(InAppPurchases())
     }
-} 
+}
+#endif

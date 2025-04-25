@@ -243,8 +243,12 @@ struct DeveloperSettingsView: View {
 	}
 }
 
-#Preview {
-	DeveloperSettingsView()
-		.environmentObject(DB())
-		.environmentObject(InAppPurchases())
+#if DEBUG
+struct DeveloperSettingsView_Previews: PreviewProvider {
+	static var previews: some View {
+		DeveloperSettingsView()
+			.environmentObject(DB.preview())
+			.environmentObject(InAppPurchases())
+	}
 }
+#endif

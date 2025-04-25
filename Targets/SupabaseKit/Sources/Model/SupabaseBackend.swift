@@ -142,7 +142,9 @@ public struct UserLibraryDetail: Codable, Identifiable, Equatable {
 
 @MainActor
 public class DB: ObservableObject {
-
+	/// Shared instance for the entire app
+    public static var shared = DB()
+	
 	/// Define a custom error for validation within this scope
 	public struct ValidationError: LocalizedError {
 		public let message: String
@@ -175,10 +177,9 @@ public class DB: ObservableObject {
 
 	///- Parameter onAuthStateChange: Additional closure to pass to the AuthState Listener.
 	/// We use this to set all the different providers to use the same, supabase-issued user ID to identify the user.
-	public init(
+	private init(
 		onAuthStateChange: @escaping (AuthChangeEvent, Session?) -> Void = { _, _ in }
 	) {
-
 		#if DEBUG
 		let urlKey = "SUPABASE_DEV_URL"
 		let apiKeyKey = "SUPABASE_DEV_KEY"
@@ -205,6 +206,19 @@ public class DB: ObservableObject {
 			await registerAuthStateListener(additionalHandler: onAuthStateChange)
 		}
 	}
+	
+	/// Configure the shared instance with auth state change handler
+	public static func configure(onAuthStateChange: @escaping (AuthChangeEvent, Session?) -> Void) {
+		// Create a new shared instance with the auth state change handler
+		shared = DB(onAuthStateChange: onAuthStateChange)
+	}
+	
+	#if DEBUG
+	/// Preview helper - only available in DEBUG
+	public static func preview() -> DB {
+		DB()
+	}
+	#endif
 }
 
 //MARK: - Series & Episodes

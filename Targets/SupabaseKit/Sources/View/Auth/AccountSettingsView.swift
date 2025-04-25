@@ -300,9 +300,3 @@ extension Color {
 	}
 }
 
-#Preview {
-	NavigationStack {
-		SupabaseAccountSettingsView(popBackToRoot: {})
-			.environmentObject(DB())
-	}
-}

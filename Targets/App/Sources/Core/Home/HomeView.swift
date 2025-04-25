@@ -202,7 +202,4 @@ struct FeaturedSeriesCard: View {
     }
 }
 
-#Preview {
-    // Pass a DB instance directly for preview
-    HomeView(db: DB())
-} 
+

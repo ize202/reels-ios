@@ -81,7 +81,6 @@ private struct RequireLoginViewModifier: ViewModifier {
 			}
 		) {
 			SignInView(
-				db: db,
 				navTitle: navTitle,
 				onSignedIn: {
 					showSheet = false

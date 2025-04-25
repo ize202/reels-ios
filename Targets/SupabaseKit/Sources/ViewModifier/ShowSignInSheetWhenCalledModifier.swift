@@ -28,7 +28,6 @@ public struct ShowSignInSheetWhenCalledModifier: ViewModifier {
 		content
 			.sheet(isPresented: $showSheet) {
 				SignInView(
-					db: db,
 					navTitle: "Sign in required",
 					onSignedIn: {
 						showSheet = false

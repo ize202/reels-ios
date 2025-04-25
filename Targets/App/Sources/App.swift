@@ -39,44 +39,45 @@ struct MainApp: App {
 	// We use this to clear push notifications when the app is opened.
 	@Environment(\.scenePhase) var scenePhase
 
-    init() {
+	init() {
+		// Configure DB singleton with auth state change handler
+		DB.configure { event, session in
+			if let user = session?.user {
+				// Logged in => Privacy Consent Given during signup (NotifKit)
+				PushNotifications.oneSignalConsentGiven()
 
-        _db = StateObject(
-            wrappedValue: DB(onAuthStateChange: { event, session in
-                if let user = session?.user {
-                    // Logged in => Privacy Consent Given during signup (NotifKit)
-                    PushNotifications.oneSignalConsentGiven()
+				// Identify OneSignal with Supabase user (NotifKit & AuthKit)
+				PushNotifications.associateUserWithID(user.id.uuidString)
+				
+				// Get Mixpanel Associated User Properties (AnalyticsKit & AuthKit)
+				var userProperties = DB.convertAuthUserToAnalyticsUserProperties(user)
+				
+				let mixpanelProperties = userProperties.reduce(into: Properties()) { result, element in
+					// Only add values that conform to MixpanelType
+					if let value = element.value as? MixpanelType {
+						result[element.key] = value
+					}
+				}
 
-                    // Identify OneSignal with Supabase user (NotifKit & AuthKit)
-                    PushNotifications.associateUserWithID(user.id.uuidString)
-					
-                    // Get Mixpanel Associated User Properties (AnalyticsKit & AuthKit)
-                    var userProperties = DB.convertAuthUserToAnalyticsUserProperties(user)
-                    
-                    let mixpanelProperties = userProperties.reduce(into: Properties()) { result, element in
-                        // Only add values that conform to MixpanelType
-                        if let value = element.value as? MixpanelType {
-                            result[element.key] = value
-                        }
-                    }
-
-                    // Identify RevenueCat SDK with Supabase user (InAppPurchaseKit & AuthKit)
-                    InAppPurchases.associateUserWithID(
-                        user.id.uuidString
-
-                            , currentUserProperties: userProperties
-                    ) {
-                        userProperties = $0
-                    }
-                    Analytics.associateUserWithID(user.id.uuidString, userProperties: mixpanelProperties)
-                } else {
-                    Analytics.removeUserIDAssociation()
-                    InAppPurchases.removeUserIDAssociation()
-                    PushNotifications.removeUserIDAssociation()
-                }
-            }))
-    }
-    
+				// Identify RevenueCat SDK with Supabase user (InAppPurchaseKit & AuthKit)
+				InAppPurchases.associateUserWithID(
+					user.id.uuidString,
+					currentUserProperties: userProperties
+				) {
+					userProperties = $0
+				}
+				Analytics.associateUserWithID(user.id.uuidString, userProperties: mixpanelProperties)
+			} else {
+				Analytics.removeUserIDAssociation()
+				InAppPurchases.removeUserIDAssociation()
+				PushNotifications.removeUserIDAssociation()
+			}
+		}
+		
+		// Initialize StateObject with shared instance
+		_db = StateObject(wrappedValue: DB.shared)
+	}
+	
 	var body: some Scene {
 		WindowGroup {
 			ContentView()

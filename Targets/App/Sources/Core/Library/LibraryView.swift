@@ -145,6 +145,3 @@ struct LibrarySeriesCard: View {
     }
 }
 
-#Preview {
-    LibraryView(db: DB())
-}

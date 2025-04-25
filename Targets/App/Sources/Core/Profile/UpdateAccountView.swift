@@ -90,21 +90,3 @@ struct UpdateAccountView: View {
     }
 }
 
-// --- Preview --- Requires DB to be properly set up or mocked
-struct UpdateAccountView_Previews: PreviewProvider {
-    static var previews: some View {
-        let mockDB = DB() // Use your actual DB initializer
-        // Removed: Mock notification manager
-        // Mock different states for preview
-        // Task { try? await mockDB._db.auth.signInAnonymously() } // Preview Anonymous
-        // Task { try? await mockDB._db.auth.signInWithPassword(...) } // Preview Signed In
-
-        // Need to wrap in something that provides the environment object
-        UpdateAccountView(db: mockDB)
-            .environmentObject(mockDB)
-            // Removed: Environment object for notification manager
-    }
-}
-
-// --- Make sure LoadingOverlay is defined, e.g., in SharedKit ---
-// struct LoadingOverlay: View { ... } // As defined previously 

@@ -171,21 +171,4 @@ struct OffsetKey: PreferenceKey {
     }
 }
 
-// MARK: - Preview Provider
-struct FeedView_Previews: PreviewProvider {
-    static var previews: some View {
-        // Use mock DB for preview
-        let mockDB = DB()
-        // Use a mock UUID for preview
-        let mockSeriesId = UUID()
-        
-        FeedView(db: mockDB, seriesId: mockSeriesId)
-            .previewDisplayName("Feed View - Full Screen")
-            .previewDevice("iPhone 14 Pro")
-        
-        // Add preview for starting at a specific episode
-        FeedView(db: mockDB, seriesId: mockSeriesId, startingEpisode: 5)
-            .previewDisplayName("Feed View - Start Ep 5")
-            .previewDevice("iPhone 14 Pro")
-    }
-} 
+
