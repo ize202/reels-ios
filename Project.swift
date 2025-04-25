@@ -49,6 +49,7 @@ func tuistProject() -> Project {
 		"NSPhotoLibraryUsageDescription": "We need Photo Library Access for the App to work.",
 		"UILaunchStoryboardName": "LaunchScreen",
 		"UISupportedInterfaceOrientations": .array(["UIInterfaceOrientationPortrait"]),  //Only Support Portrait on iphone
+		"ITSAppUsesNonExemptEncryption": .boolean(false), // Indicates app doesn't use non-exempt encryption
     ]
 
 	// Info Property List values that are included with each module (usable by extending the default info plist
