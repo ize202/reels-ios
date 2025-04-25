@@ -9,6 +9,7 @@ struct FeedItem: Identifiable {
     let thumbnailURL: URL?
     let playbackId: String  // Mux playback ID
     let seriesId: String
+    let series: String      // Series name
     let episodeNumber: Int
     let unlockType: Episode.UnlockType
     let totalEpisodes: Int
@@ -19,6 +20,11 @@ struct FeedItem: Identifiable {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         return formatter.string(from: NSNumber(value: viewCount)) ?? "0"
+    }
+    
+    // Computed property to format episode number for analytics
+    var formattedEpisodeNumber: String {
+        return String(episodeNumber)
     }
 }
 

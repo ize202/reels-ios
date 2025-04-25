@@ -111,6 +111,7 @@ class FeedViewModel: ObservableObject {
                     thumbnailURL: series.coverUrl != nil ? URL(string: series.coverUrl!) : nil,
                     playbackId: episode.playbackUrl, // Use the actual playbackUrl
                     seriesId: series.id.uuidString,
+                    series: series.title,
                     episodeNumber: episode.episodeNumber,
                     unlockType: episode.unlockType,
                     totalEpisodes: episodes.count, // Use total count from original episodes list for accuracy

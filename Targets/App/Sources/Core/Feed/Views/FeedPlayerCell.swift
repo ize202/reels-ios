@@ -71,7 +71,7 @@ struct FeedPlayerCell: View {
                     print("[CELL] Appear: \(item.id)")
                     // Only create player if not VIP-locked
                     if player == nil && !(item.unlockType == .vip && iap.subscriptionState == .notSubscribed) { // Also use enum case here
-                         player = MuxVideoPlayer.createPlayer(playbackId: item.playbackId)
+                         player = createPlayerWithMetadata()
                     }
                     // Removed state sync
                     // isLiked = item.isLiked
@@ -130,6 +130,27 @@ struct FeedPlayerCell: View {
         overlayAutoHideTimer?.invalidate()
         overlayAutoHideTimer = nil
         print("[CELL] Cancelled auto-hide timer for \(item.id)")
+    }
+
+    // MARK: - Player Creation with Metadata
+    
+    private func createPlayerWithMetadata() -> AVPlayer {
+        // Create metadata for analytics
+        let metadata = MuxVideoMetadata(
+            title: item.title,
+            series: item.series,
+            episodeNumber: item.formattedEpisodeNumber,
+            contentType: "vod", // Video on demand
+            videoId: String(item.id)
+        )
+        
+        // Create the player with metadata for analytics
+        let player = MuxVideoPlayer.createPlayer(
+            playbackId: item.playbackId,
+            metadata: metadata
+        )
+        
+        return player
     }
 }
 
