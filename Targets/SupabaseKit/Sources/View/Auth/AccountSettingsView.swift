@@ -187,34 +187,116 @@ struct UpdateNameSheetView: View {
 	@Binding var newDisplayName: String
 	var onSave: () -> Void
 	@Environment(\.dismiss) var dismiss
-
+	
+	// Add state for field focus
+	@FocusState private var isNameFieldFocused: Bool
+	
 	var body: some View {
-		NavigationView { // Embed in NavigationView for title and buttons
-			VStack(spacing: 20) {
-				TextField("New Display Name", text: $newDisplayName)
-					.textFieldStyle(.roundedBorder)
-					.autocorrectionDisabled()
-					.textInputAutocapitalization(.words)
+		NavigationView {
+			ZStack {
+				// Background color
+				Color.black.edgesIgnoringSafeArea(.all)
 				
-				Button("Save Display Name") {
-					onSave()
+				VStack(spacing: 24) {
+					
+					// Name input field
+					VStack(alignment: .leading, spacing: 8) {
+						TextField("Display Name", text: $newDisplayName)
+							.textFieldStyle(.plain)
+							.font(.system(size: 17, weight: .regular))
+							.foregroundColor(.white)
+							.autocorrectionDisabled()
+							.textInputAutocapitalization(.words)
+							.focused($isNameFieldFocused)
+							.padding(.vertical, 12)
+							.padding(.horizontal, 16)
+							.background(
+								RoundedRectangle(cornerRadius: 12)
+									.fill(Color(UIColor.systemGray6))
+							)
+						
+						// Character count
+						Text("\(newDisplayName.count)/20")
+							.font(.caption)
+							.foregroundColor(.secondary)
+							.padding(.horizontal, 4)
+					}
+					.padding(.horizontal)
+					
+					// Save button
+					Button(action: {
+						hapticFeedback(.light)
+						onSave()
+					}) {
+						Text("Save Changes")
+							.font(.system(size: 17, weight: .semibold))
+							.frame(maxWidth: .infinity)
+							.padding(.vertical, 16)
+							.background(
+								RoundedRectangle(cornerRadius: 12)
+									.fill(Color(hex: "9B79C1")) // Primary color from requirements
+							)
+							.foregroundColor(.white)
+					}
+					.disabled(newDisplayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+					.opacity(newDisplayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.6 : 1.0)
+					.padding(.horizontal)
+					
+					Spacer()
 				}
-				.buttonStyle(.borderedProminent)
-				.disabled(newDisplayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
-				Spacer()
+				.padding(.top, 20)
 			}
-			.padding()
 			.navigationTitle("Update Display Name")
 			.navigationBarTitleDisplayMode(.inline)
 			.toolbar {
 				ToolbarItem(placement: .navigationBarLeading) {
-					Button("Cancel") { dismiss() }
+					Button("Cancel") {
+						hapticFeedback(.light)
+						dismiss()
+					}
+					.foregroundColor(Color(hex: "9B79C1")) // Primary color
 				}
 			}
+			.onAppear {
+				isNameFieldFocused = true
+			}
 		}
-		 .presentationDetents([.medium]) // Adjust height as needed
-		 .presentationCornerRadius(20)
+		.preferredColorScheme(.dark)
+		.presentationDetents([.height(300)])
+		.presentationCornerRadius(20)
+	}
+	
+	// Helper function for haptic feedback
+	private func hapticFeedback(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
+		let generator = UIImpactFeedbackGenerator(style: style)
+		generator.impactOccurred()
+	}
+}
+
+// Helper extension for hex colors
+extension Color {
+	init(hex: String) {
+		let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+		var int: UInt64 = 0
+		Scanner(string: hex).scanHexInt64(&int)
+		let a, r, g, b: UInt64
+		switch hex.count {
+		case 3: // RGB (12-bit)
+			(a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
+		case 6: // RGB (24-bit)
+			(a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
+		case 8: // ARGB (32-bit)
+			(a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
+		default:
+			(a, r, g, b) = (1, 1, 1, 0)
+		}
+		self.init(
+			.sRGB,
+			red: Double(r) / 255,
+			green: Double(g) / 255,
+			blue: Double(b) / 255,
+			opacity: Double(a) / 255
+		)
 	}
 }
 
