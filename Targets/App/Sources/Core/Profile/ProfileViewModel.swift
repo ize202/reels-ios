@@ -110,15 +110,7 @@ class ProfileViewModel: ObservableObject {
         await askUserFor(.appRating)
     }
     
-    func openNotificationSettings() async {
-        // If we already have permission, open system settings
-        // Otherwise show the permission request sheet
-        if await PushNotifications.hasNotificationsPermission() {
-            if let url = URL(string: UIApplication.openSettingsURLString) {
-                await UIApplication.shared.open(url)
-            }
-        } else {
-            PushNotifications.showNotificationsPermissionsSheet()
-        }
+    func openNotificationSettings() {
+        PushNotifications.showNotificationsPermissionsSheet()
     }
 } 

@@ -309,11 +309,7 @@ struct ProfileView: View {
                 }
                 Divider()
                 
-                Button(action: { 
-                    Task {
-                        await viewModel.openNotificationSettings()
-                    }
-                }) {
+                Button(action: { viewModel.openNotificationSettings() }) {
                     SettingsRow(icon: "bell", title: "Notifications")
                 }
                 Divider()
