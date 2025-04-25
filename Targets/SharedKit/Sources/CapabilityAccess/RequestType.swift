@@ -55,12 +55,11 @@ public enum RequestType: Identifiable {
 		switch self {
 			case .appRating:
 				return RequestTypeData(
-					sfSymbolName: "star.leadinghalf.filled",
-					title: "Rate the App",
-					subtitle:
-						"If you like the app, please consider rating it on the App Store. It helps a lot!",
+					sfSymbolName: "star",
+					title: "Rate App",
+					subtitle: "Rate our app on the App Store",
 					footerNote: nil,
-					ctaText: "Rate the App"
+					ctaText: "Rate Now"
 				)
 			case .photosAccess:
 				return RequestTypeData(
@@ -137,55 +136,11 @@ public enum RequestType: Identifiable {
 			// we will just consume the askUserFor(.appRating) and not show anything.
 			case .appRating:
 				return {
-
-					// We obviously don't want to show it the first time the user opens the app.
-					// If yes, just return .gotPermission, which equals to "successful" (don't show the sheet, continue with the app)
-					let lastAppVersionAppWasOpenedAt =
-						UserDefaults.standard.string(
-							forKey: Constants.UserDefaults.General.lastAppVersionAppWasOpenedAt)
-						?? "NONE"
-					if lastAppVersionAppWasOpenedAt == "NONE"
-						|| lastAppVersionAppWasOpenedAt != Constants.AppData.appVersion
-					{
-						return .gotPermission
+					let windowScene = await UIApplication.shared.connectedScenes.first as? UIWindowScene
+					if let windowScene {
+						await AppStore.requestReview(in: windowScene)
 					}
-
-					// Check if user already clicked on "Rate the App" Button in our sheet (meaning, that we've already showed the system review prompt)
-					// If yes, we just return .gotPermission (don't show the sheet, continue with the app)
-					if UserDefaults.standard.bool(
-						forKey: Constants.UserDefaults.General.alreadyAskedForAppReviewThroughSystemPrompt
-					) {
-						return .gotPermission
-					}
-
-					// Check if its the 10th time the user performs an action, only then we will show the sheet (and reset the counter back to 0)
-					let userPerformedActionCount = UserDefaults.standard.integer(
-						forKey: Constants.UserDefaults.General.positiveActionPerformedCount
-					)
-
-					print(
-						"Action executed \(userPerformedActionCount) times. Will show review sheet on exection no. \(Constants.General.positiveActionThreshold)."
-					)
-
-					if userPerformedActionCount >= Constants.General.positiveActionThreshold {
-
-						print("Showing Review Sheet!")
-
-						// set it back to 0
-						UserDefaults.standard.set(
-							0, forKey: Constants.UserDefaults.General.positiveActionPerformedCount)
-
-						// We can show the sheet now
-						return .notYetAsked
-					} else {
-
-						// otherwise, we increment the counter and return .gotPermission
-						UserDefaults.standard.set(
-							userPerformedActionCount + 1,
-							forKey: Constants.UserDefaults.General.positiveActionPerformedCount)
-						return .gotPermission
-					}
-
+					return .gotPermission
 				}
 			case .photosAccess:
 				return {
@@ -329,16 +284,8 @@ public enum RequestType: Identifiable {
 			case .appRating:
 				return {
 					let windowScene = await UIApplication.shared.connectedScenes.first as? UIWindowScene
-
 					if let windowScene {
-						// if we got window, show the app rating prompt in it
 						await AppStore.requestReview(in: windowScene)
-
-						// set in userdefaults that we have shown the prompt
-						UserDefaults.standard.set(
-							true,
-							forKey: Constants.UserDefaults.General
-								.alreadyAskedForAppReviewThroughSystemPrompt)
 					}
 					return true
 				}

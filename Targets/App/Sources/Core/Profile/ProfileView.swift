@@ -298,7 +298,11 @@ struct ProfileView: View {
                     Divider()
                 }
                 
-                Button(action: { print("Rate Us Tapped") }) {
+                Button(action: { 
+                    Task {
+                        await viewModel.requestAppRating()
+                    }
+                }) {
                     SettingsRow(icon: "star", title: "Rate Us")
                 }
                 Divider()

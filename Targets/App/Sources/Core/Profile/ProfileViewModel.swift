@@ -2,6 +2,7 @@ import SwiftUI
 import Combine
 import SupabaseKit
 import InAppPurchaseKit
+import SharedKit
 
 @MainActor
 class ProfileViewModel: ObservableObject {
@@ -102,5 +103,9 @@ class ProfileViewModel: ObservableObject {
     
     func showPaywall() {
         InAppPurchases.showPaywallSheet()
+    }
+    
+    func requestAppRating() async {
+        await askUserFor(.appRating)
     }
 } 
