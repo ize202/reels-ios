@@ -129,11 +129,6 @@ public enum RequestType: Identifiable {
 	@MainActor public var permissionStatus: () async -> RequestPermissionStatus {
 		switch self {
 
-			// in this case, its not permission, but rather have we already asked for a review
-			// We want to show the review prompt every 10th time the user performs some action. (For example, 10th to-do is completed)
-			// So, every 10th time, we prompt the user our sheet. If he denies rating in our sheet, we will show it again the next 10th action time.
-			// If he presses on "Rate the App" in our sheet, we will show him the system prompt. After the system prompt has been shown once,
-			// we will just consume the askUserFor(.appRating) and not show anything.
 			case .appRating:
 				return {
 					let windowScene = await UIApplication.shared.connectedScenes.first as? UIWindowScene

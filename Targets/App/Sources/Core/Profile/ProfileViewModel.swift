@@ -3,6 +3,7 @@ import Combine
 import SupabaseKit
 import InAppPurchaseKit
 import SharedKit
+import NotifKit
 
 @MainActor
 class ProfileViewModel: ObservableObject {
@@ -107,5 +108,17 @@ class ProfileViewModel: ObservableObject {
     
     func requestAppRating() async {
         await askUserFor(.appRating)
+    }
+    
+    func openNotificationSettings() async {
+        // If we already have permission, open system settings
+        // Otherwise show the permission request sheet
+        if await PushNotifications.hasNotificationsPermission() {
+            if let url = URL(string: UIApplication.openSettingsURLString) {
+                await UIApplication.shared.open(url)
+            }
+        } else {
+            PushNotifications.showNotificationsPermissionsSheet()
+        }
     }
 } 

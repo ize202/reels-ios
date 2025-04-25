@@ -7,6 +7,7 @@ import SwiftUI
 import SharedKit
 import SupabaseKit
 import InAppPurchaseKit
+import NotifKit
 
 struct ProfileView: View {
     @Environment(\.colorScheme) var colorScheme
@@ -48,6 +49,7 @@ struct ProfileView: View {
                 viewModel.iap = iap
             }
         }
+        .modifier(ShowPushNotificationPermissionSheetIfNeededModifier())
     }
     
     // MARK: - Computed View Properties
@@ -304,6 +306,15 @@ struct ProfileView: View {
                     }
                 }) {
                     SettingsRow(icon: "star", title: "Rate Us")
+                }
+                Divider()
+                
+                Button(action: { 
+                    Task {
+                        await viewModel.openNotificationSettings()
+                    }
+                }) {
+                    SettingsRow(icon: "bell", title: "Notifications")
                 }
                 Divider()
                 
