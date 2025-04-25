@@ -143,7 +143,7 @@ public struct UserLibraryDetail: Codable, Identifiable, Equatable {
 @MainActor
 public class DB: ObservableObject {
 	/// Shared instance for the entire app
-    public static var shared = DB()
+	public static let shared = DB()
 	
 	/// Define a custom error for validation within this scope
 	public struct ValidationError: LocalizedError {
@@ -174,12 +174,12 @@ public class DB: ObservableObject {
 
 	/// For Sign in With Apple (see SignInWithApple.siwft)
 	internal var currentNonce: String?
+	
+	/// Stored closure for auth state changes
+	private var onAuthStateChangeHandler: ((AuthChangeEvent, Session?) -> Void)?
 
-	///- Parameter onAuthStateChange: Additional closure to pass to the AuthState Listener.
-	/// We use this to set all the different providers to use the same, supabase-issued user ID to identify the user.
-	private init(
-		onAuthStateChange: @escaping (AuthChangeEvent, Session?) -> Void = { _, _ in }
-	) {
+	/// Private initializer - only called once for the shared instance.
+	private init() {
 		#if DEBUG
 		let urlKey = "SUPABASE_DEV_URL"
 		let apiKeyKey = "SUPABASE_DEV_KEY"
@@ -201,22 +201,30 @@ public class DB: ObservableObject {
 			supabaseURL: supabaseURL,
 			supabaseKey: apiKey
 		)
-
+		
+		// DO NOT register listener here automatically.
+		// It will be registered via the configure method.
+	}
+	
+	/// Configure the shared instance with auth state change handler and register the listener.
+	public static func configure(onAuthStateChange: @escaping (AuthChangeEvent, Session?) -> Void) {
+		// Store the handler
+		shared.onAuthStateChangeHandler = onAuthStateChange
+		
+		// Register the listener on the existing shared instance
 		Task {
-			await registerAuthStateListener(additionalHandler: onAuthStateChange)
+			// Pass the stored handler to the registration function
+			await shared.registerAuthStateListener(additionalHandler: { event, session in
+				shared.onAuthStateChangeHandler?(event, session)
+			})
 		}
 	}
 	
-	/// Configure the shared instance with auth state change handler
-	public static func configure(onAuthStateChange: @escaping (AuthChangeEvent, Session?) -> Void) {
-		// Create a new shared instance with the auth state change handler
-		shared = DB(onAuthStateChange: onAuthStateChange)
-	}
-	
 	#if DEBUG
-	/// Preview helper - only available in DEBUG
+	/// Preview helper - only available in DEBUG. Creates a separate instance.
 	public static func preview() -> DB {
-		DB()
+		// Create a fresh instance for previews, don't configure the listener
+		return DB()
 	}
 	#endif
 }
