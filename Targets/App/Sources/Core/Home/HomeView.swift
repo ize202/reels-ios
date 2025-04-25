@@ -50,15 +50,29 @@ struct HomeView: View {
             .background(Color.black)
             .preferredColorScheme(.dark)
             .refreshable {
-                await viewModel.fetchData()
+                do {
+                    try await Task.sleep(nanoseconds: 500_000_000) // Add small delay for better UX
+                    await viewModel.fetchData()
+                } catch {
+                    print("Refresh task cancelled")
+                }
             }
             .overlay {
                 if viewModel.isLoading {
                     ProgressView()
                 } else if let errorMessage = viewModel.errorMessage {
-                    Text(errorMessage)
-                        .foregroundColor(.red)
-                        .padding()
+                    VStack {
+                        Text(errorMessage)
+                            .foregroundColor(.red)
+                            .padding()
+                        Button("Try Again") {
+                            Task {
+                                await viewModel.fetchData()
+                            }
+                        }
+                        .foregroundColor(Color(hex: "9B79C1"))
+                        .padding(.top, 8)
+                    }
                 }
             }
         }
